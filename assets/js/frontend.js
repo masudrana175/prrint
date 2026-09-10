@@ -447,7 +447,10 @@
 				'</div>' +
 				'<div class="prrint-item-footer">' +
 					'<span class="prrint-item-price"></span>' +
-					'<button type="button" class="prrint-remove-btn" aria-label="' + esc(cfg.i18n.remove) + '">🗑</button>' +
+					'<span class="prrint-item-footer-actions">' +
+						'<button type="button" class="prrint-addsize-btn" title="' + esc(cfg.i18n.addAnotherSize) + '">⧉ ' + esc(cfg.i18n.addSize) + '</button>' +
+						'<button type="button" class="prrint-remove-btn" aria-label="' + esc(cfg.i18n.remove) + '">🗑</button>' +
+					'</span>' +
 				'</div>' +
 			'</div>';
 
@@ -513,6 +516,9 @@
 			card.remove();
 			updateSummary();
 		});
+		card.querySelector('.prrint-addsize-btn').addEventListener('click', function () {
+			duplicateItemForNewSize(item);
+		});
 		card.querySelector('.prrint-edit-btn').addEventListener('click', function () {
 			openEditor(item);
 		});
@@ -523,6 +529,44 @@
 		item.card = card;
 		els.items.appendChild(card);
 		renderCard(item);
+	}
+
+	/**
+	 * "Order this same photo in another size" — adds a second independent
+	 * card sharing the same upload token (and thus the same source file
+	 * server-side), with its own size/crop/design so it becomes its own
+	 * cart line. Cheaper to build correctly this way than restructuring
+	 * the whole studio around a single photo with many size/qty rows.
+	 */
+	function duplicateItemForNewSize(source) {
+		var newSizeIdx = source.sizeIdx;
+		if (cfg.sizes.length > 1) {
+			newSizeIdx = (source.sizeIdx + 1) % cfg.sizes.length;
+		}
+		var item = {
+			id: nextId++,
+			token: source.token,
+			img: source.img,
+			natW: source.natW,
+			natH: source.natH,
+			rot: source.rot,
+			orientation: source.orientation,
+			sizeIdx: newSizeIdx,
+			paperIdx: source.paperIdx,
+			qty: 1,
+			design: cloneDesign(source.design),
+			crop: { x: source.crop.x, y: source.crop.y, w: source.crop.w, h: source.crop.h },
+			ready: true,
+			card: null,
+			_drawingImg: source._drawingImg || null
+		};
+		refitCrop(item);
+		items.push(item);
+		buildCard(item);
+		updateSummary();
+		if (item.card && item.card.scrollIntoView) {
+			item.card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+		}
 	}
 
 	function esc(s) {

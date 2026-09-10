@@ -290,6 +290,28 @@ body.prrint-modal-open {
 	opacity: 1;
 }
 
+.prrint-item-footer-actions {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.prrint-addsize-btn {
+	border: 1px solid var(--prrint-line);
+	border-radius: 999px;
+	background: #fff;
+	color: var(--prrint-muted);
+	font-size: 0.78em;
+	cursor: pointer;
+	padding: 4px 10px;
+	white-space: nowrap;
+}
+
+.prrint-addsize-btn:hover {
+	border-color: var(--prrint-accent);
+	color: var(--prrint-accent);
+}
+
 /* -------------------------------------------------------- loading card */
 
 .prrint-item-loading {

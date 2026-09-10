@@ -20,6 +20,11 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
 - **Filters & adjust** — one-click tone presets (B&W, Warm, Cold, Vintage,
   DuoTone, Legacy, Smooth) plus brightness/contrast/saturation sliders,
   rendered identically in the browser preview and the GD print pipeline.
+  DuoTone is a true 2-stop color gradient (not a single-tint approximation),
+  done via palette remapping so it stays fast at full print resolution.
+- **Order one photo in several sizes** — "Add size" on any card clones that
+  photo (same crop/edits) into a second, independently priced cart line so
+  a customer can order the same shot as, say, one 8×10 and two 5×7s.
 - **Text layers** — add captions on top of the photo: font size, bold,
   alignment, text color, background color, line spacing and rotation, with
   move-by-drag, duplicate and delete. Great for cards, gifts and greetings.

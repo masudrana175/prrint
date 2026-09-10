@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,13 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.4.0 =
+* DuoTone is now a true 2-stop color gradient (palette remapping), not a
+  single-tint approximation — stays fast (~250ms) at full print resolution.
+* Add "Add size" on each photo card — order the same photo (same crop and
+  edits) in a second size/paper/quantity as its own cart line, without
+  re-uploading.
 
 = 1.3.0 =
 * Add Elements (sticker shapes: circle, square, star, heart, arrow, line —

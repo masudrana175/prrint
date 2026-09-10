@@ -130,6 +130,8 @@ class Prrint_Frontend {
 				'toolElements'  => __( 'Elements', 'prrint' ),
 				'toolDraw'      => __( 'Draw', 'prrint' ),
 				'noShapeLayer'  => __( 'Add a shape first.', 'prrint' ),
+				'addSize'       => __( 'Add size', 'prrint' ),
+				'addAnotherSize' => __( 'Order this same photo in another size', 'prrint' ),
 			),
 		) );
 	}
