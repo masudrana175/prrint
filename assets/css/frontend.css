@@ -388,6 +388,10 @@ body.prrint-modal-open {
 	box-shadow: 0 8px 24px rgba(16, 24, 40, 0.35);
 }
 
+.prrint-summary[hidden] {
+	display: none;
+}
+
 .prrint-summary-info {
 	display: flex;
 	align-items: baseline;
@@ -453,6 +457,15 @@ body.prrint-modal-open {
 	align-items: center;
 	justify-content: center;
 	background: #000;
+}
+
+/* An author `display` declaration otherwise beats the browser's default
+   `[hidden] { display: none }` UA rule outright, regardless of specificity
+   — author styles always take precedence over user-agent styles in the
+   cascade. Without this, the full-screen editor stays visible before a
+   photo is ever opened, permanently covering the upload dropzone. */
+.prrint-editor-overlay[hidden] {
+	display: none;
 }
 
 .prrint-editor-panel {

@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.11.1
+Stable tag: 1.11.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,16 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.11.2 =
+* Fix: the editor and the sticky "Add to cart" bar showed on page load
+  even before a photo was uploaded, permanently covering the upload
+  dropzone underneath — on every page (product page and [prrint_studio]
+  alike). A CSS `display: flex` declaration on both elements silently
+  overrode the browser's own `[hidden]` behavior, since author
+  stylesheet rules always take precedence over the user-agent default
+  regardless of specificity. Added explicit `[hidden] { display: none }`
+  rules for both.
 
 = 1.11.1 =
 * Fix: [prrint_studio] on a Page rendered unstyled and non-functional —
