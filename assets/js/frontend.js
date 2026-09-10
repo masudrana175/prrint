@@ -1,10 +1,18 @@
 /**
  * Prrint — Photo Print Studio front end.
  *
- * Multi-photo upload, per-photo crop editor, live pricing, batch add-to-cart.
+ * Multi-photo upload, per-photo editor (crop/zoom/rotate, filters, adjust,
+ * text layers, border), live pricing, batch add-to-cart.
+ *
  * Crop coordinates are exported in the source image's pixel space after
  * applying `rotation` quarter-turns clockwise — the exact space the
  * server-side renderer (Prrint_Image::render) expects.
+ *
+ * The editor's "design" (filter/adjust/border/text layers) is a second,
+ * independent pass applied on top of the cropped output: layer x/y/w and
+ * fontSize are fractions of the crop frame, resolution independent, so the
+ * same numbers describe a small preview canvas and the full-size print
+ * canvas alike — exactly what Prrint_Image::render()'s design stage expects.
  */
 (function () {
 	'use strict';
@@ -33,7 +41,30 @@
 		dpi: document.getElementById('prrint-dpi'),
 		editorDone: document.getElementById('prrint-editor-done'),
 		editorCancel: document.getElementById('prrint-editor-cancel'),
-		toast: document.getElementById('prrint-toast')
+		toast: document.getElementById('prrint-toast'),
+		toolRail: document.querySelector('.prrint-tool-rail'),
+		toolPanels: document.querySelectorAll('.prrint-tool-panel'),
+		filterGrid: document.getElementById('prrint-filter-grid'),
+		adjBrightness: document.getElementById('prrint-adj-brightness'),
+		adjContrast: document.getElementById('prrint-adj-contrast'),
+		adjSaturation: document.getElementById('prrint-adj-saturation'),
+		adjReset: document.getElementById('prrint-adj-reset'),
+		textAdd: document.getElementById('prrint-text-add'),
+		textFields: document.getElementById('prrint-text-fields'),
+		textContent: document.getElementById('prrint-text-content'),
+		textSize: document.getElementById('prrint-text-size'),
+		textSpacing: document.getElementById('prrint-text-spacing'),
+		textWidth: document.getElementById('prrint-text-width'),
+		textRotation: document.getElementById('prrint-text-rotation'),
+		textBold: document.getElementById('prrint-text-bold'),
+		textColorSwatches: document.getElementById('prrint-text-color-swatches'),
+		textBgSwatches: document.getElementById('prrint-text-bg-swatches'),
+		textDuplicate: document.getElementById('prrint-text-duplicate'),
+		textDelete: document.getElementById('prrint-text-delete'),
+		borderEnable: document.getElementById('prrint-border-enable'),
+		borderFields: document.getElementById('prrint-border-fields'),
+		borderSwatches: document.getElementById('prrint-border-swatches'),
+		borderWidth: document.getElementById('prrint-border-width')
 	};
 	var ctx = els.canvas.getContext('2d');
 
@@ -51,9 +82,23 @@
 
 	var items = [];   // studio items
 	var nextId = 1;
+	var nextLayerId = 1;
 
 	var defaultSize = cfg.preselectSize >= 0 ? cfg.preselectSize : 0;
 	var defaultPaper = cfg.preselectPaper >= 0 ? cfg.preselectPaper : 0;
+
+	function newDesign() {
+		return {
+			filter: '',
+			adjust: { brightness: 0, contrast: 0, saturation: 100 },
+			border: { enabled: false, color: '#ffffff', width_in: cfg.borderIn || 0.25 },
+			layers: []
+		};
+	}
+
+	function cloneDesign(d) {
+		return JSON.parse(JSON.stringify(d || newDesign()));
+	}
 
 	/* ----------------------------------------------------------- utils */
 
@@ -138,6 +183,132 @@
 		item.crop = { x: x, y: y, w: sw, h: sh };
 	}
 
+	/* -------------------------------------------------- design / filters */
+
+	// CSS canvas-filter approximations of the server's GD imagefilter()
+	// presets. Only a preview — the ground truth is the server-rendered
+	// preview generated right after Add to cart, same as the crop tool.
+	var FILTER_CSS = {
+		bw: 'grayscale(1)',
+		warm: 'sepia(0.35) saturate(1.3)',
+		cold: 'saturate(1.15) sepia(0.15) hue-rotate(180deg)',
+		vintage: 'sepia(0.6) contrast(0.9) brightness(1.05)',
+		duotone: 'grayscale(1) sepia(0.35) hue-rotate(220deg) saturate(1.6)',
+		legacy: 'grayscale(0.7) sepia(0.4) contrast(0.85) brightness(0.92)',
+		smooth: 'blur(0.5px)'
+	};
+
+	function designFilterCss(design) {
+		var parts = [];
+		if (design && design.filter && FILTER_CSS[design.filter]) {
+			parts.push(FILTER_CSS[design.filter]);
+		}
+		if (design && design.adjust) {
+			var a = design.adjust;
+			if (a.brightness) { parts.push('brightness(' + (1 + a.brightness / 100) + ')'); }
+			if (a.contrast) { parts.push('contrast(' + (1 + a.contrast / 100) + ')'); }
+			if (typeof a.saturation === 'number' && a.saturation !== 100) {
+				parts.push('saturate(' + Math.max(0, a.saturation / 100) + ')');
+			}
+		}
+		return parts.length ? parts.join(' ') : 'none';
+	}
+
+	function wrapTextLine(measureCtx, line, maxW) {
+		var words = line.trim().split(/\s+/);
+		if (!words.length || (words.length === 1 && words[0] === '')) {
+			return [''];
+		}
+		var out = [];
+		var cur = '';
+		words.forEach(function (word) {
+			var t = cur ? cur + ' ' + word : word;
+			if (measureCtx.measureText(t).width > maxW && cur) {
+				out.push(cur);
+				cur = word;
+			} else {
+				cur = t;
+			}
+		});
+		if (cur) { out.push(cur); }
+		return out.length ? out : [''];
+	}
+
+	/**
+	 * Bounding box (canvas px) of a text layer, ignoring rotation — used
+	 * for hit-testing and for the background-box fill. Frame is the crop
+	 * frame rect the layer's x/y/w fractions are relative to.
+	 */
+	function layerBox(drawCtx, layer, frame) {
+		var fontPx = Math.max(6, Math.round(layer.fontSize * frame.h));
+		drawCtx.font = (layer.bold ? 'bold ' : '') + fontPx + 'px "Prrint Liberation Sans", Arial, sans-serif';
+		var x = frame.x + layer.x * frame.w;
+		var y = frame.y + layer.y * frame.h;
+		var w = Math.max(fontPx, layer.w * frame.w);
+		var lines = [];
+		(layer.text || '').split('\n').forEach(function (src) {
+			lines = lines.concat(wrapTextLine(drawCtx, src, w));
+		});
+		var lineH = fontPx * (layer.lineSpacing || 1.3);
+		var h = lineH * lines.length;
+		return { x: x, y: y, w: w, h: h, fontPx: fontPx, lineH: lineH, lines: lines };
+	}
+
+	/**
+	 * Draw every text layer of a design onto drawCtx, relative to frame.
+	 * Mirrors Prrint_Image::draw_text_layer() line for line.
+	 */
+	function drawTextLayers(drawCtx, design, frame) {
+		if (!design || !design.layers || !design.layers.length) { return; }
+		design.layers.forEach(function (layer) {
+			if (!layer.text) { return; }
+			var box = layerBox(drawCtx, layer, frame);
+			var angleRad = (layer.rotation || 0) * Math.PI / 180;
+
+			if (layer.bgColor) {
+				var pad = box.fontPx * 0.4;
+				drawCtx.save();
+				drawCtx.fillStyle = layer.bgColor;
+				drawCtx.fillRect(box.x - pad, box.y - pad, box.w + pad * 2, box.h + pad * 2);
+				drawCtx.restore();
+			}
+
+			drawCtx.fillStyle = layer.color || '#ffffff';
+			drawCtx.textBaseline = 'alphabetic';
+			box.lines.forEach(function (line, i) {
+				if (!line) { return; }
+				var lineW = drawCtx.measureText(line).width;
+				var lx = box.x;
+				if (layer.align === 'center') { lx = box.x + (box.w - lineW) / 2; }
+				else if (layer.align === 'right') { lx = box.x + box.w - lineW; }
+				var ly = box.y + box.fontPx + i * box.lineH;
+				drawCtx.save();
+				drawCtx.translate(lx, ly);
+				drawCtx.rotate(angleRad);
+				drawCtx.fillText(line, 0, 0);
+				drawCtx.restore();
+			});
+		});
+	}
+
+	/**
+	 * Fill + inset math for a border, given the crop frame (canvas px) and
+	 * the item's print dimensions in inches. Mirrors the bx/by inset the
+	 * PHP renderer computes.
+	 */
+	function borderInset(frame, design, printDim) {
+		if (!design || !design.border || !design.border.enabled) {
+			return { bx: 0, by: 0, color: '' };
+		}
+		var wIn = printDim.w;
+		var hIn = printDim.h;
+		var bx = Math.round(frame.w * design.border.width_in / wIn);
+		var by = Math.round(frame.h * design.border.width_in / hIn);
+		bx = Math.min(bx, Math.floor((frame.w - 2) / 2));
+		by = Math.min(by, Math.floor((frame.h - 2) / 2));
+		return { bx: Math.max(0, bx), by: Math.max(0, by), color: design.border.color || '#ffffff' };
+	}
+
 	/* --------------------------------------------------- item cards ui */
 
 	function buildCard(item) {
@@ -187,6 +358,7 @@
 			paperSel.appendChild(opt);
 		});
 		paperSel.value = String(item.paperIdx);
+		card.querySelector('.prrint-border-check').checked = !!item.design.border.enabled;
 
 		/* events */
 		sizeSel.addEventListener('change', function () {
@@ -201,7 +373,10 @@
 			updateSummary();
 		});
 		card.querySelector('.prrint-border-check').addEventListener('change', function () {
-			item.border = this.checked;
+			item.design.border.enabled = this.checked;
+			if (this.checked && !item.design.border.color) {
+				item.design.border.color = '#ffffff';
+			}
 			renderCard(item);
 		});
 		var qtyInput = card.querySelector('.prrint-qty-input');
@@ -247,13 +422,13 @@
 	}
 
 	/**
-	 * Redraw one card: thumbnail canvas, price, dpi dot.
+	 * Redraw one card: thumbnail canvas (photo + filter/adjust + border +
+	 * text layers), price, dpi dot.
 	 */
 	function renderCard(item) {
 		var card = item.card;
 		if (!card) { return; }
 
-		// Thumbnail canvas: draw the crop (with optional border) at ~220px wide.
 		var canvas = card.querySelector('.prrint-thumb-canvas');
 		var p = printDims(item);
 		var TW = 440; // retina-ish backing store
@@ -262,14 +437,13 @@
 		canvas.height = TH;
 
 		var c = canvas.getContext('2d');
-		c.fillStyle = '#ffffff';
+		var frame = { x: 0, y: 0, w: TW, h: TH };
+		var inset = borderInset(frame, item.design, p);
+
+		c.fillStyle = inset.color || '#ffffff';
 		c.fillRect(0, 0, TW, TH);
 
-		var bx = 0, by = 0;
-		if (item.border) {
-			bx = Math.round(TW * cfg.borderIn / p.w);
-			by = Math.round(TH * cfg.borderIn / p.h);
-		}
+		var bx = inset.bx, by = inset.by;
 		var innerW = TW - 2 * bx;
 		var innerH = TH - 2 * by;
 
@@ -280,6 +454,7 @@
 		c.beginPath();
 		c.rect(bx, by, innerW, innerH);
 		c.clip();
+		c.filter = designFilterCss(item.design);
 		c.translate(bx, by);
 		c.scale(s, s);
 		c.translate(-item.crop.x, -item.crop.y);
@@ -287,6 +462,9 @@
 		c.rotate(item.rot * Math.PI / 2);
 		c.drawImage(item.img, -item.natW / 2, -item.natH / 2);
 		c.restore();
+
+		c.filter = 'none';
+		drawTextLayers(c, item.design, frame);
 
 		// Price line.
 		var unit = unitPrice(item);
@@ -397,7 +575,7 @@
 					sizeIdx: defaultSize,
 					paperIdx: defaultPaper,
 					qty: 1,
-					border: false,
+					design: newDesign(),
 					crop: null,
 					ready: true,
 					card: null
@@ -457,6 +635,9 @@
 		rot: 0,
 		orientation: 'portrait',
 		sizeIdx: 0,
+		design: newDesign(),
+		selectedLayerId: null,
+		activeTool: 'transform',
 		scale: 1,
 		minScale: 1,
 		maxScale: 1,
@@ -566,17 +747,37 @@
 		if (!it) { return; }
 		ctx.clearRect(0, 0, ed.cssW, ed.cssH);
 
-		var cx = ed.cssW / 2 + ed.off.x;
-		var cy = ed.cssH / 2 + ed.off.y;
+		var f = ed.frame;
+		var inset = borderInset(f, ed.design, edPrintDims());
+		var bx = inset.bx, by = inset.by;
+
+		if (inset.color) {
+			ctx.fillStyle = inset.color;
+			ctx.fillRect(f.x, f.y, f.w, f.h);
+		}
+
+		var cx = f.x + bx + (f.w - 2 * bx) / 2 + ed.off.x * ((f.w - 2 * bx) / f.w);
+		var cy = f.y + by + (f.h - 2 * by) / 2 + ed.off.y * ((f.h - 2 * by) / f.h);
+		var innerScale = ed.scale * ((f.w - 2 * bx) / f.w);
 
 		ctx.save();
+		ctx.beginPath();
+		ctx.rect(f.x + bx, f.y + by, f.w - 2 * bx, f.h - 2 * by);
+		ctx.clip();
+		ctx.filter = designFilterCss(ed.design);
 		ctx.translate(cx, cy);
 		ctx.rotate(ed.rot * Math.PI / 2);
-		ctx.scale(ed.scale, ed.scale);
+		ctx.scale(innerScale, innerScale);
 		ctx.drawImage(it.img, -it.natW / 2, -it.natH / 2);
 		ctx.restore();
+		ctx.filter = 'none';
 
-		var f = ed.frame;
+		drawTextLayers(ctx, ed.design, f);
+		if (ed.activeTool === 'text') {
+			drawLayerHandles();
+		}
+
+		// Dim outside the frame + white frame stroke + rule-of-thirds guides.
 		ctx.fillStyle = 'rgba(15,15,20,0.6)';
 		ctx.fillRect(0, 0, ed.cssW, f.y);
 		ctx.fillRect(0, f.y + f.h, ed.cssW, ed.cssH - f.y - f.h);
@@ -587,16 +788,18 @@
 		ctx.lineWidth = 2;
 		ctx.strokeRect(f.x + 1, f.y + 1, f.w - 2, f.h - 2);
 
-		ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-		ctx.lineWidth = 1;
-		ctx.beginPath();
-		for (var i = 1; i <= 2; i++) {
-			ctx.moveTo(f.x + (f.w * i) / 3, f.y);
-			ctx.lineTo(f.x + (f.w * i) / 3, f.y + f.h);
-			ctx.moveTo(f.x, f.y + (f.h * i) / 3);
-			ctx.lineTo(f.x + f.w, f.y + (f.h * i) / 3);
+		if (ed.activeTool === 'transform') {
+			ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			for (var i = 1; i <= 2; i++) {
+				ctx.moveTo(f.x + (f.w * i) / 3, f.y);
+				ctx.lineTo(f.x + (f.w * i) / 3, f.y + f.h);
+				ctx.moveTo(f.x, f.y + (f.h * i) / 3);
+				ctx.lineTo(f.x + f.w, f.y + (f.h * i) / 3);
+			}
+			ctx.stroke();
 		}
-		ctx.stroke();
 	}
 
 	function edUpdateDpi() {
@@ -618,11 +821,304 @@
 		}
 	}
 
+	/* --------------------------------------------------------- tool rail */
+
+	function setActiveTool(tool) {
+		ed.activeTool = tool;
+		if (els.toolRail) {
+			els.toolRail.querySelectorAll('.prrint-tool-btn').forEach(function (btn) {
+				btn.classList.toggle('is-active', btn.dataset.tool === tool);
+			});
+		}
+		els.toolPanels.forEach(function (panel) {
+			panel.hidden = panel.dataset.panel !== tool;
+		});
+		edDraw();
+	}
+
+	if (els.toolRail) {
+		els.toolRail.addEventListener('click', function (e) {
+			var btn = e.target.closest('.prrint-tool-btn');
+			if (btn) { setActiveTool(btn.dataset.tool); }
+		});
+	}
+
+	/* filters panel */
+	if (els.filterGrid) {
+		cfg.filters.forEach(function (f) {
+			var btn = document.createElement('button');
+			btn.type = 'button';
+			btn.className = 'prrint-filter-swatch';
+			btn.dataset.filter = f.id;
+			btn.textContent = f.label;
+			btn.addEventListener('click', function () {
+				ed.design.filter = f.id;
+				els.filterGrid.querySelectorAll('.prrint-filter-swatch').forEach(function (b) {
+					b.classList.toggle('is-active', b.dataset.filter === f.id);
+				});
+				edDraw();
+			});
+			els.filterGrid.appendChild(btn);
+		});
+	}
+
+	/* adjust panel */
+	function edAdjustInput(el, key) {
+		if (!el) { return; }
+		el.addEventListener('input', function () {
+			ed.design.adjust[key] = Number(this.value);
+			edDraw();
+		});
+	}
+	edAdjustInput(els.adjBrightness, 'brightness');
+	edAdjustInput(els.adjContrast, 'contrast');
+	edAdjustInput(els.adjSaturation, 'saturation');
+	if (els.adjReset) {
+		els.adjReset.addEventListener('click', function () {
+			ed.design.adjust = { brightness: 0, contrast: 0, saturation: 100 };
+			els.adjBrightness.value = '0';
+			els.adjContrast.value = '0';
+			els.adjSaturation.value = '100';
+			edDraw();
+		});
+	}
+
+	/* border panel */
+	function buildSwatchRow(container, colors, onPick) {
+		if (!container) { return; }
+		container.innerHTML = '';
+		colors.forEach(function (color) {
+			var btn = document.createElement('button');
+			btn.type = 'button';
+			btn.className = 'prrint-swatch';
+			btn.dataset.color = color;
+			if (!color) {
+				btn.classList.add('prrint-swatch-none');
+				btn.title = cfg.i18n.transparent;
+			} else {
+				btn.style.backgroundColor = color;
+			}
+			btn.addEventListener('click', function () {
+				container.querySelectorAll('.prrint-swatch').forEach(function (b) { b.classList.remove('is-active'); });
+				btn.classList.add('is-active');
+				onPick(color);
+			});
+			container.appendChild(btn);
+		});
+	}
+
+	buildSwatchRow(els.borderSwatches, cfg.borderColors, function (color) {
+		ed.design.border.color = color;
+		edDraw();
+	});
+
+	if (els.borderEnable) {
+		els.borderEnable.addEventListener('change', function () {
+			ed.design.border.enabled = this.checked;
+			els.borderFields.hidden = !this.checked;
+			edDraw();
+		});
+	}
+	if (els.borderWidth) {
+		els.borderWidth.addEventListener('input', function () {
+			ed.design.border.width_in = Number(this.value) / 100;
+			edDraw();
+		});
+	}
+
+	/* text panel */
+	function selectedLayer() {
+		if (!ed.selectedLayerId) { return null; }
+		return ed.design.layers.filter(function (l) { return l.id === ed.selectedLayerId; })[0] || null;
+	}
+
+	function showLayerFields(layer) {
+		if (!layer) {
+			els.textFields.hidden = true;
+			return;
+		}
+		els.textFields.hidden = false;
+		els.textContent.value = layer.text;
+		els.textSize.value = String(Math.round(layer.fontSize * 100));
+		els.textSpacing.value = String(Math.round(layer.lineSpacing * 10));
+		els.textWidth.value = String(Math.round(layer.w * 100));
+		els.textRotation.value = String(Math.round(layer.rotation));
+		els.textBold.classList.toggle('is-active', !!layer.bold);
+		els.textFields.querySelectorAll('[data-align]').forEach(function (b) {
+			b.classList.toggle('is-active', b.dataset.align === layer.align);
+		});
+		els.textColorSwatches.querySelectorAll('.prrint-swatch').forEach(function (b) {
+			b.classList.toggle('is-active', b.dataset.color === layer.color);
+		});
+		els.textBgSwatches.querySelectorAll('.prrint-swatch').forEach(function (b) {
+			b.classList.toggle('is-active', b.dataset.color === (layer.bgColor || ''));
+		});
+	}
+
+	function selectLayer(id) {
+		ed.selectedLayerId = id;
+		showLayerFields(selectedLayer());
+		edDraw();
+	}
+
+	function addLayer() {
+		var layer = {
+			id: 'l' + (nextLayerId++),
+			type: 'text',
+			text: cfg.i18n.newTextDefault,
+			fontSize: 0.08,
+			bold: false,
+			align: 'center',
+			color: '#ffffff',
+			bgColor: '',
+			lineSpacing: 1.3,
+			x: 0.15,
+			y: 0.4,
+			w: 0.7,
+			rotation: 0
+		};
+		ed.design.layers.push(layer);
+		selectLayer(layer.id);
+	}
+
+	if (els.textAdd) {
+		els.textAdd.addEventListener('click', addLayer);
+	}
+	if (els.textContent) {
+		els.textContent.addEventListener('input', function () {
+			var l = selectedLayer();
+			if (l) { l.text = this.value; edDraw(); }
+		});
+	}
+	if (els.textSize) {
+		els.textSize.addEventListener('input', function () {
+			var l = selectedLayer();
+			if (l) { l.fontSize = Number(this.value) / 100; edDraw(); }
+		});
+	}
+	if (els.textSpacing) {
+		els.textSpacing.addEventListener('input', function () {
+			var l = selectedLayer();
+			if (l) { l.lineSpacing = Number(this.value) / 10; edDraw(); }
+		});
+	}
+	if (els.textWidth) {
+		els.textWidth.addEventListener('input', function () {
+			var l = selectedLayer();
+			if (l) { l.w = Number(this.value) / 100; edDraw(); }
+		});
+	}
+	if (els.textRotation) {
+		els.textRotation.addEventListener('input', function () {
+			var l = selectedLayer();
+			if (l) { l.rotation = Number(this.value); edDraw(); }
+		});
+	}
+	if (els.textBold) {
+		els.textBold.addEventListener('click', function () {
+			var l = selectedLayer();
+			if (!l) { return; }
+			l.bold = !l.bold;
+			els.textBold.classList.toggle('is-active', l.bold);
+			edDraw();
+		});
+	}
+	if (els.textFields) {
+		els.textFields.querySelectorAll('[data-align]').forEach(function (btn) {
+			btn.addEventListener('click', function () {
+				var l = selectedLayer();
+				if (!l) { return; }
+				l.align = btn.dataset.align;
+				els.textFields.querySelectorAll('[data-align]').forEach(function (b) {
+					b.classList.toggle('is-active', b === btn);
+				});
+				edDraw();
+			});
+		});
+	}
+	buildSwatchRow(els.textColorSwatches, cfg.textColors, function (color) {
+		var l = selectedLayer();
+		if (l) { l.color = color; edDraw(); }
+	});
+	buildSwatchRow(els.textBgSwatches, cfg.textBgColors, function (color) {
+		var l = selectedLayer();
+		if (l) { l.bgColor = color; edDraw(); }
+	});
+	if (els.textDuplicate) {
+		els.textDuplicate.addEventListener('click', function () {
+			var l = selectedLayer();
+			if (!l) { toast(cfg.i18n.noTextLayer, true); return; }
+			var copy = JSON.parse(JSON.stringify(l));
+			copy.id = 'l' + (nextLayerId++);
+			copy.x = Math.min(0.9, l.x + 0.04);
+			copy.y = Math.min(0.9, l.y + 0.04);
+			ed.design.layers.push(copy);
+			selectLayer(copy.id);
+		});
+	}
+	if (els.textDelete) {
+		els.textDelete.addEventListener('click', function () {
+			if (!ed.selectedLayerId) { toast(cfg.i18n.noTextLayer, true); return; }
+			ed.design.layers = ed.design.layers.filter(function (l) { return l.id !== ed.selectedLayerId; });
+			ed.selectedLayerId = null;
+			showLayerFields(null);
+			edDraw();
+		});
+	}
+
+	/* layer selection handles (drawn only while the Text tool is active) */
+	function drawLayerHandles() {
+		var sel = selectedLayer();
+		if (!sel) { return; }
+		var box = layerBox(ctx, sel, ed.frame);
+		ctx.save();
+		ctx.strokeStyle = '#4f46e5';
+		ctx.lineWidth = 1.5;
+		ctx.setLineDash([4, 3]);
+		ctx.strokeRect(box.x - 4, box.y - 4, box.w + 8, box.h + 8);
+		ctx.restore();
+	}
+
+	function hitTestLayer(px, py) {
+		var layers = ed.design.layers;
+		for (var i = layers.length - 1; i >= 0; i--) {
+			var box = layerBox(ctx, layers[i], ed.frame);
+			if (px >= box.x - 4 && px <= box.x + box.w + 4 && py >= box.y - 4 && py <= box.y + box.h + 4) {
+				return layers[i];
+			}
+		}
+		return null;
+	}
+
 	function openEditor(item) {
 		ed.item = item;
 		ed.rot = item.rot;
 		ed.orientation = item.orientation;
 		ed.sizeIdx = item.sizeIdx;
+		ed.design = cloneDesign(item.design);
+		ed.selectedLayerId = null;
+
+		els.borderEnable.checked = !!ed.design.border.enabled;
+		els.borderFields.hidden = !ed.design.border.enabled;
+		els.borderWidth.value = String(Math.round(ed.design.border.width_in * 100));
+		els.adjBrightness.value = String(ed.design.adjust.brightness);
+		els.adjContrast.value = String(ed.design.adjust.contrast);
+		els.adjSaturation.value = String(ed.design.adjust.saturation);
+		if (els.filterGrid) {
+			els.filterGrid.querySelectorAll('.prrint-filter-swatch').forEach(function (b) {
+				b.classList.toggle('is-active', b.dataset.filter === (ed.design.filter || ''));
+			});
+		}
+		buildSwatchRow(els.borderSwatches, cfg.borderColors, function (color) {
+			ed.design.border.color = color;
+			edDraw();
+		});
+		els.borderSwatches.querySelectorAll('.prrint-swatch').forEach(function (b) {
+			b.classList.toggle('is-active', b.dataset.color === ed.design.border.color);
+		});
+		showLayerFields(null);
+
+		setActiveTool('transform');
 
 		els.editor.hidden = false;
 		document.body.classList.add('prrint-modal-open');
@@ -653,6 +1149,7 @@
 		item.rot = ed.rot;
 		item.orientation = ed.orientation;
 		item.crop = edExportCrop();
+		item.design = cloneDesign(ed.design);
 		closeEditor();
 		renderCard(item);
 		updateSummary();
@@ -660,31 +1157,63 @@
 
 	/* editor interactions */
 	var dragging = false;
+	var dragMode = null; // 'photo' | 'layer'
+	var dragLayer = null;
 	var last = { x: 0, y: 0 };
+
+	function canvasPoint(e) {
+		var rect = els.canvas.getBoundingClientRect();
+		return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+	}
 
 	els.canvas.addEventListener('pointerdown', function (e) {
 		if (!ed.item) { return; }
 		dragging = true;
 		last.x = e.clientX;
 		last.y = e.clientY;
+
+		if (ed.activeTool === 'text') {
+			var pt = canvasPoint(e);
+			var hit = hitTestLayer(pt.x, pt.y);
+			if (hit) {
+				selectLayer(hit.id);
+				dragMode = 'layer';
+				dragLayer = hit;
+			} else {
+				dragMode = null;
+				dragLayer = null;
+			}
+		} else {
+			dragMode = 'photo';
+		}
+
 		els.canvas.setPointerCapture(e.pointerId);
 		e.preventDefault();
 	});
 	els.canvas.addEventListener('pointermove', function (e) {
 		if (!dragging) { return; }
-		ed.off.x += e.clientX - last.x;
-		ed.off.y += e.clientY - last.y;
+		var dx = e.clientX - last.x;
+		var dy = e.clientY - last.y;
 		last.x = e.clientX;
 		last.y = e.clientY;
-		edClamp();
-		edDraw();
-		edUpdateDpi();
+
+		if (dragMode === 'layer' && dragLayer) {
+			dragLayer.x = Math.max(-0.5, Math.min(1.4, dragLayer.x + dx / ed.frame.w));
+			dragLayer.y = Math.max(-0.5, Math.min(1.4, dragLayer.y + dy / ed.frame.h));
+			edDraw();
+		} else if (dragMode === 'photo') {
+			ed.off.x += dx;
+			ed.off.y += dy;
+			edClamp();
+			edDraw();
+			edUpdateDpi();
+		}
 	});
-	els.canvas.addEventListener('pointerup', function () { dragging = false; });
-	els.canvas.addEventListener('pointercancel', function () { dragging = false; });
+	els.canvas.addEventListener('pointerup', function () { dragging = false; dragMode = null; dragLayer = null; });
+	els.canvas.addEventListener('pointercancel', function () { dragging = false; dragMode = null; dragLayer = null; });
 
 	els.canvas.addEventListener('wheel', function (e) {
-		if (!ed.item) { return; }
+		if (!ed.item || ed.activeTool !== 'transform') { return; }
 		e.preventDefault();
 		var factor = Math.pow(1.0015, -e.deltaY);
 		ed.scale = Math.max(ed.minScale, Math.min(ed.maxScale, ed.scale * factor));
@@ -727,6 +1256,15 @@
 		edDraw();
 	});
 
+	// Canvas text is drawn with the bundled webfont; redraw once it has
+	// finished loading so an in-progress edit doesn't stay on the fallback.
+	if (window.document && document.fonts && document.fonts.ready) {
+		document.fonts.ready.then(function () {
+			if (ed.item && !els.editor.hidden) { edDraw(); }
+			items.forEach(renderCard);
+		}).catch(function () { /* noop */ });
+	}
+
 	/* ------------------------------------------------------ add to cart */
 
 	els.addBtn.addEventListener('click', function () {
@@ -743,7 +1281,8 @@
 				paper: it.paperIdx,
 				qty: it.qty,
 				orientation: it.orientation,
-				border: it.border ? 1 : 0,
+				border: it.design.border.enabled ? 1 : 0,
+				design: it.design,
 				crop: {
 					x: it.crop.x,
 					y: it.crop.y,

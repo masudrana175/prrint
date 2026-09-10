@@ -138,7 +138,7 @@ class Prrint_Ajax {
 			// Server-rendered preview of the actual crop for cart/admin display.
 			$preview_rel  = 'previews/' . wp_generate_password( 20, false, false ) . '.jpg';
 			$preview_opts = array();
-			if ( $data['border'] ) {
+			if ( $data['border'] || ! empty( $data['design']['border']['enabled'] ) ) {
 				$preview_opts = array(
 					'border_in' => $settings['border_in'],
 					'w_in'      => $data['w_in'],
@@ -152,7 +152,8 @@ class Prrint_Ajax {
 				400,
 				400,
 				prrint_file_path( $preview_rel ),
-				$preview_opts
+				$preview_opts,
+				$data['design']
 			);
 			$data['preview'] = $rendered ? $preview_rel : '';
 			$data['unique']  = md5( $data['token'] . wp_rand() . microtime( true ) );
@@ -239,6 +240,7 @@ class Prrint_Ajax {
 				'surcharge'   => (float) $paper['surcharge'],
 				'orientation' => $orientation,
 				'border'      => $border,
+				'design'      => isset( $raw['design'] ) ? self::sanitize_design( $raw['design'] ) : null,
 				'rotation'    => isset( $crop_raw['rotation'] ) ? absint( $crop_raw['rotation'] ) % 4 : 0,
 				'crop'        => array(
 					'x' => (float) $crop_raw['x'],
@@ -248,5 +250,101 @@ class Prrint_Ajax {
 				),
 			),
 		);
+	}
+
+	/**
+	 * Validate an editor "design" payload (filter/adjust/border/text layers).
+	 * Returns null when there is nothing in it worth keeping.
+	 *
+	 * @return array|null
+	 */
+	protected static function sanitize_design( $raw ) {
+		if ( ! is_array( $raw ) ) {
+			return null;
+		}
+
+		$allowed_filters = array( 'bw', 'warm', 'cold', 'vintage', 'duotone', 'legacy', 'smooth' );
+		$filter           = isset( $raw['filter'] ) && in_array( $raw['filter'], $allowed_filters, true ) ? $raw['filter'] : null;
+
+		$adjust = array(
+			'brightness' => 0.0,
+			'contrast'   => 0.0,
+			'saturation' => 100.0,
+		);
+		$has_adjust = false;
+		if ( isset( $raw['adjust'] ) && is_array( $raw['adjust'] ) ) {
+			if ( isset( $raw['adjust']['brightness'] ) ) {
+				$adjust['brightness'] = max( -100, min( 100, (float) $raw['adjust']['brightness'] ) );
+			}
+			if ( isset( $raw['adjust']['contrast'] ) ) {
+				$adjust['contrast'] = max( -100, min( 100, (float) $raw['adjust']['contrast'] ) );
+			}
+			if ( isset( $raw['adjust']['saturation'] ) ) {
+				$adjust['saturation'] = max( 0, min( 100, (float) $raw['adjust']['saturation'] ) );
+			}
+			$has_adjust = ( 0.0 !== $adjust['brightness'] || 0.0 !== $adjust['contrast'] || 100.0 !== $adjust['saturation'] );
+		}
+
+		$border = array(
+			'enabled'  => false,
+			'color'    => '#ffffff',
+			'width_in' => 0.25,
+		);
+		if ( isset( $raw['border'] ) && is_array( $raw['border'] ) ) {
+			$border['enabled']  = ! empty( $raw['border']['enabled'] );
+			$border['color']    = self::sanitize_hex_color( isset( $raw['border']['color'] ) ? $raw['border']['color'] : '#ffffff' );
+			$border['width_in'] = isset( $raw['border']['width_in'] ) ? max( 0.05, min( 2, (float) $raw['border']['width_in'] ) ) : 0.25;
+		}
+
+		$layers = array();
+		if ( isset( $raw['layers'] ) && is_array( $raw['layers'] ) ) {
+			foreach ( array_slice( $raw['layers'], 0, 20 ) as $layer_raw ) {
+				if ( ! is_array( $layer_raw ) || 'text' !== ( isset( $layer_raw['type'] ) ? $layer_raw['type'] : '' ) ) {
+					continue;
+				}
+				$text = isset( $layer_raw['text'] ) ? wp_strip_all_tags( (string) $layer_raw['text'] ) : '';
+				$text = mb_substr( $text, 0, 500 );
+				if ( '' === trim( $text ) ) {
+					continue;
+				}
+				$align = isset( $layer_raw['align'] ) ? $layer_raw['align'] : '';
+				$layers[] = array(
+					'type'        => 'text',
+					'text'        => $text,
+					'fontSize'    => isset( $layer_raw['fontSize'] ) ? max( 0.01, min( 0.5, (float) $layer_raw['fontSize'] ) ) : 0.06,
+					'bold'        => ! empty( $layer_raw['bold'] ),
+					'align'       => in_array( $align, array( 'left', 'center', 'right' ), true ) ? $align : 'center',
+					'color'       => self::sanitize_hex_color( isset( $layer_raw['color'] ) ? $layer_raw['color'] : '#ffffff' ),
+					'bgColor'     => empty( $layer_raw['bgColor'] ) ? '' : self::sanitize_hex_color( $layer_raw['bgColor'] ),
+					'lineSpacing' => isset( $layer_raw['lineSpacing'] ) ? max( 0.8, min( 3, (float) $layer_raw['lineSpacing'] ) ) : 1.3,
+					'x'           => isset( $layer_raw['x'] ) ? max( -0.5, min( 1.5, (float) $layer_raw['x'] ) ) : 0.1,
+					'y'           => isset( $layer_raw['y'] ) ? max( -0.5, min( 1.5, (float) $layer_raw['y'] ) ) : 0.1,
+					'w'           => isset( $layer_raw['w'] ) ? max( 0.05, min( 1.5, (float) $layer_raw['w'] ) ) : 0.8,
+					'rotation'    => isset( $layer_raw['rotation'] ) ? max( -180, min( 180, (float) $layer_raw['rotation'] ) ) : 0,
+				);
+			}
+		}
+
+		if ( ! $filter && ! $has_adjust && ! $border['enabled'] && empty( $layers ) ) {
+			return null;
+		}
+
+		return array(
+			'filter' => $filter,
+			'adjust' => $adjust,
+			'border' => $border,
+			'layers' => $layers,
+		);
+	}
+
+	/**
+	 * Validate a "#rrggbb"/"rrggbb"/"#rgb" color string, falling back to white.
+	 */
+	protected static function sanitize_hex_color( $hex ) {
+		$hex = ltrim( (string) $hex, '#' );
+		if ( 3 === strlen( $hex ) ) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+		return ( 6 === strlen( $hex ) && ctype_xdigit( $hex ) ) ? '#' . strtolower( $hex ) : '#ffffff';
 	}
 }

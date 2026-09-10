@@ -17,6 +17,13 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
   scroll-wheel & slider zoom, 90° rotation, portrait/landscape toggle,
   rule-of-thirds guides. The crop frame is always locked to the chosen print
   size's aspect ratio: what the customer sees is exactly what prints.
+- **Filters & adjust** — one-click tone presets (B&W, Warm, Cold, Vintage,
+  DuoTone, Legacy, Smooth) plus brightness/contrast/saturation sliders,
+  rendered identically in the browser preview and the GD print pipeline.
+- **Text layers** — add captions on top of the photo: font size, bold,
+  alignment, text color, background color, line spacing and rotation, with
+  move-by-drag, duplicate and delete. Great for cards, gifts and greetings.
+- **Custom border** — any color and width, not just the classic white mat.
 - **Per-photo options** — print size, paper/finish, quantity stepper, and an
   optional white border, each photo independently.
 - **Live pricing** — per-item and order totals update instantly; sticky
@@ -86,6 +93,13 @@ to preselect options — handy for category-style landing links such as
 - Crop coordinates are exchanged between the browser editor and the GD
   renderer in a single well-defined space (source pixels after N quarter-turn
   rotations), so client preview and server output always match.
+- Filters/adjust/text/border are a second render pass on top of the cropped
+  output; text layer position and size are fractions of that output canvas,
+  so the same numbers describe a small cart-preview render and the full
+  300 DPI print alike. See `Prrint_Image::render()`.
+- The text tool renders with a bundled Liberation Sans (Regular/Bold,
+  `assets/fonts/`, SIL Open Font License) so print output doesn't depend on
+  fonts installed on the server.
 - Uninstalling removes plugin options but intentionally keeps order files.
 
 ## License

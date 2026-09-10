@@ -62,6 +62,19 @@ class Prrint_Frontend {
 			'preselectSize'  => $preselect_size,
 			'preselectPaper' => $preselect_paper,
 			'cartUrl'        => wc_get_cart_url(),
+			'filters'        => array(
+				array( 'id' => '',        'label' => __( 'None', 'prrint' ) ),
+				array( 'id' => 'bw',      'label' => __( 'B&W', 'prrint' ) ),
+				array( 'id' => 'warm',    'label' => __( 'Warm', 'prrint' ) ),
+				array( 'id' => 'cold',    'label' => __( 'Cold', 'prrint' ) ),
+				array( 'id' => 'vintage', 'label' => __( 'Vintage', 'prrint' ) ),
+				array( 'id' => 'duotone', 'label' => __( 'DuoTone', 'prrint' ) ),
+				array( 'id' => 'legacy',  'label' => __( 'Legacy', 'prrint' ) ),
+				array( 'id' => 'smooth',  'label' => __( 'Smooth', 'prrint' ) ),
+			),
+			'textColors'     => array( '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
+			'textBgColors'   => array( '', '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
+			'borderColors'   => array( '#ffffff', '#000000', '#9ca3af', '#f43f5e', '#f59e0b', '#3b82f6' ),
 			'currency'       => array(
 				'symbol'      => html_entity_decode( get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8' ),
 				'decimals'    => wc_get_price_decimals(),
@@ -96,6 +109,14 @@ class Prrint_Frontend {
 				'cancel'       => __( 'Cancel', 'prrint' ),
 				'editorTitle'  => __( 'Adjust your photo', 'prrint' ),
 				'editorHint'   => __( 'Drag to reposition · scroll or slide to zoom', 'prrint' ),
+				'toolTransform' => __( 'Crop & rotate', 'prrint' ),
+				'toolFilters'   => __( 'Filters', 'prrint' ),
+				'toolAdjust'    => __( 'Adjust', 'prrint' ),
+				'toolText'      => __( 'Text', 'prrint' ),
+				'toolBorder'    => __( 'Border', 'prrint' ),
+				'newTextDefault' => __( 'Your text here', 'prrint' ),
+				'noTextLayer'   => __( 'Add a text layer first.', 'prrint' ),
+				'transparent'   => __( 'None', 'prrint' ),
 			),
 		) );
 	}
@@ -148,15 +169,85 @@ class Prrint_Frontend {
 						<strong><?php esc_html_e( 'Adjust your photo', 'prrint' ); ?></strong>
 						<span class="prrint-editor-hint"><?php esc_html_e( 'Drag to reposition · scroll or slide to zoom', 'prrint' ); ?></span>
 					</div>
-					<div class="prrint-editor-canvas-wrap">
-						<canvas id="prrint-canvas"></canvas>
-						<span class="prrint-dpi" id="prrint-dpi" hidden></span>
+
+					<div class="prrint-editor-body">
+						<div class="prrint-tool-rail" role="tablist" aria-label="<?php esc_attr_e( 'Editor tools', 'prrint' ); ?>">
+							<button type="button" class="prrint-tool-btn is-active" data-tool="transform" title="<?php esc_attr_e( 'Crop & rotate', 'prrint' ); ?>">⤢</button>
+							<button type="button" class="prrint-tool-btn" data-tool="filters" title="<?php esc_attr_e( 'Filters', 'prrint' ); ?>">◐</button>
+							<button type="button" class="prrint-tool-btn" data-tool="adjust" title="<?php esc_attr_e( 'Adjust', 'prrint' ); ?>">☼</button>
+							<button type="button" class="prrint-tool-btn" data-tool="text" title="<?php esc_attr_e( 'Text', 'prrint' ); ?>">A</button>
+							<button type="button" class="prrint-tool-btn" data-tool="border" title="<?php esc_attr_e( 'Border', 'prrint' ); ?>">▢</button>
+						</div>
+
+						<div class="prrint-tool-panels">
+							<div class="prrint-tool-panel" data-panel="transform">
+								<input type="range" id="prrint-zoom" min="0" max="100" value="0" aria-label="<?php esc_attr_e( 'Zoom', 'prrint' ); ?>" />
+								<div class="prrint-panel-row">
+									<button type="button" class="prrint-tool" id="prrint-rotate" title="<?php esc_attr_e( 'Rotate 90°', 'prrint' ); ?>">⟳ <?php esc_html_e( 'Rotate', 'prrint' ); ?></button>
+									<button type="button" class="prrint-tool" id="prrint-orient" title="<?php esc_attr_e( 'Portrait / landscape', 'prrint' ); ?>">▭ <?php esc_html_e( 'Orientation', 'prrint' ); ?></button>
+								</div>
+							</div>
+
+							<div class="prrint-tool-panel" data-panel="filters" hidden>
+								<div class="prrint-filter-grid" id="prrint-filter-grid"></div>
+							</div>
+
+							<div class="prrint-tool-panel" data-panel="adjust" hidden>
+								<label class="prrint-slider-row"><span><?php esc_html_e( 'Brightness', 'prrint' ); ?></span>
+									<input type="range" id="prrint-adj-brightness" min="-100" max="100" value="0" /></label>
+								<label class="prrint-slider-row"><span><?php esc_html_e( 'Contrast', 'prrint' ); ?></span>
+									<input type="range" id="prrint-adj-contrast" min="-100" max="100" value="0" /></label>
+								<label class="prrint-slider-row"><span><?php esc_html_e( 'Saturation', 'prrint' ); ?></span>
+									<input type="range" id="prrint-adj-saturation" min="0" max="100" value="100" /></label>
+								<button type="button" class="prrint-btn-secondary prrint-adj-reset" id="prrint-adj-reset"><?php esc_html_e( 'Reset', 'prrint' ); ?></button>
+							</div>
+
+							<div class="prrint-tool-panel" data-panel="text" hidden>
+								<button type="button" class="prrint-cta" id="prrint-text-add">+ <?php esc_html_e( 'New Text', 'prrint' ); ?></button>
+								<div id="prrint-text-fields" hidden>
+									<textarea id="prrint-text-content" rows="3" placeholder="<?php esc_attr_e( 'Your text here', 'prrint' ); ?>"></textarea>
+									<label class="prrint-slider-row"><span><?php esc_html_e( 'Size', 'prrint' ); ?></span>
+										<input type="range" id="prrint-text-size" min="2" max="20" value="6" /></label>
+									<label class="prrint-slider-row"><span><?php esc_html_e( 'Line spacing', 'prrint' ); ?></span>
+										<input type="range" id="prrint-text-spacing" min="8" max="30" value="13" /></label>
+									<label class="prrint-slider-row"><span><?php esc_html_e( 'Box width', 'prrint' ); ?></span>
+										<input type="range" id="prrint-text-width" min="20" max="100" value="80" /></label>
+									<label class="prrint-slider-row"><span><?php esc_html_e( 'Rotation', 'prrint' ); ?></span>
+										<input type="range" id="prrint-text-rotation" min="-45" max="45" value="0" /></label>
+									<div class="prrint-panel-row">
+										<button type="button" class="prrint-tool" id="prrint-text-bold" title="<?php esc_attr_e( 'Bold', 'prrint' ); ?>"><strong>B</strong></button>
+										<button type="button" class="prrint-tool" data-align="left" title="<?php esc_attr_e( 'Align left', 'prrint' ); ?>">⯇</button>
+										<button type="button" class="prrint-tool" data-align="center" title="<?php esc_attr_e( 'Align center', 'prrint' ); ?>">≡</button>
+										<button type="button" class="prrint-tool" data-align="right" title="<?php esc_attr_e( 'Align right', 'prrint' ); ?>">⯈</button>
+									</div>
+									<p class="prrint-swatch-label"><?php esc_html_e( 'Text color', 'prrint' ); ?></p>
+									<div class="prrint-swatch-row" id="prrint-text-color-swatches" data-target="color"></div>
+									<p class="prrint-swatch-label"><?php esc_html_e( 'Background', 'prrint' ); ?></p>
+									<div class="prrint-swatch-row" id="prrint-text-bg-swatches" data-target="bgColor"></div>
+									<div class="prrint-panel-row">
+										<button type="button" class="prrint-btn-secondary" id="prrint-text-duplicate"><?php esc_html_e( 'Duplicate', 'prrint' ); ?></button>
+										<button type="button" class="prrint-btn-secondary" id="prrint-text-delete"><?php esc_html_e( 'Delete', 'prrint' ); ?></button>
+									</div>
+								</div>
+							</div>
+
+							<div class="prrint-tool-panel" data-panel="border" hidden>
+								<label class="prrint-border-label"><input type="checkbox" id="prrint-border-enable" /> <?php esc_html_e( 'Add a border', 'prrint' ); ?></label>
+								<div id="prrint-border-fields" hidden>
+									<p class="prrint-swatch-label"><?php esc_html_e( 'Color', 'prrint' ); ?></p>
+									<div class="prrint-swatch-row" id="prrint-border-swatches"></div>
+									<label class="prrint-slider-row"><span><?php esc_html_e( 'Width', 'prrint' ); ?></span>
+										<input type="range" id="prrint-border-width" min="5" max="100" value="25" /></label>
+								</div>
+							</div>
+						</div>
+
+						<div class="prrint-editor-canvas-wrap">
+							<canvas id="prrint-canvas"></canvas>
+							<span class="prrint-dpi" id="prrint-dpi" hidden></span>
+						</div>
 					</div>
-					<div class="prrint-editor-toolbar">
-						<input type="range" id="prrint-zoom" min="0" max="100" value="0" aria-label="<?php esc_attr_e( 'Zoom', 'prrint' ); ?>" />
-						<button type="button" class="prrint-tool" id="prrint-rotate" title="<?php esc_attr_e( 'Rotate 90°', 'prrint' ); ?>">⟳</button>
-						<button type="button" class="prrint-tool" id="prrint-orient" title="<?php esc_attr_e( 'Portrait / landscape', 'prrint' ); ?>">▭</button>
-					</div>
+
 					<div class="prrint-editor-actions">
 						<button type="button" class="prrint-btn-secondary" id="prrint-editor-cancel"><?php esc_html_e( 'Cancel', 'prrint' ); ?></button>
 						<button type="button" class="prrint-cta" id="prrint-editor-done"><?php esc_html_e( 'Done', 'prrint' ); ?></button>

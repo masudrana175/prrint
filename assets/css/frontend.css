@@ -3,6 +3,22 @@
    All rules are scoped under .prrint-* to avoid theme/plugin conflicts.
    ========================================================================= */
 
+/* Bundled so the editor's text tool preview matches the server-rendered
+   print (Prrint_Image::draw_text_layer uses the same two files). */
+@font-face {
+	font-family: 'Prrint Liberation Sans';
+	src: url('../fonts/LiberationSans-Regular.ttf') format('truetype');
+	font-weight: 400;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Prrint Liberation Sans';
+	src: url('../fonts/LiberationSans-Bold.ttf') format('truetype');
+	font-weight: 700;
+	font-display: swap;
+}
+
 .prrint-studio {
 	--prrint-accent: #4f46e5;
 	--prrint-accent-dark: #4338ca;
@@ -414,7 +430,7 @@ body.prrint-modal-open {
 
 .prrint-editor-panel {
 	width: 100%;
-	max-width: 700px;
+	max-width: 900px;
 	max-height: 94vh;
 	overflow: auto;
 	background: #fff;
@@ -443,8 +459,150 @@ body.prrint-modal-open {
 	color: var(--prrint-muted);
 }
 
+.prrint-editor-body {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.prrint-tool-rail {
+	display: flex;
+	flex-direction: column;
+	flex: 0 0 auto;
+	gap: 6px;
+}
+
+.prrint-tool-btn {
+	width: 40px;
+	height: 40px;
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid var(--prrint-line);
+	border-radius: 10px;
+	background: #fff;
+	color: var(--prrint-ink);
+	font-size: 1.1em;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.prrint-tool-btn:hover {
+	border-color: var(--prrint-accent);
+	color: var(--prrint-accent);
+}
+
+.prrint-tool-btn.is-active {
+	background: var(--prrint-accent);
+	border-color: var(--prrint-accent);
+	color: #fff;
+}
+
+.prrint-tool-panels {
+	flex: 0 0 auto;
+	width: 100%;
+	max-width: 220px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.prrint-tool-panel input[type="range"] {
+	width: 100%;
+	accent-color: var(--prrint-accent);
+}
+
+.prrint-panel-row {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.prrint-slider-row {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 0.85em;
+	color: var(--prrint-muted);
+}
+
+#prrint-text-content {
+	width: 100%;
+	box-sizing: border-box;
+	resize: vertical;
+	min-height: 56px;
+	padding: 8px;
+	border: 1px solid var(--prrint-line);
+	border-radius: 8px;
+	font: inherit;
+	margin-bottom: 8px;
+}
+
+.prrint-swatch-label {
+	margin: 6px 0 4px;
+	font-size: 0.8em;
+	color: var(--prrint-muted);
+}
+
+.prrint-swatch-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.prrint-swatch {
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	border: 2px solid var(--prrint-line);
+	cursor: pointer;
+	padding: 0;
+	background-clip: padding-box;
+}
+
+.prrint-swatch.is-active {
+	border-color: var(--prrint-accent);
+	box-shadow: 0 0 0 2px #eef2ff;
+}
+
+.prrint-swatch-none {
+	background:
+		linear-gradient(45deg, transparent 46%, #dc2626 48%, #dc2626 52%, transparent 54%),
+		#fff;
+}
+
+.prrint-filter-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px;
+}
+
+.prrint-filter-swatch {
+	padding: 8px 6px;
+	border: 1px solid var(--prrint-line);
+	border-radius: 8px;
+	background: #fff;
+	color: var(--prrint-ink);
+	font-size: 0.85em;
+	cursor: pointer;
+}
+
+.prrint-filter-swatch:hover {
+	border-color: var(--prrint-accent);
+}
+
+.prrint-filter-swatch.is-active {
+	background: var(--prrint-accent);
+	border-color: var(--prrint-accent);
+	color: #fff;
+}
+
 .prrint-editor-canvas-wrap {
 	position: relative;
+	flex: 1 1 auto;
+	min-width: 0;
 	line-height: 0;
 	border-radius: 10px;
 	overflow: hidden;
@@ -477,19 +635,6 @@ body.prrint-modal-open {
 .prrint-dpi-good { background: rgba(22, 163, 74, 0.92); }
 .prrint-dpi-ok   { background: rgba(217, 119, 6, 0.92); }
 .prrint-dpi-low  { background: rgba(220, 38, 38, 0.92); }
-
-.prrint-editor-toolbar {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	margin-top: 12px;
-}
-
-.prrint-editor-toolbar input[type="range"] {
-	flex: 1;
-	min-width: 80px;
-	accent-color: var(--prrint-accent);
-}
 
 .prrint-tool {
 	min-width: 40px;
@@ -559,5 +704,16 @@ body.prrint-modal-open {
 	}
 	.prrint-editor-panel {
 		padding: 12px;
+	}
+	.prrint-editor-body {
+		flex-direction: column;
+	}
+	.prrint-tool-rail {
+		flex-direction: row;
+		width: 100%;
+		overflow-x: auto;
+	}
+	.prrint-tool-panels {
+		max-width: none;
 	}
 }

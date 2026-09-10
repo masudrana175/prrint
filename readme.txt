@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,10 +16,11 @@ Prrint adds a complete photo print ordering studio to WooCommerce product
 pages, the way dedicated print sites work:
 
 * Multi-photo drag & drop upload with progress bars
-* Full-screen crop editor per photo (drag, zoom, rotate, portrait/landscape)
+* Full editor per photo: crop/zoom/rotate, one-click filters (B&W, Warm,
+  Cold, Vintage, DuoTone, Legacy, Smooth), brightness/contrast/saturation
+  adjustment, text/caption layers, and a custom-color border
 * Crop frame locked to the selected print size aspect ratio
 * Configurable print sizes and paper/finish options with surcharges
-* Optional white border per print
 * Quantity stepper and live per-item + total pricing
 * Live DPI print-quality indicator
 * EXIF orientation normalization for phone photos
@@ -50,6 +51,15 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.2.0 =
+* Add a full photo editor to the Print Studio: one-click filters, brightness/
+  contrast/saturation adjustment, text/caption layers (font size, bold,
+  alignment, color, background, rotation), and a custom-color/width border.
+* Bundle Liberation Sans (SIL OFL) so text renders consistently regardless
+  of server fonts.
+* "My Prints" reorder and the print-ready/preview pipeline now carry the
+  full editor design, not just the crop.
 
 = 1.1.0 =
 * Add "My Prints" order/print history tab in My Account, with a one-click

@@ -99,8 +99,10 @@ class Prrint_Cart {
 		$target_h  = (int) round( $v['h_in'] * $dpi );
 		$print_rel = 'orders/' . wp_generate_password( 24, false, false ) . '.jpg';
 
-		$opts = array();
-		if ( ! empty( $v['border'] ) ) {
+		$design      = ! empty( $v['design'] ) ? $v['design'] : null;
+		$has_border  = ! empty( $v['border'] ) || ! empty( $design['border']['enabled'] );
+		$opts        = array();
+		if ( $has_border ) {
 			$opts = array(
 				'border_in' => $settings['border_in'],
 				'w_in'      => $v['w_in'],
@@ -115,7 +117,8 @@ class Prrint_Cart {
 			$target_w,
 			$target_h,
 			prrint_file_path( $print_rel ),
-			$opts
+			$opts,
+			$design
 		);
 
 		$item->add_meta_data( '_prrint_source_file', $copied ? $source_rel : $v['file'] );
@@ -126,9 +129,12 @@ class Prrint_Cart {
 		if ( ! empty( $v['preview'] ) ) {
 			$item->add_meta_data( '_prrint_preview', $v['preview'] );
 		}
+		if ( $design ) {
+			$item->add_meta_data( '_prrint_design', wp_json_encode( $design ) );
+		}
 
-		// Full snapshot of the pricing/crop inputs so "My Prints" in the
-		// customer's account can offer an exact one-click reorder later.
+		// Full snapshot of the pricing/crop/design inputs so "My Prints" in
+		// the customer's account can offer an exact one-click reorder later.
 		$item->add_meta_data( '_prrint_reorder', wp_json_encode( array(
 			'size_label'  => $v['size_label'],
 			'size_price'  => $v['size_price'],
@@ -138,6 +144,7 @@ class Prrint_Cart {
 			'surcharge'   => $v['surcharge'],
 			'orientation' => $v['orientation'],
 			'border'      => $v['border'],
+			'design'      => $design,
 			'rotation'    => $v['rotation'],
 			'crop'        => $v['crop'],
 		) ) );

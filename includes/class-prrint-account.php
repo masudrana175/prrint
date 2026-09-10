@@ -405,6 +405,7 @@ class Prrint_Account {
 			'surcharge'   => (float) $snapshot['surcharge'],
 			'orientation' => 'landscape' === $snapshot['orientation'] ? 'landscape' : 'portrait',
 			'border'      => ! empty( $snapshot['border'] ),
+			'design'      => isset( $snapshot['design'] ) && is_array( $snapshot['design'] ) ? $snapshot['design'] : null,
 			'rotation'    => ( (int) $snapshot['rotation'] ) % 4,
 			'crop'        => array(
 				'x' => (float) $snapshot['crop']['x'],
@@ -416,7 +417,7 @@ class Prrint_Account {
 
 		$preview_rel  = 'previews/' . wp_generate_password( 20, false, false ) . '.jpg';
 		$preview_opts = array();
-		if ( $data['border'] ) {
+		if ( $data['border'] || ! empty( $data['design']['border']['enabled'] ) ) {
 			$preview_opts = array(
 				'border_in' => $settings['border_in'],
 				'w_in'      => $data['w_in'],
@@ -430,7 +431,8 @@ class Prrint_Account {
 			400,
 			400,
 			prrint_file_path( $preview_rel ),
-			$preview_opts
+			$preview_opts,
+			$data['design']
 		);
 		$data['preview'] = $rendered ? $preview_rel : '';
 		$data['unique']  = md5( $order_id . '-' . $item_id . wp_rand() . microtime( true ) );
