@@ -225,6 +225,11 @@ class Prrint_Frontend {
 									<button type="button" class="prrint-tool" id="prrint-rotate" title="<?php esc_attr_e( 'Rotate 90°', 'prrint' ); ?>">⟳ <?php esc_html_e( 'Rotate', 'prrint' ); ?></button>
 									<button type="button" class="prrint-tool" id="prrint-orient" title="<?php esc_attr_e( 'Portrait / landscape', 'prrint' ); ?>">▭ <?php esc_html_e( 'Orientation', 'prrint' ); ?></button>
 								</div>
+								<div class="prrint-panel-row">
+									<button type="button" class="prrint-tool" id="prrint-flip-h" title="<?php esc_attr_e( 'Flip horizontal', 'prrint' ); ?>">⇋ <?php esc_html_e( 'Flip H', 'prrint' ); ?></button>
+									<button type="button" class="prrint-tool" id="prrint-flip-v" title="<?php esc_attr_e( 'Flip vertical', 'prrint' ); ?>">⇵ <?php esc_html_e( 'Flip V', 'prrint' ); ?></button>
+								</div>
+								<button type="button" class="prrint-btn-secondary prrint-adj-reset" id="prrint-transform-reset"><?php esc_html_e( 'Reset to Default', 'prrint' ); ?></button>
 							</div>
 
 							<div class="prrint-tool-panel" data-panel="filters" hidden>

@@ -36,6 +36,10 @@ lands — check git log for the commit implementing each item.
 - **Order one photo in multiple sizes** — "Add size" clones a card with the same edits
 - **Zoom % readout** — top bar center shows "− 105% +", synced with wheel zoom,
   the slider, and the ± buttons
+- **Flip Horizontal / Vertical + Reset to Default** — Transform panel gained
+  Flip H/V toggles (mirrors the cropped photo, identical math client- and
+  server-side) and a Reset button that clears rotation/flip and re-centers
+  the crop/zoom
 
 ### Visual design
 - Full-screen dark theme matching the reference (top bar, icon rail, filter preview
@@ -50,7 +54,7 @@ how feasible + valuable each is to build next:
 |---|---|---|
 | **Focus** | Radial / Mirrored / Linear / Gaussian tilt-shift blur | Not started |
 | **Text Design** | Library of pre-made word-art templates (multi-text-layer compositions with stylized layouts), Shuffle Layout, Invert | Not started — this was the mystery "bookmark" icon |
-| **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | Not started (we have drag/zoom/90°-rotate only) |
+| **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | **Flip H/V and Reset to Default shipped.** Numeric crop W×H, aspect-ratio presets and a continuous-rotation dial are still not started — see feasibility note below |
 | **Floating layer toolbar** | Edit/Move to Front/Duplicate/Delete appears *above the selected layer on canvas*; drag-handle for rotation | We built these as side-panel controls instead — functionally equivalent, visually different |
 
 ## ❌ Not started at all
@@ -78,3 +82,18 @@ built as honest approximations rather than pixel-perfect ports:
   without a job queue. Where this applies, we use GD's native fast operations
   (`imagegammacorrect`, `imageconvolution`, palette remapping) to get as close as
   possible without a blocking performance cost, and say so in code comments.
+- **Continuous-rotation dial and numeric Crop W×H are deferred, not just an approximation
+  gap.** The crop coordinate contract between the browser editor and the GD renderer
+  (`Prrint_Image::render()`) is built entirely around 90°-quarter-turn rotation — crop
+  x/y/w/h are exchanged in "source pixels after N quarter turns," which is exact and
+  cheap (`imagerotate($im, -90 * $rotation, 0)`, always axis-aligned). An arbitrary-angle
+  dial needs the crop rectangle itself to rotate with the photo (a rotated rect, not an
+  axis-aligned one), which changes what "crop x/y/w/h" means everywhere it's read: the
+  renderer, the cart-preview thumbnail, the print-ready export, and the reorder replay.
+  That's a coordinate-model change to code this session deliberately left alone as
+  "unchanged legacy," not a one-slider addition — worth doing as its own pass with
+  focused testing rather than folded into this one. Numeric Crop W×H has the same
+  dependency (it's just a text-input front end onto the same rect). Aspect-ratio presets
+  don't apply the same way here to begin with: Prrint's crop frame is always locked to
+  the chosen print size's aspect ratio by design (see README "Crop editor"), where the
+  reference's presets exist because its canvas *isn't* pre-locked to a print size.

@@ -361,8 +361,10 @@ class Prrint_Ajax {
 
 		$allowed_overlays = array( 'vignette', 'glow', 'lightleak', 'grain', 'bokeh', 'scratches' );
 		$overlay          = isset( $raw['overlay'] ) && in_array( $raw['overlay'], $allowed_overlays, true ) ? $raw['overlay'] : '';
+		$flip_h           = ! empty( $raw['flipH'] );
+		$flip_v           = ! empty( $raw['flipV'] );
 
-		if ( ! $filter && ! $has_adjust && ! $border['enabled'] && empty( $layers ) && ! $drawing && ! $overlay ) {
+		if ( ! $filter && ! $has_adjust && ! $border['enabled'] && empty( $layers ) && ! $drawing && ! $overlay && ! $flip_h && ! $flip_v ) {
 			return null;
 		}
 
@@ -372,6 +374,8 @@ class Prrint_Ajax {
 			'border'  => $border,
 			'layers'  => $layers,
 			'overlay' => $overlay,
+			'flipH'   => $flip_h,
+			'flipV'   => $flip_v,
 		);
 		if ( $drawing ) {
 			$design['drawing'] = $drawing;

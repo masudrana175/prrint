@@ -17,9 +17,11 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
   Undo/Redo and Save/Close, left icon rail, and per-tool side panels with
   large filter preview tiles.
 - **Crop editor** — full-screen modal editor per photo: drag to reposition,
-  scroll-wheel & slider zoom, 90° rotation, portrait/landscape toggle,
-  rule-of-thirds guides. The crop frame is always locked to the chosen print
-  size's aspect ratio: what the customer sees is exactly what prints.
+  scroll-wheel & slider zoom (with a live zoom % readout), 90° rotation,
+  flip horizontal/vertical, a one-click Reset to Default, portrait/landscape
+  toggle, rule-of-thirds guides. The crop frame is always locked to the
+  chosen print size's aspect ratio: what the customer sees is exactly what
+  prints.
 - **Filters & adjust** — one-click tone presets (B&W, Warm, Cold, Vintage,
   DuoTone, Legacy, Smooth) plus brightness/contrast/saturation sliders,
   rendered identically in the browser preview and the GD print pipeline.

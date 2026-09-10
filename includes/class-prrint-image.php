@@ -152,6 +152,15 @@ class Prrint_Image {
 			return false;
 		}
 
+		// Flip mirrors the cropped rectangle in place — it doesn't change
+		// which pixels were selected, so the crop math above stays untouched.
+		if ( ! empty( $design['flipH'] ) ) {
+			imageflip( $cropped, IMG_FLIP_HORIZONTAL );
+		}
+		if ( ! empty( $design['flipV'] ) ) {
+			imageflip( $cropped, IMG_FLIP_VERTICAL );
+		}
+
 		// Filter/tone adjustments only ever touch the photo pixels, never
 		// the border fill — applied before the photo is composited in.
 		if ( ! empty( $design['filter'] ) ) {

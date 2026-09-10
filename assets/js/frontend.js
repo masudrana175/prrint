@@ -86,7 +86,10 @@
 		zoomPct: document.getElementById('prrint-zoom-pct'),
 		undoBtn: document.getElementById('prrint-undo'),
 		redoBtn: document.getElementById('prrint-redo'),
-		textSpacingOut: document.getElementById('prrint-text-spacing-out')
+		textSpacingOut: document.getElementById('prrint-text-spacing-out'),
+		flipH: document.getElementById('prrint-flip-h'),
+		flipV: document.getElementById('prrint-flip-v'),
+		transformReset: document.getElementById('prrint-transform-reset')
 	};
 	var ctx = els.canvas.getContext('2d');
 
@@ -116,7 +119,9 @@
 			border: { enabled: false, color: '#ffffff', width_in: cfg.borderIn || 0.25 },
 			layers: [],
 			drawing: null, // { dataUrl } once the customer has drawn something
-			overlay: ''    // bundled texture id, e.g. 'vignette'
+			overlay: '',   // bundled texture id, e.g. 'vignette'
+			flipH: false,  // mirror the cropped photo horizontally
+			flipV: false   // mirror the cropped photo vertically
 		};
 	}
 
@@ -636,6 +641,7 @@
 		c.translate(-item.crop.x, -item.crop.y);
 		c.translate(d.w / 2, d.h / 2);
 		c.rotate(item.rot * Math.PI / 2);
+		c.scale(item.design.flipH ? -1 : 1, item.design.flipV ? -1 : 1);
 		c.drawImage(item.img, -item.natW / 2, -item.natH / 2);
 		c.restore();
 
@@ -971,6 +977,7 @@
 		ctx.filter = designFilterCss(ed.design);
 		ctx.translate(cx, cy);
 		ctx.rotate(ed.rot * Math.PI / 2);
+		ctx.scale(ed.design.flipH ? -1 : 1, ed.design.flipV ? -1 : 1);
 		ctx.scale(innerScale, innerScale);
 		ctx.drawImage(it.img, -it.natW / 2, -it.natH / 2);
 		ctx.restore();
@@ -1579,6 +1586,8 @@
 	 * after Undo/Redo restores a different snapshot.
 	 */
 	function syncPanelUI() {
+		if (els.flipH) { els.flipH.classList.toggle('is-active', !!ed.design.flipH); }
+		if (els.flipV) { els.flipV.classList.toggle('is-active', !!ed.design.flipV); }
 		els.borderEnable.checked = !!ed.design.border.enabled;
 		els.borderFields.hidden = !ed.design.border.enabled;
 		els.borderWidth.value = String(Math.round(ed.design.border.width_in * 100));
@@ -1844,6 +1853,42 @@
 		edUpdateDpi();
 		pushHistory();
 	});
+
+	if (els.flipH) {
+		els.flipH.addEventListener('click', function () {
+			if (!ed.item) { return; }
+			ed.design.flipH = !ed.design.flipH;
+			els.flipH.classList.toggle('is-active', ed.design.flipH);
+			edDraw();
+			pushHistory();
+		});
+	}
+
+	if (els.flipV) {
+		els.flipV.addEventListener('click', function () {
+			if (!ed.item) { return; }
+			ed.design.flipV = !ed.design.flipV;
+			els.flipV.classList.toggle('is-active', ed.design.flipV);
+			edDraw();
+			pushHistory();
+		});
+	}
+
+	if (els.transformReset) {
+		els.transformReset.addEventListener('click', function () {
+			var item = ed.item;
+			if (!item) { return; }
+			ed.rot = 0;
+			ed.design.flipH = false;
+			ed.design.flipV = false;
+			if (els.flipH) { els.flipH.classList.remove('is-active'); }
+			if (els.flipV) { els.flipV.classList.remove('is-active'); }
+			edFit();
+			edDraw();
+			edUpdateDpi();
+			pushHistory();
+		});
+	}
 
 	window.addEventListener('resize', function () {
 		if (!ed.item || els.editor.hidden) { return; }
