@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,15 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.5.0 =
+* Redesigned the Print Studio editor to a full-screen dark theme matching
+  a top bar (Undo/Redo, Save/Close), large filter preview tiles, and a
+  restructured Text panel (Font Family, Font Size + Alignment, Font/
+  Background Color, Line Spacing).
+* Add Undo/Redo for filter, adjust, border, rotate/orientation, and text/
+  shape layer edits (crop/zoom/pan stay live camera state, not tracked).
+* Fixed a layout overflow in the tool panel at narrow widths.
 
 = 1.4.0 =
 * DuoTone is now a true 2-stop color gradient (palette remapping), not a

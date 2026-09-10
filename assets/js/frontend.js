@@ -74,7 +74,10 @@
 		shapeDelete: document.getElementById('prrint-shape-delete'),
 		drawColorSwatches: document.getElementById('prrint-draw-color-swatches'),
 		drawSize: document.getElementById('prrint-draw-size'),
-		drawClear: document.getElementById('prrint-draw-clear')
+		drawClear: document.getElementById('prrint-draw-clear'),
+		undoBtn: document.getElementById('prrint-undo'),
+		redoBtn: document.getElementById('prrint-redo'),
+		textSpacingOut: document.getElementById('prrint-text-spacing-out')
 	};
 	var ctx = els.canvas.getContext('2d');
 
@@ -804,7 +807,9 @@
 		drawCtx: null,
 		hasDrawing: false,
 		brushColor: '#000000',
-		brushSize: 4
+		brushSize: 4,
+		history: [],            // JSON snapshots of {design, rot, orientation, sizeIdx}
+		historyIndex: -1
 	};
 
 	function edRotatedDims() {
@@ -820,10 +825,15 @@
 	}
 
 	function edLayout() {
-		var panel = els.canvas.parentElement;
-		var w = Math.min(640, panel.clientWidth || 600);
+		// Full-viewport dark editor: fill whatever space the canvas-wrap has
+		// (minus a little breathing room), rather than the old small-card cap.
+		var wrap = els.canvas.parentElement;
+		var availW = Math.max(280, (wrap.clientWidth || 800) - 32);
+		var availH = Math.max(280, (wrap.clientHeight || 600) - 32);
+		var w = Math.min(1400, availW);
+		var h = Math.min(1000, availH);
 		ed.cssW = w;
-		ed.cssH = Math.round(Math.min(460, w * 0.8));
+		ed.cssH = h;
 
 		var dpr = window.devicePixelRatio || 1;
 		els.canvas.width = Math.round(ed.cssW * dpr);
@@ -1008,19 +1018,20 @@
 	/* filters panel */
 	if (els.filterGrid) {
 		cfg.filters.forEach(function (f) {
-			var btn = document.createElement('button');
-			btn.type = 'button';
-			btn.className = 'prrint-filter-swatch';
-			btn.dataset.filter = f.id;
-			btn.textContent = f.label;
-			btn.addEventListener('click', function () {
+			var tile = document.createElement('button');
+			tile.type = 'button';
+			tile.className = 'prrint-filter-swatch prrint-filter-preview-' + (f.id || 'none');
+			tile.dataset.filter = f.id;
+			tile.innerHTML = '<span class="prrint-filter-caption">' + esc(f.label) + '</span>';
+			tile.addEventListener('click', function () {
 				ed.design.filter = f.id;
 				els.filterGrid.querySelectorAll('.prrint-filter-swatch').forEach(function (b) {
 					b.classList.toggle('is-active', b.dataset.filter === f.id);
 				});
 				edDraw();
+				pushHistory();
 			});
-			els.filterGrid.appendChild(btn);
+			els.filterGrid.appendChild(tile);
 		});
 	}
 
@@ -1031,6 +1042,7 @@
 			ed.design.adjust[key] = Number(this.value);
 			edDraw();
 		});
+		el.addEventListener('change', pushHistory);
 	}
 	edAdjustInput(els.adjBrightness, 'brightness');
 	edAdjustInput(els.adjContrast, 'contrast');
@@ -1042,6 +1054,7 @@
 			els.adjContrast.value = '0';
 			els.adjSaturation.value = '100';
 			edDraw();
+			pushHistory();
 		});
 	}
 
@@ -1072,6 +1085,7 @@
 	buildSwatchRow(els.borderSwatches, cfg.borderColors, function (color) {
 		ed.design.border.color = color;
 		edDraw();
+		pushHistory();
 	});
 
 	if (els.borderEnable) {
@@ -1079,6 +1093,7 @@
 			ed.design.border.enabled = this.checked;
 			els.borderFields.hidden = !this.checked;
 			edDraw();
+			pushHistory();
 		});
 	}
 	if (els.borderWidth) {
@@ -1086,6 +1101,7 @@
 			ed.design.border.width_in = Number(this.value) / 100;
 			edDraw();
 		});
+		els.borderWidth.addEventListener('change', pushHistory);
 	}
 
 	/* text panel */
@@ -1105,6 +1121,7 @@
 		els.textContent.value = layer.text;
 		els.textSize.value = String(Math.round(layer.fontSize * 100));
 		els.textSpacing.value = String(Math.round(layer.lineSpacing * 10));
+		if (els.textSpacingOut) { els.textSpacingOut.textContent = layer.lineSpacing.toFixed(1); }
 		els.textWidth.value = String(Math.round(layer.w * 100));
 		els.textRotation.value = String(Math.round(layer.rotation));
 		els.textBold.classList.toggle('is-active', !!layer.bold);
@@ -1150,6 +1167,7 @@
 		};
 		ed.design.layers.push(layer);
 		selectLayer(layer.id);
+		pushHistory();
 	}
 
 	if (els.textAdd) {
@@ -1160,30 +1178,38 @@
 			var l = selectedLayer('text');
 			if (l) { l.text = this.value; edDraw(); }
 		});
+		els.textContent.addEventListener('change', pushHistory);
 	}
 	if (els.textSize) {
 		els.textSize.addEventListener('input', function () {
 			var l = selectedLayer('text');
 			if (l) { l.fontSize = Number(this.value) / 100; edDraw(); }
 		});
+		els.textSize.addEventListener('change', pushHistory);
 	}
 	if (els.textSpacing) {
 		els.textSpacing.addEventListener('input', function () {
 			var l = selectedLayer('text');
-			if (l) { l.lineSpacing = Number(this.value) / 10; edDraw(); }
+			if (!l) { return; }
+			l.lineSpacing = Number(this.value) / 10;
+			if (els.textSpacingOut) { els.textSpacingOut.textContent = l.lineSpacing.toFixed(1); }
+			edDraw();
 		});
+		els.textSpacing.addEventListener('change', pushHistory);
 	}
 	if (els.textWidth) {
 		els.textWidth.addEventListener('input', function () {
 			var l = selectedLayer('text');
 			if (l) { l.w = Number(this.value) / 100; edDraw(); }
 		});
+		els.textWidth.addEventListener('change', pushHistory);
 	}
 	if (els.textRotation) {
 		els.textRotation.addEventListener('input', function () {
 			var l = selectedLayer('text');
 			if (l) { l.rotation = Number(this.value); edDraw(); }
 		});
+		els.textRotation.addEventListener('change', pushHistory);
 	}
 	if (els.textBold) {
 		els.textBold.addEventListener('click', function () {
@@ -1192,6 +1218,7 @@
 			l.bold = !l.bold;
 			els.textBold.classList.toggle('is-active', l.bold);
 			edDraw();
+			pushHistory();
 		});
 	}
 	if (els.textFields) {
@@ -1204,16 +1231,17 @@
 					b.classList.toggle('is-active', b === btn);
 				});
 				edDraw();
+				pushHistory();
 			});
 		});
 	}
 	buildSwatchRow(els.textColorSwatches, cfg.textColors, function (color) {
 		var l = selectedLayer('text');
-		if (l) { l.color = color; edDraw(); }
+		if (l) { l.color = color; edDraw(); pushHistory(); }
 	});
 	buildSwatchRow(els.textBgSwatches, cfg.textBgColors, function (color) {
 		var l = selectedLayer('text');
-		if (l) { l.bgColor = color; edDraw(); }
+		if (l) { l.bgColor = color; edDraw(); pushHistory(); }
 	});
 	if (els.textDuplicate) {
 		els.textDuplicate.addEventListener('click', function () {
@@ -1225,6 +1253,7 @@
 			copy.y = Math.min(0.9, l.y + 0.04);
 			ed.design.layers.push(copy);
 			selectLayer(copy.id);
+			pushHistory();
 		});
 	}
 	if (els.textDelete) {
@@ -1235,6 +1264,7 @@
 			ed.selectedLayerId = null;
 			showLayerFields(null);
 			edDraw();
+			pushHistory();
 		});
 	}
 
@@ -1271,6 +1301,7 @@
 		};
 		ed.design.layers.push(layer);
 		selectLayer(layer.id);
+		pushHistory();
 	}
 
 	if (els.shapeGrid) {
@@ -1290,16 +1321,18 @@
 			var l = selectedLayer('shape');
 			if (l) { l.w = l.h = Number(this.value) / 100; edDraw(); }
 		});
+		els.shapeSize.addEventListener('change', pushHistory);
 	}
 	if (els.shapeRotation) {
 		els.shapeRotation.addEventListener('input', function () {
 			var l = selectedLayer('shape');
 			if (l) { l.rotation = Number(this.value); edDraw(); }
 		});
+		els.shapeRotation.addEventListener('change', pushHistory);
 	}
 	buildSwatchRow(els.shapeColorSwatches, cfg.shapeColors, function (color) {
 		var l = selectedLayer('shape');
-		if (l) { l.color = color; edDraw(); }
+		if (l) { l.color = color; edDraw(); pushHistory(); }
 	});
 	if (els.shapeDuplicate) {
 		els.shapeDuplicate.addEventListener('click', function () {
@@ -1311,6 +1344,7 @@
 			copy.y = Math.min(0.9, l.y + 0.04);
 			ed.design.layers.push(copy);
 			selectLayer(copy.id);
+			pushHistory();
 		});
 	}
 	if (els.shapeDelete) {
@@ -1321,6 +1355,7 @@
 			ed.selectedLayerId = null;
 			showShapeFields(null);
 			edDraw();
+			pushHistory();
 		});
 	}
 
@@ -1394,14 +1429,65 @@
 		return null;
 	}
 
-	function openEditor(item) {
-		ed.item = item;
-		ed.rot = item.rot;
-		ed.orientation = item.orientation;
-		ed.sizeIdx = item.sizeIdx;
-		ed.design = cloneDesign(item.design);
-		ed.selectedLayerId = null;
+	/* ------------------------------------------------------- undo / redo */
+	// Tracks design/rotation/orientation/size — not crop/zoom/pan, which
+	// stay live camera state like in most editors. Capped at 50 steps.
 
+	function snapshotState() {
+		return JSON.stringify({ design: ed.design, rot: ed.rot, orientation: ed.orientation, sizeIdx: ed.sizeIdx });
+	}
+
+	function updateUndoRedoButtons() {
+		if (els.undoBtn) { els.undoBtn.disabled = ed.historyIndex <= 0; }
+		if (els.redoBtn) { els.redoBtn.disabled = ed.historyIndex >= ed.history.length - 1; }
+	}
+
+	function pushHistory() {
+		if (!ed.item) { return; }
+		var snap = snapshotState();
+		if (ed.history[ed.historyIndex] === snap) { return; }
+		ed.history = ed.history.slice(0, ed.historyIndex + 1);
+		ed.history.push(snap);
+		if (ed.history.length > 50) { ed.history.shift(); }
+		ed.historyIndex = ed.history.length - 1;
+		updateUndoRedoButtons();
+	}
+
+	function restoreHistorySnapshot(snap) {
+		var state = JSON.parse(snap);
+		ed.design = state.design;
+		ed.rot = state.rot;
+		ed.orientation = state.orientation;
+		ed.sizeIdx = state.sizeIdx;
+		ed.selectedLayerId = null;
+		syncPanelUI();
+		edFit(); // crop/zoom aren't tracked in history, so re-fit to the restored aspect
+		edDraw();
+		edUpdateDpi();
+	}
+
+	function undoEdit() {
+		if (ed.historyIndex <= 0) { return; }
+		ed.historyIndex--;
+		restoreHistorySnapshot(ed.history[ed.historyIndex]);
+		updateUndoRedoButtons();
+	}
+
+	function redoEdit() {
+		if (ed.historyIndex >= ed.history.length - 1) { return; }
+		ed.historyIndex++;
+		restoreHistorySnapshot(ed.history[ed.historyIndex]);
+		updateUndoRedoButtons();
+	}
+
+	if (els.undoBtn) { els.undoBtn.addEventListener('click', undoEdit); }
+	if (els.redoBtn) { els.redoBtn.addEventListener('click', redoEdit); }
+
+	/**
+	 * Refresh every panel control to reflect ed.design — used on open and
+	 * after Undo/Redo restores a different snapshot.
+	 */
+	function syncPanelUI() {
 		els.borderEnable.checked = !!ed.design.border.enabled;
 		els.borderFields.hidden = !ed.design.border.enabled;
 		els.borderWidth.value = String(Math.round(ed.design.border.width_in * 100));
@@ -1416,12 +1502,26 @@
 		buildSwatchRow(els.borderSwatches, cfg.borderColors, function (color) {
 			ed.design.border.color = color;
 			edDraw();
+			pushHistory();
 		});
 		els.borderSwatches.querySelectorAll('.prrint-swatch').forEach(function (b) {
 			b.classList.toggle('is-active', b.dataset.color === ed.design.border.color);
 		});
 		showLayerFields(null);
 		showShapeFields(null);
+	}
+
+	function openEditor(item) {
+		ed.item = item;
+		ed.rot = item.rot;
+		ed.orientation = item.orientation;
+		ed.sizeIdx = item.sizeIdx;
+		ed.design = cloneDesign(item.design);
+		ed.selectedLayerId = null;
+		ed.history = [];
+		ed.historyIndex = -1;
+
+		syncPanelUI();
 
 		ed.brushColor = cfg.drawColors[0] || '#000000';
 		ed.brushSize = 4;
@@ -1450,6 +1550,7 @@
 		edViewFromCrop(item.crop);
 		edDraw();
 		edUpdateDpi();
+		pushHistory();
 	}
 
 	function closeEditor() {
@@ -1565,7 +1666,12 @@
 			edDraw();
 		}
 	});
-	els.canvas.addEventListener('pointerup', function () { dragging = false; dragMode = null; dragLayer = null; });
+	els.canvas.addEventListener('pointerup', function () {
+		if (dragMode === 'layer') { pushHistory(); }
+		dragging = false;
+		dragMode = null;
+		dragLayer = null;
+	});
 	els.canvas.addEventListener('pointercancel', function () { dragging = false; dragMode = null; dragLayer = null; });
 
 	els.canvas.addEventListener('wheel', function (e) {
@@ -1594,6 +1700,7 @@
 		edFit();
 		edDraw();
 		edUpdateDpi();
+		pushHistory();
 	});
 
 	els.orient.addEventListener('click', function () {
@@ -1602,6 +1709,7 @@
 		edFit();
 		edDraw();
 		edUpdateDpi();
+		pushHistory();
 	});
 
 	window.addEventListener('resize', function () {

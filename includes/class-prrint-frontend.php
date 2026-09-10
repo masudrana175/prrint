@@ -180,9 +180,16 @@ class Prrint_Frontend {
 
 			<div class="prrint-editor-overlay" id="prrint-editor" hidden>
 				<div class="prrint-editor-panel" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e( 'Adjust your photo', 'prrint' ); ?>">
-					<div class="prrint-editor-head">
-						<strong><?php esc_html_e( 'Adjust your photo', 'prrint' ); ?></strong>
+					<div class="prrint-editor-topbar">
+						<div class="prrint-editor-topbar-left">
+							<button type="button" class="prrint-topbar-btn" id="prrint-undo" disabled><?php esc_html_e( 'Undo', 'prrint' ); ?></button>
+							<button type="button" class="prrint-topbar-btn" id="prrint-redo" disabled><?php esc_html_e( 'Redo', 'prrint' ); ?></button>
+						</div>
 						<span class="prrint-editor-hint"><?php esc_html_e( 'Drag to reposition · scroll or slide to zoom', 'prrint' ); ?></span>
+						<div class="prrint-editor-topbar-right">
+							<button type="button" class="prrint-btn-secondary" id="prrint-editor-cancel"><?php esc_html_e( 'Close', 'prrint' ); ?></button>
+							<button type="button" class="prrint-cta" id="prrint-editor-done"><?php esc_html_e( 'Save', 'prrint' ); ?></button>
+						</div>
 					</div>
 
 					<div class="prrint-editor-body">
@@ -220,27 +227,43 @@ class Prrint_Frontend {
 							</div>
 
 							<div class="prrint-tool-panel" data-panel="text" hidden>
-								<button type="button" class="prrint-cta" id="prrint-text-add">+ <?php esc_html_e( 'New Text', 'prrint' ); ?></button>
+								<button type="button" class="prrint-cta prrint-cta-block" id="prrint-text-add"><?php esc_html_e( 'New Text', 'prrint' ); ?></button>
 								<div id="prrint-text-fields" hidden>
 									<textarea id="prrint-text-content" rows="3" placeholder="<?php esc_attr_e( 'Your text here', 'prrint' ); ?>"></textarea>
-									<label class="prrint-slider-row"><span><?php esc_html_e( 'Size', 'prrint' ); ?></span>
-										<input type="range" id="prrint-text-size" min="2" max="20" value="6" /></label>
-									<label class="prrint-slider-row"><span><?php esc_html_e( 'Line spacing', 'prrint' ); ?></span>
+
+									<p class="prrint-field-label"><?php esc_html_e( 'Font Family', 'prrint' ); ?></p>
+									<div class="prrint-font-family-row">
+										<span class="prrint-font-family-name"><?php esc_html_e( 'Liberation Sans', 'prrint' ); ?></span>
+										<button type="button" class="prrint-tool" id="prrint-text-bold" title="<?php esc_attr_e( 'Bold', 'prrint' ); ?>"><strong>B</strong></button>
+									</div>
+
+									<div class="prrint-two-col">
+										<div>
+											<p class="prrint-field-label"><?php esc_html_e( 'Font Size', 'prrint' ); ?></p>
+											<input type="number" class="prrint-number-input" id="prrint-text-size" min="2" max="50" step="1" value="8" />
+										</div>
+										<div>
+											<p class="prrint-field-label"><?php esc_html_e( 'Alignment', 'prrint' ); ?></p>
+											<div class="prrint-panel-row">
+												<button type="button" class="prrint-tool" data-align="left" title="<?php esc_attr_e( 'Align left', 'prrint' ); ?>">⯇</button>
+												<button type="button" class="prrint-tool" data-align="center" title="<?php esc_attr_e( 'Align center', 'prrint' ); ?>">≡</button>
+												<button type="button" class="prrint-tool" data-align="right" title="<?php esc_attr_e( 'Align right', 'prrint' ); ?>">⯈</button>
+											</div>
+										</div>
+									</div>
+
+									<p class="prrint-swatch-label"><?php esc_html_e( 'Font Color', 'prrint' ); ?></p>
+									<div class="prrint-swatch-row" id="prrint-text-color-swatches" data-target="color"></div>
+									<p class="prrint-swatch-label"><?php esc_html_e( 'Background Color', 'prrint' ); ?></p>
+									<div class="prrint-swatch-row" id="prrint-text-bg-swatches" data-target="bgColor"></div>
+
+									<label class="prrint-slider-row"><span><?php esc_html_e( 'Line Spacing', 'prrint' ); ?> <output id="prrint-text-spacing-out">1.3</output></span>
 										<input type="range" id="prrint-text-spacing" min="8" max="30" value="13" /></label>
 									<label class="prrint-slider-row"><span><?php esc_html_e( 'Box width', 'prrint' ); ?></span>
 										<input type="range" id="prrint-text-width" min="20" max="100" value="80" /></label>
 									<label class="prrint-slider-row"><span><?php esc_html_e( 'Rotation', 'prrint' ); ?></span>
 										<input type="range" id="prrint-text-rotation" min="-45" max="45" value="0" /></label>
-									<div class="prrint-panel-row">
-										<button type="button" class="prrint-tool" id="prrint-text-bold" title="<?php esc_attr_e( 'Bold', 'prrint' ); ?>"><strong>B</strong></button>
-										<button type="button" class="prrint-tool" data-align="left" title="<?php esc_attr_e( 'Align left', 'prrint' ); ?>">⯇</button>
-										<button type="button" class="prrint-tool" data-align="center" title="<?php esc_attr_e( 'Align center', 'prrint' ); ?>">≡</button>
-										<button type="button" class="prrint-tool" data-align="right" title="<?php esc_attr_e( 'Align right', 'prrint' ); ?>">⯈</button>
-									</div>
-									<p class="prrint-swatch-label"><?php esc_html_e( 'Text color', 'prrint' ); ?></p>
-									<div class="prrint-swatch-row" id="prrint-text-color-swatches" data-target="color"></div>
-									<p class="prrint-swatch-label"><?php esc_html_e( 'Background', 'prrint' ); ?></p>
-									<div class="prrint-swatch-row" id="prrint-text-bg-swatches" data-target="bgColor"></div>
+
 									<div class="prrint-panel-row">
 										<button type="button" class="prrint-btn-secondary" id="prrint-text-duplicate"><?php esc_html_e( 'Duplicate', 'prrint' ); ?></button>
 										<button type="button" class="prrint-btn-secondary" id="prrint-text-delete"><?php esc_html_e( 'Delete', 'prrint' ); ?></button>
@@ -288,11 +311,6 @@ class Prrint_Frontend {
 							<canvas id="prrint-canvas"></canvas>
 							<span class="prrint-dpi" id="prrint-dpi" hidden></span>
 						</div>
-					</div>
-
-					<div class="prrint-editor-actions">
-						<button type="button" class="prrint-btn-secondary" id="prrint-editor-cancel"><?php esc_html_e( 'Cancel', 'prrint' ); ?></button>
-						<button type="button" class="prrint-cta" id="prrint-editor-done"><?php esc_html_e( 'Done', 'prrint' ); ?></button>
 					</div>
 				</div>
 			</div>

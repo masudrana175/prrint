@@ -13,6 +13,9 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
 ### Customer-facing (front end)
 - **Multi-photo upload** — drag & drop or browse, several photos at once,
   with per-file progress bars. JPEG / PNG / WebP up to a configurable size.
+- **Full-screen dark editor** — a Colorplak-style studio: top bar with
+  Undo/Redo and Save/Close, left icon rail, and per-tool side panels with
+  large filter preview tiles.
 - **Crop editor** — full-screen modal editor per photo: drag to reposition,
   scroll-wheel & slider zoom, 90° rotation, portrait/landscape toggle,
   rule-of-thirds guides. The crop frame is always locked to the chosen print
