@@ -80,6 +80,7 @@
 		drawColorSwatches: document.getElementById('prrint-draw-color-swatches'),
 		drawSize: document.getElementById('prrint-draw-size'),
 		drawClear: document.getElementById('prrint-draw-clear'),
+		overlayGrid: document.getElementById('prrint-overlay-grid'),
 		undoBtn: document.getElementById('prrint-undo'),
 		redoBtn: document.getElementById('prrint-redo'),
 		textSpacingOut: document.getElementById('prrint-text-spacing-out')
@@ -111,7 +112,8 @@
 			adjust: { brightness: 0, contrast: 0, saturation: 100, gamma: 0, exposure: 0, clarity: 0, shadows: 0, highlights: 0 },
 			border: { enabled: false, color: '#ffffff', width_in: cfg.borderIn || 0.25 },
 			layers: [],
-			drawing: null // { dataUrl } once the customer has drawn something
+			drawing: null, // { dataUrl } once the customer has drawn something
+			overlay: ''    // bundled texture id, e.g. 'vignette'
 		};
 	}
 
@@ -635,6 +637,19 @@
 		c.restore();
 
 		c.filter = 'none';
+
+		if (item.design.overlay) {
+			var cardOverlayImg = OVERLAY_IMAGES[item.design.overlay];
+			if (cardOverlayImg && cardOverlayImg.complete) {
+				c.save();
+				c.beginPath();
+				c.rect(bx, by, innerW, innerH);
+				c.clip();
+				c.drawImage(cardOverlayImg, bx, by, innerW, innerH);
+				c.restore();
+			}
+		}
+
 		var drawingSource = (item._drawingImg && item._drawingImg.complete) ? item._drawingImg : null;
 		drawDesignOverlay(c, item.design, frame, drawingSource);
 
@@ -956,6 +971,18 @@
 		ctx.restore();
 		ctx.filter = 'none';
 
+		if (ed.design.overlay) {
+			var edOverlayImg = OVERLAY_IMAGES[ed.design.overlay];
+			if (edOverlayImg && edOverlayImg.complete) {
+				ctx.save();
+				ctx.beginPath();
+				ctx.rect(f.x + bx, f.y + by, f.w - 2 * bx, f.h - 2 * by);
+				ctx.clip();
+				ctx.drawImage(edOverlayImg, f.x + bx, f.y + by, f.w - 2 * bx, f.h - 2 * by);
+				ctx.restore();
+			}
+		}
+
 		drawDesignOverlay(ctx, ed.design, f, ed.drawCanvas);
 		if (ed.activeTool === 'text' || ed.activeTool === 'elements') {
 			drawLayerHandles();
@@ -1046,6 +1073,38 @@
 				pushHistory();
 			});
 			els.filterGrid.appendChild(tile);
+		});
+	}
+
+	/* overlays panel — bundled textures composited only over the photo area
+	   (inside any border), applied after Filters/Adjust like a real layer */
+	var OVERLAY_IMAGES = {};
+	cfg.overlays.forEach(function (o) {
+		if (!o.id || !o.url) { return; }
+		var img = new Image();
+		img.src = o.url;
+		OVERLAY_IMAGES[o.id] = img;
+	});
+
+	if (els.overlayGrid) {
+		cfg.overlays.forEach(function (o) {
+			var tile = document.createElement('button');
+			tile.type = 'button';
+			tile.className = 'prrint-filter-swatch prrint-overlay-swatch' + (o.url ? '' : ' prrint-filter-preview-none');
+			tile.dataset.overlay = o.id;
+			if (o.url) {
+				tile.style.backgroundImage = 'linear-gradient(135deg,#3a3a42,#6f6f7a), url(' + o.url + ')';
+			}
+			tile.innerHTML = '<span class="prrint-filter-caption">' + esc(o.label) + '</span>';
+			tile.addEventListener('click', function () {
+				ed.design.overlay = o.id;
+				els.overlayGrid.querySelectorAll('.prrint-overlay-swatch').forEach(function (b) {
+					b.classList.toggle('is-active', b.dataset.overlay === o.id);
+				});
+				edDraw();
+				pushHistory();
+			});
+			els.overlayGrid.appendChild(tile);
 		});
 	}
 
@@ -1532,6 +1591,11 @@
 		if (els.filterGrid) {
 			els.filterGrid.querySelectorAll('.prrint-filter-swatch').forEach(function (b) {
 				b.classList.toggle('is-active', b.dataset.filter === (ed.design.filter || ''));
+			});
+		}
+		if (els.overlayGrid) {
+			els.overlayGrid.querySelectorAll('.prrint-overlay-swatch').forEach(function (b) {
+				b.classList.toggle('is-active', b.dataset.overlay === (ed.design.overlay || ''));
 			});
 		}
 		buildSwatchRow(els.borderSwatches, cfg.borderColors, function (color) {

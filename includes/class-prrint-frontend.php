@@ -72,6 +72,15 @@ class Prrint_Frontend {
 				array( 'id' => 'legacy',  'label' => __( 'Legacy', 'prrint' ) ),
 				array( 'id' => 'smooth',  'label' => __( 'Smooth', 'prrint' ) ),
 			),
+			'overlays'       => array(
+				array( 'id' => '',          'label' => __( 'None', 'prrint' ), 'url' => '' ),
+				array( 'id' => 'vignette',  'label' => __( 'Vignette', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/vignette.png' ),
+				array( 'id' => 'glow',      'label' => __( 'Glow', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/glow.png' ),
+				array( 'id' => 'lightleak', 'label' => __( 'Light Leak', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/lightleak.png' ),
+				array( 'id' => 'grain',     'label' => __( 'Grain', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/grain.png' ),
+				array( 'id' => 'bokeh',     'label' => __( 'Bokeh', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/bokeh.png' ),
+				array( 'id' => 'scratches', 'label' => __( 'Scratches', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/scratches.png' ),
+			),
 			'textColors'     => array( '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
 			'textBgColors'   => array( '', '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
 			'borderColors'   => array( '#ffffff', '#000000', '#9ca3af', '#f43f5e', '#f59e0b', '#3b82f6' ),
@@ -129,6 +138,7 @@ class Prrint_Frontend {
 				'transparent'   => __( 'None', 'prrint' ),
 				'toolElements'  => __( 'Elements', 'prrint' ),
 				'toolDraw'      => __( 'Draw', 'prrint' ),
+				'toolOverlays'  => __( 'Overlays', 'prrint' ),
 				'noShapeLayer'  => __( 'Add a shape first.', 'prrint' ),
 				'addSize'       => __( 'Add size', 'prrint' ),
 				'addAnotherSize' => __( 'Order this same photo in another size', 'prrint' ),
@@ -200,6 +210,7 @@ class Prrint_Frontend {
 							<button type="button" class="prrint-tool-btn" data-tool="text" title="<?php esc_attr_e( 'Text', 'prrint' ); ?>">A</button>
 							<button type="button" class="prrint-tool-btn" data-tool="elements" title="<?php esc_attr_e( 'Elements', 'prrint' ); ?>">★</button>
 							<button type="button" class="prrint-tool-btn" data-tool="draw" title="<?php esc_attr_e( 'Draw', 'prrint' ); ?>">✎</button>
+							<button type="button" class="prrint-tool-btn" data-tool="overlays" title="<?php esc_attr_e( 'Overlays', 'prrint' ); ?>">▨</button>
 							<button type="button" class="prrint-tool-btn" data-tool="border" title="<?php esc_attr_e( 'Border', 'prrint' ); ?>">▢</button>
 						</div>
 
@@ -283,6 +294,10 @@ class Prrint_Frontend {
 										<button type="button" class="prrint-btn-secondary" id="prrint-text-delete"><?php esc_html_e( 'Delete', 'prrint' ); ?></button>
 									</div>
 								</div>
+							</div>
+
+							<div class="prrint-tool-panel" data-panel="overlays" hidden>
+								<div class="prrint-filter-grid" id="prrint-overlay-grid"></div>
 							</div>
 
 							<div class="prrint-tool-panel" data-panel="border" hidden>

@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,12 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.7.0 =
+* Add an Overlays tool to the editor: Vignette, Glow, Light Leak, Grain,
+  Bokeh, and Scratches texture composites, confined to the photo area
+  (not the border), rendered identically in the browser preview and the
+  print pipeline. Textures are bundled, procedurally-generated PNGs.
 
 = 1.6.0 =
 * Expand the editor's Adjust panel: Gamma, Exposure, Clarity, Shadows,

@@ -160,6 +160,12 @@ class Prrint_Image {
 		if ( ! empty( $design['adjust'] ) ) {
 			self::apply_adjust( $cropped, $design['adjust'] );
 		}
+		if ( ! empty( $design['overlay'] ) ) {
+			$overlay_path = self::overlay_texture_path( $design['overlay'] );
+			if ( $overlay_path ) {
+				self::draw_image_overlay( $cropped, $overlay_path, imagesx( $cropped ), imagesy( $cropped ) );
+			}
+		}
 
 		// Never upscale past the cropped pixels.
 		$scale = min( 1, min( $max_w / $w, $max_h / $h ) );
@@ -613,6 +619,19 @@ class Prrint_Image {
 		imagealphablending( $im, true );
 		imagecopy( $im, $resized, 0, 0, 0, 0, $canvas_w, $canvas_h );
 		imagedestroy( $resized );
+	}
+
+	/**
+	 * Absolute path of a bundled Overlays texture, or false for an unknown id.
+	 * Whitelisted — never resolves outside assets/overlays/.
+	 */
+	public static function overlay_texture_path( $id ) {
+		$allowed = array( 'vignette', 'glow', 'lightleak', 'grain', 'bokeh', 'scratches' );
+		if ( ! in_array( $id, $allowed, true ) ) {
+			return false;
+		}
+		$path = PRRINT_DIR . 'assets/overlays/' . $id . '.png';
+		return file_exists( $path ) ? $path : false;
 	}
 
 	/**

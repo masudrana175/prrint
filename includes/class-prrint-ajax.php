@@ -359,15 +359,19 @@ class Prrint_Ajax {
 
 		$drawing = self::sanitize_drawing( isset( $raw['drawing'] ) ? $raw['drawing'] : null );
 
-		if ( ! $filter && ! $has_adjust && ! $border['enabled'] && empty( $layers ) && ! $drawing ) {
+		$allowed_overlays = array( 'vignette', 'glow', 'lightleak', 'grain', 'bokeh', 'scratches' );
+		$overlay          = isset( $raw['overlay'] ) && in_array( $raw['overlay'], $allowed_overlays, true ) ? $raw['overlay'] : '';
+
+		if ( ! $filter && ! $has_adjust && ! $border['enabled'] && empty( $layers ) && ! $drawing && ! $overlay ) {
 			return null;
 		}
 
 		$design = array(
-			'filter' => $filter,
-			'adjust' => $adjust,
-			'border' => $border,
-			'layers' => $layers,
+			'filter'  => $filter,
+			'adjust'  => $adjust,
+			'border'  => $border,
+			'layers'  => $layers,
+			'overlay' => $overlay,
 		);
 		if ( $drawing ) {
 			$design['drawing'] = $drawing;

@@ -36,6 +36,8 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
   server-side so what you place is exactly what prints.
 - **Draw** — a freehand doodle brush right on the photo, for a quick note,
   circle or arrow.
+- **Overlays** — texture composites (Vignette, Glow, Light Leak, Grain,
+  Bokeh, Scratches), confined to the photo area, not the border.
 - **Custom border** — any color and width, not just the classic white mat.
 - **Per-photo options** — print size, paper/finish, quantity stepper, and an
   optional white border, each photo independently.

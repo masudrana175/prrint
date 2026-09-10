@@ -29,6 +29,9 @@ lands — check git log for the commit implementing each item.
   resizable, rotatable; identical geometry client- and server-side
 - **Draw** — freehand doodle brush, composited as a transparent PNG layer
 - **Border** — any color/width, not just white
+- **Overlays** — texture composites (Vignette, Glow, Light Leak, Grain, Bokeh, Scratches),
+  procedurally generated (no internet access to fetch the reference's real textures),
+  confined to the photo area (not the border), reusing the Draw layer's compositing pipeline
 - **Undo/Redo** — history stack over filter/adjust/border/rotation/layer edits
 - **Order one photo in multiple sizes** — "Add size" clones a card with the same edits
 
@@ -43,7 +46,6 @@ how feasible + valuable each is to build next:
 
 | Item | What the reference has | Status |
 |---|---|---|
-| **Overlays** | Texture/light-leak composites (Bokeh, Hearts, Light Leak, Wood, Grain, Clouds, etc.) | **In progress this turn** — reusing the Draw layer's compositing pipeline, with procedurally-generated bundled textures (no internet access to fetch real ones) |
 | **Focus** | Radial / Mirrored / Linear / Gaussian tilt-shift blur | Not started |
 | **Text Design** | Library of pre-made word-art templates (multi-text-layer compositions with stylized layouts), Shuffle Layout, Invert | Not started — this was the mystery "bookmark" icon |
 | **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | Not started (we have drag/zoom/90°-rotate only) |
