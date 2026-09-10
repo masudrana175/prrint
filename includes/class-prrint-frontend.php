@@ -63,7 +63,8 @@ class Prrint_Frontend {
 	 * process the order (pricing, cart, checkout, order management).
 	 */
 	protected static function shortcode_product( $atts ) {
-		$product_id = ! empty( $atts['id'] ) ? absint( $atts['id'] ) : (int) get_option( 'prrint_sample_product' );
+		$configured = (int) prrint_settings()['studio_product_id'];
+		$product_id = ! empty( $atts['id'] ) ? absint( $atts['id'] ) : ( $configured ? $configured : (int) get_option( 'prrint_sample_product' ) );
 		if ( ! $product_id ) {
 			return null;
 		}
@@ -165,9 +166,9 @@ class Prrint_Frontend {
 				array( 'id' => 'bokeh',     'label' => __( 'Bokeh', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/bokeh.png' ),
 				array( 'id' => 'scratches', 'label' => __( 'Scratches', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/scratches.png' ),
 			),
-			'textColors'     => array( '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
-			'textBgColors'   => array( '', '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
-			'borderColors'   => array( '#ffffff', '#000000', '#9ca3af', '#f43f5e', '#f59e0b', '#3b82f6' ),
+			'textColors'     => array_values( $settings['text_colors'] ),
+			'textBgColors'   => array_values( $settings['text_bg_colors'] ),
+			'borderColors'   => array_values( $settings['border_colors'] ),
 			'shapes'         => array(
 				array( 'id' => 'circle', 'label' => '●' ),
 				array( 'id' => 'square', 'label' => '■' ),
@@ -176,16 +177,10 @@ class Prrint_Frontend {
 				array( 'id' => 'arrow',  'label' => '➤' ),
 				array( 'id' => 'line',   'label' => '—' ),
 			),
-			'shapeColors'    => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#eab308' ),
-			'textTemplates'  => array(
-				array( 'id' => 'banner',    'label' => __( 'Banner', 'prrint' ) ),
-				array( 'id' => 'stacked',   'label' => __( 'Stacked', 'prrint' ) ),
-				array( 'id' => 'quote',     'label' => __( 'Quote', 'prrint' ) ),
-				array( 'id' => 'corner',    'label' => __( 'Corner Tag', 'prrint' ) ),
-				array( 'id' => 'stamp',     'label' => __( 'Stamp', 'prrint' ) ),
-				array( 'id' => 'sidestrip', 'label' => __( 'Side Strip', 'prrint' ) ),
-			),
-			'drawColors'     => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6' ),
+			'shapeColors'    => array_values( $settings['shape_colors'] ),
+			'textTemplates'  => self::enabled_text_templates( $settings['text_templates_enabled'] ),
+			'drawColors'     => array_values( $settings['draw_colors'] ),
+			'enabledTools'   => array_values( $settings['enabled_tools'] ),
 			'currency'       => array(
 				'symbol'      => html_entity_decode( get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8' ),
 				'decimals'    => wc_get_price_decimals(),
@@ -254,6 +249,24 @@ class Prrint_Frontend {
 		return -1;
 	}
 
+	/**
+	 * The Text Design template id/label list, filtered to the ones the
+	 * store has left enabled (default: all of them).
+	 */
+	protected static function enabled_text_templates( $enabled_ids ) {
+		$all = array(
+			array( 'id' => 'banner',    'label' => __( 'Banner', 'prrint' ) ),
+			array( 'id' => 'stacked',   'label' => __( 'Stacked', 'prrint' ) ),
+			array( 'id' => 'quote',     'label' => __( 'Quote', 'prrint' ) ),
+			array( 'id' => 'corner',    'label' => __( 'Corner Tag', 'prrint' ) ),
+			array( 'id' => 'stamp',     'label' => __( 'Stamp', 'prrint' ) ),
+			array( 'id' => 'sidestrip', 'label' => __( 'Side Strip', 'prrint' ) ),
+		);
+		return array_values( array_filter( $all, function ( $t ) use ( $enabled_ids ) {
+			return in_array( $t['id'], $enabled_ids, true );
+		} ) );
+	}
+
 	public static function render_studio() {
 		global $product;
 
@@ -264,6 +277,7 @@ class Prrint_Frontend {
 	}
 
 	protected static function render_studio_markup( $product ) {
+		$enabled_tools = prrint_settings()['enabled_tools'];
 		?>
 		<div id="prrint-studio" class="prrint-studio" data-prrint>
 			<div class="prrint-dropzone" id="prrint-dropzone" role="button" tabindex="0"
@@ -309,15 +323,25 @@ class Prrint_Frontend {
 					<div class="prrint-editor-body">
 						<div class="prrint-tool-rail" role="tablist" aria-label="<?php esc_attr_e( 'Editor tools', 'prrint' ); ?>">
 							<button type="button" class="prrint-tool-btn is-active" data-tool="transform" title="<?php esc_attr_e( 'Crop & rotate', 'prrint' ); ?>">⤢</button>
-							<button type="button" class="prrint-tool-btn" data-tool="filters" title="<?php esc_attr_e( 'Filters', 'prrint' ); ?>">◐</button>
-							<button type="button" class="prrint-tool-btn" data-tool="adjust" title="<?php esc_attr_e( 'Adjust', 'prrint' ); ?>">☼</button>
-							<button type="button" class="prrint-tool-btn" data-tool="focus" title="<?php esc_attr_e( 'Focus', 'prrint' ); ?>">◎</button>
-							<button type="button" class="prrint-tool-btn" data-tool="text" title="<?php esc_attr_e( 'Text', 'prrint' ); ?>">A</button>
-							<button type="button" class="prrint-tool-btn" data-tool="textdesign" title="<?php esc_attr_e( 'Text Design', 'prrint' ); ?>">🔖</button>
-							<button type="button" class="prrint-tool-btn" data-tool="elements" title="<?php esc_attr_e( 'Elements', 'prrint' ); ?>">★</button>
-							<button type="button" class="prrint-tool-btn" data-tool="draw" title="<?php esc_attr_e( 'Draw', 'prrint' ); ?>">✎</button>
-							<button type="button" class="prrint-tool-btn" data-tool="overlays" title="<?php esc_attr_e( 'Overlays', 'prrint' ); ?>">▨</button>
-							<button type="button" class="prrint-tool-btn" data-tool="border" title="<?php esc_attr_e( 'Border', 'prrint' ); ?>">▢</button>
+							<?php
+							$rail_tools = array(
+								'filters'    => array( '◐', __( 'Filters', 'prrint' ) ),
+								'adjust'     => array( '☼', __( 'Adjust', 'prrint' ) ),
+								'focus'      => array( '◎', __( 'Focus', 'prrint' ) ),
+								'text'       => array( 'A', __( 'Text', 'prrint' ) ),
+								'textdesign' => array( '🔖', __( 'Text Design', 'prrint' ) ),
+								'elements'   => array( '★', __( 'Elements', 'prrint' ) ),
+								'draw'       => array( '✎', __( 'Draw', 'prrint' ) ),
+								'overlays'   => array( '▨', __( 'Overlays', 'prrint' ) ),
+								'border'     => array( '▢', __( 'Border', 'prrint' ) ),
+							);
+							foreach ( $rail_tools as $tool_id => $tool ) :
+								if ( ! in_array( $tool_id, $enabled_tools, true ) ) {
+									continue;
+								}
+								?>
+								<button type="button" class="prrint-tool-btn" data-tool="<?php echo esc_attr( $tool_id ); ?>" title="<?php echo esc_attr( $tool[1] ); ?>"><?php echo esc_html( $tool[0] ); ?></button>
+							<?php endforeach; ?>
 						</div>
 
 						<div class="prrint-tool-panels">
@@ -337,7 +361,6 @@ class Prrint_Frontend {
 							<div class="prrint-tool-panel" data-panel="filters" hidden>
 								<div class="prrint-filter-grid" id="prrint-filter-grid"></div>
 							</div>
-
 							<div class="prrint-tool-panel" data-panel="adjust" hidden>
 								<p class="prrint-field-label"><?php esc_html_e( 'Basic', 'prrint' ); ?></p>
 								<label class="prrint-slider-row"><span><?php esc_html_e( 'Brightness', 'prrint' ); ?> <output id="prrint-adj-brightness-out">0</output></span>
@@ -361,7 +384,6 @@ class Prrint_Frontend {
 
 								<button type="button" class="prrint-btn-secondary prrint-adj-reset" id="prrint-adj-reset"><?php esc_html_e( 'Reset', 'prrint' ); ?></button>
 							</div>
-
 							<div class="prrint-tool-panel" data-panel="focus" hidden>
 								<p class="prrint-field-label"><?php esc_html_e( 'Shape', 'prrint' ); ?></p>
 								<div id="prrint-focus-shapes">
@@ -401,7 +423,6 @@ class Prrint_Frontend {
 									</div>
 								</div>
 							</div>
-
 							<div class="prrint-tool-panel" data-panel="text" hidden>
 								<button type="button" class="prrint-cta prrint-cta-block" id="prrint-text-add"><?php esc_html_e( 'New Text', 'prrint' ); ?></button>
 								<div id="prrint-text-fields" hidden>
@@ -446,7 +467,6 @@ class Prrint_Frontend {
 									</div>
 								</div>
 							</div>
-
 							<div class="prrint-tool-panel" data-panel="textdesign" hidden>
 								<div class="prrint-filter-grid" id="prrint-textdesign-grid"></div>
 								<div class="prrint-panel-row">
@@ -454,11 +474,9 @@ class Prrint_Frontend {
 									<button type="button" class="prrint-btn-secondary" id="prrint-textdesign-invert"><?php esc_html_e( 'Invert', 'prrint' ); ?></button>
 								</div>
 							</div>
-
 							<div class="prrint-tool-panel" data-panel="overlays" hidden>
 								<div class="prrint-filter-grid" id="prrint-overlay-grid"></div>
 							</div>
-
 							<div class="prrint-tool-panel" data-panel="border" hidden>
 								<label class="prrint-border-label"><input type="checkbox" id="prrint-border-enable" /> <?php esc_html_e( 'Add a border', 'prrint' ); ?></label>
 								<div id="prrint-border-fields" hidden>
@@ -468,7 +486,6 @@ class Prrint_Frontend {
 										<input type="range" id="prrint-border-width" min="5" max="100" value="25" /></label>
 								</div>
 							</div>
-
 							<div class="prrint-tool-panel" data-panel="elements" hidden>
 								<div class="prrint-shape-grid" id="prrint-shape-grid"></div>
 								<div id="prrint-shape-fields" hidden>
@@ -484,7 +501,6 @@ class Prrint_Frontend {
 									</div>
 								</div>
 							</div>
-
 							<div class="prrint-tool-panel" data-panel="draw" hidden>
 								<p class="prrint-swatch-label"><?php esc_html_e( 'Brush color', 'prrint' ); ?></p>
 								<div class="prrint-swatch-row" id="prrint-draw-color-swatches"></div>

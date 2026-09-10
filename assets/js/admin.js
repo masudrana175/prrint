@@ -42,4 +42,26 @@
 			}
 		}
 	});
+
+	/* Live swatch preview under each comma-separated color-list field. */
+	function renderSwatchPreview(input) {
+		var preview = input.parentElement.querySelector('[data-prrint-swatch-preview]');
+		if (!preview) { return; }
+		preview.innerHTML = '';
+		input.value.split(',').forEach(function (part) {
+			part = part.trim();
+			if (!part) { return; }
+			var isTransparent = /^(none|transparent)$/i.test(part);
+			var chip = document.createElement('span');
+			chip.className = 'prrint-swatch-chip';
+			chip.style.background = isTransparent ? '#fff' : part;
+			if (isTransparent) { chip.classList.add('prrint-swatch-chip-transparent'); }
+			preview.appendChild(chip);
+		});
+	}
+
+	document.querySelectorAll('.prrint-color-list-input').forEach(function (input) {
+		renderSwatchPreview(input);
+		input.addEventListener('input', function () { renderSwatchPreview(input); });
+	});
 })();

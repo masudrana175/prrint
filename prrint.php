@@ -3,7 +3,7 @@
  * Plugin Name: Prrint — Photo Print Studio for WooCommerce
  * Plugin URI:  https://github.com/masudrana175/prrint
  * Description: Turn WooCommerce products into a full photo print shop: multi-photo upload, crop/zoom/rotate editor, print sizes, paper finishes, white borders, live pricing, print-quality checks, and 300 DPI print-ready files on every order.
- * Version:     1.11.2
+ * Version:     1.12.0
  * Author:      Masud Rana
  * Author URI:  https://github.com/masudrana175
  * Text Domain: prrint
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PRRINT_VERSION', '1.11.2' );
+define( 'PRRINT_VERSION', '1.12.0' );
 define( 'PRRINT_FILE', __FILE__ );
 define( 'PRRINT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PRRINT_URL', plugin_dir_url( __FILE__ ) );
@@ -205,15 +205,40 @@ function prrint_default_papers() {
 	);
 }
 
+/**
+ * Editor tools that can be turned off per store. Transform (crop/rotate)
+ * isn't in this list — it's core to the product (it decides what gets
+ * printed) and always stays on.
+ */
+function prrint_toggleable_tools() {
+	return array( 'filters', 'adjust', 'focus', 'text', 'textdesign', 'elements', 'draw', 'overlays', 'border' );
+}
+
+/**
+ * Text Design word-art layout ids — must match the keys of TEXT_TEMPLATES
+ * in assets/js/frontend.js.
+ */
+function prrint_text_template_ids() {
+	return array( 'banner', 'stacked', 'quote', 'corner', 'stamp', 'sidestrip' );
+}
+
 function prrint_default_settings() {
 	return array(
-		'sizes'        => prrint_default_sizes(),
-		'papers'       => prrint_default_papers(),
-		'max_mb'       => 40,
-		'jpeg_quality' => 92,
-		'target_dpi'   => 300,
-		'min_dpi'      => 150,
-		'border_in'    => 0.25,
+		'sizes'                  => prrint_default_sizes(),
+		'papers'                 => prrint_default_papers(),
+		'max_mb'                 => 40,
+		'jpeg_quality'           => 92,
+		'target_dpi'             => 300,
+		'min_dpi'                => 150,
+		'border_in'              => 0.25,
+		'studio_product_id'      => 0, // 0 = use the auto-created sample product.
+		'enabled_tools'          => prrint_toggleable_tools(),
+		'text_templates_enabled' => prrint_text_template_ids(),
+		'text_colors'            => array( '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
+		'text_bg_colors'         => array( '', '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
+		'border_colors'          => array( '#ffffff', '#000000', '#9ca3af', '#f43f5e', '#f59e0b', '#3b82f6' ),
+		'shape_colors'           => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#eab308' ),
+		'draw_colors'            => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6' ),
 	);
 }
 

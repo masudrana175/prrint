@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.11.2
+Stable tag: 1.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,13 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.12.0 =
+* Add admin controls under WooCommerce → Prrint Studio: pick which
+  product the [prrint_studio] standalone page designs against, turn
+  whole editor tools on/off, choose which Text Design layouts show,
+  and edit the text/background/border/shape/draw color palettes
+  offered to customers (comma-separated hex, with a live preview).
 
 = 1.11.2 =
 * Fix: the editor and the sticky "Add to cart" bar showed on page load

@@ -69,6 +69,24 @@ lands — check git log for the commit implementing each item.
   existing sample product. The old product-page integration still works unchanged —
   this is an additional entry point, not a replacement.
 
+### Admin controls
+- **Standalone studio page product** — a dropdown in Settings picks which product
+  `[prrint_studio]` (and the default studio flow) designs against, instead of being
+  locked to whichever product got auto-created on activation
+- **Editor tool visibility** — checkboxes to turn whole tools off (Filters, Adjust,
+  Focus, Text, Text Design, Elements, Draw, Overlays, Border) to simplify the editor
+  per store. Transform (crop/rotate) always stays on — it decides what gets printed.
+  Disabling a tool removes its rail icon (its only entry point); the panel markup
+  itself still renders (just unreachable) rather than being conditionally omitted,
+  since dozens of existing JS call sites assume these elements always exist and
+  aren't null-guarded — omitting markup risked breaking the editor for anyone who
+  disables a tool. Same customer-facing result, none of the risk.
+- **Text Design layout toggles** — checkboxes for which of the 6 word-art layouts
+  appear in the Text Design panel
+- **Color palettes** — the text/background/border/shape/draw color swatch lists are
+  now editable (comma-separated hex, "transparent" for no fill) instead of a fixed
+  hardcoded set, with a live swatch preview in the admin page
+
 ### Visual design
 - Full-screen dark theme matching the reference (top bar, icon rail, filter preview
   tiles, Text panel layout) — verified with an actual Playwright render, not just CSS review
