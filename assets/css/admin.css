@@ -1,0 +1,71 @@
+/* Prrint — admin styles */
+
+.prrint-admin-wrap {
+	max-width: 900px;
+}
+
+.prrint-admin-title {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.prrint-logo {
+	font-size: 1.2em;
+}
+
+.prrint-admin-sub {
+	color: #646970;
+	margin-top: -4px;
+}
+
+.prrint-card {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	padding: 18px 22px;
+	margin: 18px 0;
+	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.prrint-card h2 {
+	margin-top: 0;
+}
+
+.prrint-table {
+	max-width: 640px;
+	margin-top: 10px;
+}
+
+.prrint-table input[type="text"],
+.prrint-table input[type="number"] {
+	width: 100%;
+	max-width: 160px;
+}
+
+.prrint-col-actions {
+	width: 40px;
+	text-align: center;
+}
+
+.prrint-remove-row {
+	color: #b32d2e;
+	text-decoration: none;
+	font-size: 14px;
+	cursor: pointer;
+	border: 0;
+	background: none;
+}
+
+.prrint-remove-row:hover {
+	color: #8a2424;
+}
+
+.prrint-add-row {
+	margin-top: 4px !important;
+}
+
+.prrint-product-tables .prrint-table input[type="text"],
+.prrint-product-tables .prrint-table input[type="number"] {
+	max-width: 120px;
+}
