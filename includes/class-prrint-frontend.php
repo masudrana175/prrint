@@ -31,6 +31,31 @@ class Prrint_Frontend {
 	}
 
 	/**
+	 * If the currently-viewed singular post/page contains [prrint_studio],
+	 * resolve the product it'll design against — used to enqueue assets at
+	 * the correct time (the wp_enqueue_scripts hook, during wp_head()), not
+	 * from inside the shortcode callback itself. A style enqueued that late
+	 * is too late: wp_head() has already printed <link> tags in virtually
+	 * every theme by the time shortcodes in the content run, so a style
+	 * enqueued only from the callback silently never reaches the page —
+	 * the studio's markup renders, unstyled and effectively broken.
+	 */
+	protected static function current_page_shortcode_product() {
+		if ( ! is_singular() ) {
+			return null;
+		}
+		$post = get_post();
+		if ( ! $post || ! has_shortcode( $post->post_content, 'prrint_studio' ) ) {
+			return null;
+		}
+		$atts = array();
+		if ( preg_match( '/\[prrint_studio\b([^\]]*)\]/', $post->post_content, $m ) ) {
+			$atts = shortcode_parse_atts( $m[1] );
+		}
+		return self::shortcode_product( is_array( $atts ) ? $atts : array() );
+	}
+
+	/**
 	 * The product a [prrint_studio] shortcode should design for: an explicit
 	 * id="" attribute, else the store's configured/auto-created default —
 	 * the studio's design UI lives on its own page via this shortcode, but
@@ -80,6 +105,9 @@ class Prrint_Frontend {
 
 	public static function enqueue() {
 		$product = self::current_enabled_product();
+		if ( ! $product ) {
+			$product = self::current_page_shortcode_product();
+		}
 		if ( ! $product ) {
 			return;
 		}

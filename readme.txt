@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.11.0
+Stable tag: 1.11.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,15 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.11.1 =
+* Fix: [prrint_studio] on a Page rendered unstyled and non-functional —
+  its CSS/JS were enqueued from inside the shortcode callback, which
+  runs too late (after wp_head() has already printed styles in
+  virtually every theme). Assets are now enqueued at the correct time
+  by detecting the shortcode on the current page during the standard
+  wp_enqueue_scripts hook, matching how the product-page integration
+  already worked.
 
 = 1.11.0 =
 * Add a [prrint_studio] shortcode: the full upload/design/order studio on
