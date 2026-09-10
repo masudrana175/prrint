@@ -12,8 +12,17 @@ class Prrint_Cart {
 	public static function init() {
 		add_filter( 'woocommerce_get_item_data', array( __CLASS__, 'get_item_data' ), 10, 2 );
 		add_filter( 'woocommerce_cart_item_thumbnail', array( __CLASS__, 'cart_thumbnail' ), 10, 2 );
+		// The Cart/Checkout Blocks (WooCommerce's React-based, now-default
+		// checkout) don't render classic PHP templates at all, so the
+		// _thumbnail filter above never runs for them — they pull item
+		// images from the Store API instead, which has its own filter.
+		add_filter( 'woocommerce_store_api_cart_item_images', array( __CLASS__, 'store_api_cart_item_images' ), 10, 2 );
 		add_action( 'woocommerce_before_calculate_totals', array( __CLASS__, 'set_prices' ), 20 );
 		add_action( 'woocommerce_checkout_create_order_line_item', array( __CLASS__, 'order_line_item' ), 10, 4 );
+		// Shared by the customer's order-received/View order page AND order
+		// emails (both render the same order-details-item template), so one
+		// hook adds the print preview + a download link to both at once.
+		add_filter( 'woocommerce_order_item_name', array( __CLASS__, 'order_item_name' ), 10, 2 );
 	}
 
 	public static function get_item_data( $item_data, $cart_item ) {
@@ -49,6 +58,72 @@ class Prrint_Cart {
 			esc_url( prrint_file_url( $cart_item['prrint']['preview'] ) ),
 			esc_attr__( 'Your print preview', 'prrint' )
 		);
+	}
+
+	/**
+	 * Same image swap as cart_thumbnail(), but for the Cart/Checkout Blocks'
+	 * Store API response instead of a classic PHP template.
+	 *
+	 * @param array $images    Store API image DTOs for this cart item.
+	 * @param array $cart_item The cart item.
+	 * @return array
+	 */
+	public static function store_api_cart_item_images( $images, $cart_item ) {
+		if ( empty( $cart_item['prrint']['preview'] ) ) {
+			return $images;
+		}
+		$url = prrint_file_url( $cart_item['prrint']['preview'] );
+		return array(
+			(object) array(
+				'id'        => 0,
+				'src'       => $url,
+				'thumbnail' => $url,
+				'srcset'    => '',
+				'sizes'     => '',
+				'name'      => __( 'Your print preview', 'prrint' ),
+				'alt'       => __( 'Your print preview', 'prrint' ),
+			),
+		);
+	}
+
+	/**
+	 * Adds the print preview + a download link under the item name on the
+	 * customer's order-received/View order page and in order emails — both
+	 * render through the same order-details-item template, which is why one
+	 * filter covers both. Core WooCommerce shows no item image at all here
+	 * by default.
+	 */
+	public static function order_item_name( $item_name, $item ) {
+		if ( ! $item instanceof WC_Order_Item_Product ) {
+			return $item_name;
+		}
+
+		$preview = $item->get_meta( '_prrint_preview' );
+		$print   = $item->get_meta( '_prrint_print_file' );
+		$source  = $item->get_meta( '_prrint_source_file' );
+		if ( ! $preview && ! $print && ! $source ) {
+			return $item_name;
+		}
+
+		$extra = '';
+		if ( $preview ) {
+			$extra .= sprintf(
+				'<br /><img src="%s" alt="%s" style="max-width:80px;height:auto;border-radius:4px;margin:6px 0;display:block;" />',
+				esc_url( prrint_file_url( $preview ) ),
+				esc_attr__( 'Your print preview', 'prrint' )
+			);
+		}
+
+		$download_file = $print ? $print : $source;
+		if ( $download_file ) {
+			$extra .= sprintf(
+				'<br /><a href="%s" target="_blank" rel="noopener" style="font-size:12px;">%s</a>',
+				esc_url( prrint_file_url( $download_file ) ),
+				esc_html__( 'Download image', 'prrint' )
+			);
+		}
+
+		return $item_name . $extra;
 	}
 
 	public static function set_prices( $cart ) {

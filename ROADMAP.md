@@ -35,6 +35,38 @@ lands — check git log for the commit implementing each item.
 - Verified the new use/delete/list endpoints against a mock WP harness (10
   assertions: auth checks, response shape, the token pointing at the right file,
   row removal) and the full layout via Playwright at desktop and mobile widths.
+- **Configurable retention** — uploads (guest and signed-in alike, before a
+  signed-in customer's file also lands in their permanent library) are now kept
+  for an admin-configurable number of days (Settings → "Keep uploaded photos
+  for," default 14) instead of a hardcoded 8, and the upload token's expiry now
+  matches that same window so it never goes stale before the file itself does
+  — previously the token (1 week) and file (8 days) had two different, unrelated
+  hardcoded lifetimes.
+
+### Cart, checkout, order page & emails show the real photo
+- **WooCommerce Cart/Checkout Blocks support** — the React-based Cart/Checkout
+  Blocks (now WooCommerce's default checkout) don't render classic PHP
+  templates at all, so the existing `woocommerce_cart_item_thumbnail` filter
+  never ran for them; they pull item images from the Store API instead, which
+  has its own filter (`woocommerce_store_api_cart_item_images`), now also
+  hooked — so the customer's actual edited/cropped preview shows correctly
+  regardless of which checkout the store runs.
+- **Order page & emails** — previously showed no item image or download link
+  at all (core WooCommerce doesn't render one by default). Both the customer's
+  order-received/View order page and order emails now show the print preview
+  plus a **Download image** link, added via `woocommerce_order_item_name`
+  (the one filter both contexts share).
+- Verified against a mock WC harness (12 assertions: Store API image shape,
+  order-item passthrough for non-Prrint items, download link preferring the
+  print-ready file over the source photo).
+
+### Visual design — studio page layout
+- Consistent vertical rhythm between the studio's major sections (Upload,
+  Your Photos, item cards, cart summary) via one shared rule instead of each
+  section setting its own one-off margin, a subtle divider before "Your
+  uploaded photos," and a max-width so the page doesn't feel sprawling on
+  very wide screens. Verified via Playwright at mobile, desktop, and a
+  1920px-wide viewport.
 
 ### Editor — style previews show the real photo
 - Filters and Overlays swatches now render the customer's own uploaded photo with

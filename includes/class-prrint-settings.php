@@ -77,6 +77,7 @@ class Prrint_Settings {
 		$out['target_dpi']   = max( 72, min( 1200, isset( $input['target_dpi'] ) ? absint( $input['target_dpi'] ) : $defaults['target_dpi'] ) );
 		$out['min_dpi']      = max( 30, min( 600, isset( $input['min_dpi'] ) ? absint( $input['min_dpi'] ) : $defaults['min_dpi'] ) );
 		$out['border_in']    = max( 0.05, min( 2, isset( $input['border_in'] ) ? (float) $input['border_in'] : $defaults['border_in'] ) );
+		$out['upload_retention_days'] = max( 1, min( 365, isset( $input['upload_retention_days'] ) ? absint( $input['upload_retention_days'] ) : $defaults['upload_retention_days'] ) );
 
 		$out['studio_product_id'] = isset( $input['studio_product_id'] ) ? absint( $input['studio_product_id'] ) : 0;
 
@@ -230,6 +231,13 @@ class Prrint_Settings {
 							<td>
 								<input type="number" id="prrint_border_in" name="prrint_settings[border_in]" value="<?php echo esc_attr( $s['border_in'] ); ?>" min="0.05" max="2" step="0.05" class="small-text" />
 								<p class="description"><?php esc_html_e( 'Used when the customer selects the optional white border.', 'prrint' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="prrint_upload_retention_days"><?php esc_html_e( 'Keep uploaded photos for (days)', 'prrint' ); ?></label></th>
+							<td>
+								<input type="number" id="prrint_upload_retention_days" name="prrint_settings[upload_retention_days]" value="<?php echo esc_attr( $s['upload_retention_days'] ); ?>" min="1" max="365" class="small-text" />
+								<p class="description"><?php esc_html_e( 'How long an uploaded photo is kept before automatic deletion — applies to every upload, signed in or not. A signed-in customer\'s permanent "My Photos" library is separate and never auto-deleted.', 'prrint' ); ?></p>
 							</td>
 						</tr>
 					</table>

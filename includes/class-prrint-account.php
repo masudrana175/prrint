@@ -239,12 +239,13 @@ class Prrint_Account {
 			wp_send_json_error( array( 'message' => __( 'Photo not found.', 'prrint' ) ) );
 		}
 
-		$token = wp_generate_password( 32, false, false );
+		$token     = wp_generate_password( 32, false, false );
+		$retention = max( 1, (int) prrint_settings()['upload_retention_days'] ) * DAY_IN_SECONDS;
 		set_transient( 'prrint_up_' . $token, array(
 			'file'   => $row['file'],
 			'width'  => (int) $row['width'],
 			'height' => (int) $row['height'],
-		), WEEK_IN_SECONDS );
+		), $retention );
 
 		wp_send_json_success( array(
 			'token'  => $token,

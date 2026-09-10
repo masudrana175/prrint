@@ -73,11 +73,15 @@ class Prrint_Ajax {
 		$relative = $subdir . '/' . $filename;
 		$token    = wp_generate_password( 32, false, false );
 
+		// Matches how long the file itself is kept (prrint_cleanup_tmp), so
+		// a customer's upload token never goes stale before its file does.
+		$retention = max( 1, (int) prrint_settings()['upload_retention_days'] ) * DAY_IN_SECONDS;
+
 		set_transient( 'prrint_up_' . $token, array(
 			'file'   => $relative,
 			'width'  => (int) $info[0],
 			'height' => (int) $info[1],
-		), WEEK_IN_SECONDS );
+		), $retention );
 
 		// Logged-in customers keep a permanent copy in their "My Photos"
 		// library so it can be reused after the tmp upload expires.

@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.14.0
+Stable tag: 1.15.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,22 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.15.0 =
+* Add a "Keep uploaded photos for (days)" setting (default 14, applies
+  to every upload, signed in or not) — replaces a hardcoded 8-day
+  cleanup, and the upload token's own expiry now matches it so it
+  never goes stale before the file does.
+* Fix: the customer's actual edited/cropped photo now shows correctly
+  in cart and checkout on stores using the WooCommerce Cart/Checkout
+  Blocks (the now-default React-based checkout), which don't respect
+  the classic PHP template filter Prrint already used.
+* Add the print preview and a Download image link to the customer's
+  order-received/View order page and to order emails — previously
+  neither showed any image or download link at all.
+* Polish the studio page's overall layout: consistent spacing between
+  sections, a divider before "Your uploaded photos," and a max-width
+  so it doesn't feel sprawling on very wide screens.
 
 = 1.14.0 =
 * Add "Your uploaded photos" directly to the studio page for signed-in
