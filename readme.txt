@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,14 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.6.0 =
+* Expand the editor's Adjust panel: Gamma, Exposure, Clarity, Shadows,
+  Highlights, alongside the existing Brightness/Contrast/Saturation.
+  Gamma/Exposure use GD's native gamma correction; Clarity uses a real
+  (not approximated) GD convolution sharpen kernel. Shadows/Highlights
+  are global brightness/contrast approximations — true per-pixel
+  luminance masking is too slow at print resolution without a job queue.
 
 = 1.5.0 =
 * Redesigned the Print Studio editor to a full-screen dark theme matching

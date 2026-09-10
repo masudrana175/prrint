@@ -48,6 +48,11 @@
 		adjBrightness: document.getElementById('prrint-adj-brightness'),
 		adjContrast: document.getElementById('prrint-adj-contrast'),
 		adjSaturation: document.getElementById('prrint-adj-saturation'),
+		adjGamma: document.getElementById('prrint-adj-gamma'),
+		adjClarity: document.getElementById('prrint-adj-clarity'),
+		adjShadows: document.getElementById('prrint-adj-shadows'),
+		adjHighlights: document.getElementById('prrint-adj-highlights'),
+		adjExposure: document.getElementById('prrint-adj-exposure'),
 		adjReset: document.getElementById('prrint-adj-reset'),
 		textAdd: document.getElementById('prrint-text-add'),
 		textFields: document.getElementById('prrint-text-fields'),
@@ -103,7 +108,7 @@
 	function newDesign() {
 		return {
 			filter: '',
-			adjust: { brightness: 0, contrast: 0, saturation: 100 },
+			adjust: { brightness: 0, contrast: 0, saturation: 100, gamma: 0, exposure: 0, clarity: 0, shadows: 0, highlights: 0 },
 			border: { enabled: false, color: '#ffffff', width_in: cfg.borderIn || 0.25 },
 			layers: [],
 			drawing: null // { dataUrl } once the customer has drawn something
@@ -224,6 +229,15 @@
 			if (typeof a.saturation === 'number' && a.saturation !== 100) {
 				parts.push('saturate(' + Math.max(0, a.saturation / 100) + ')');
 			}
+			// CSS has no gamma/clarity/shadows/highlights filter — these are
+			// brightness/contrast approximations for the live preview only;
+			// the server-rendered preview (shown after Add to Cart) is ground
+			// truth, same principle as the crop tool.
+			if (a.gamma) { parts.push('brightness(' + Math.pow(1.3, a.gamma / 100) + ')'); }
+			if (a.exposure) { parts.push('brightness(' + Math.pow(2, a.exposure / 100) + ')'); }
+			if (a.clarity) { parts.push('contrast(' + (1 + a.clarity / 100 * 0.15) + ')'); }
+			if (a.shadows) { parts.push('brightness(' + (1 + a.shadows / 100 * 0.18) + ')'); }
+			if (a.highlights) { parts.push('brightness(' + (1 + a.highlights / 100 * -0.12) + ') contrast(' + (1 + a.highlights / 100 * -0.06) + ')'); }
 		}
 		return parts.length ? parts.join(' ') : 'none';
 	}
@@ -1038,8 +1052,10 @@
 	/* adjust panel */
 	function edAdjustInput(el, key) {
 		if (!el) { return; }
+		var out = document.getElementById(el.id + '-out');
 		el.addEventListener('input', function () {
 			ed.design.adjust[key] = Number(this.value);
+			if (out) { out.textContent = this.value; }
 			edDraw();
 		});
 		el.addEventListener('change', pushHistory);
@@ -1047,12 +1063,23 @@
 	edAdjustInput(els.adjBrightness, 'brightness');
 	edAdjustInput(els.adjContrast, 'contrast');
 	edAdjustInput(els.adjSaturation, 'saturation');
+	edAdjustInput(els.adjGamma, 'gamma');
+	edAdjustInput(els.adjClarity, 'clarity');
+	edAdjustInput(els.adjShadows, 'shadows');
+	edAdjustInput(els.adjHighlights, 'highlights');
+	edAdjustInput(els.adjExposure, 'exposure');
 	if (els.adjReset) {
 		els.adjReset.addEventListener('click', function () {
-			ed.design.adjust = { brightness: 0, contrast: 0, saturation: 100 };
-			els.adjBrightness.value = '0';
-			els.adjContrast.value = '0';
-			els.adjSaturation.value = '100';
+			ed.design.adjust = { brightness: 0, contrast: 0, saturation: 100, gamma: 0, exposure: 0, clarity: 0, shadows: 0, highlights: 0 };
+			[
+				[els.adjBrightness, '0'], [els.adjContrast, '0'], [els.adjSaturation, '100'], [els.adjGamma, '0'],
+				[els.adjClarity, '0'], [els.adjShadows, '0'], [els.adjHighlights, '0'], [els.adjExposure, '0']
+			].forEach(function (pair) {
+				if (!pair[0]) { return; }
+				pair[0].value = pair[1];
+				var out = document.getElementById(pair[0].id + '-out');
+				if (out) { out.textContent = pair[1]; }
+			});
 			edDraw();
 			pushHistory();
 		});
@@ -1491,9 +1518,17 @@
 		els.borderEnable.checked = !!ed.design.border.enabled;
 		els.borderFields.hidden = !ed.design.border.enabled;
 		els.borderWidth.value = String(Math.round(ed.design.border.width_in * 100));
-		els.adjBrightness.value = String(ed.design.adjust.brightness);
-		els.adjContrast.value = String(ed.design.adjust.contrast);
-		els.adjSaturation.value = String(ed.design.adjust.saturation);
+		[
+			[els.adjBrightness, 'brightness'], [els.adjContrast, 'contrast'], [els.adjSaturation, 'saturation'],
+			[els.adjGamma, 'gamma'], [els.adjClarity, 'clarity'], [els.adjShadows, 'shadows'],
+			[els.adjHighlights, 'highlights'], [els.adjExposure, 'exposure']
+		].forEach(function (pair) {
+			if (!pair[0]) { return; }
+			var v = ed.design.adjust[pair[1]];
+			pair[0].value = String(v);
+			var out = document.getElementById(pair[0].id + '-out');
+			if (out) { out.textContent = String(v); }
+		});
 		if (els.filterGrid) {
 			els.filterGrid.querySelectorAll('.prrint-filter-swatch').forEach(function (b) {
 				b.classList.toggle('is-active', b.dataset.filter === (ed.design.filter || ''));

@@ -21,7 +21,8 @@ lands — check git log for the commit implementing each item.
 - **Transform** — crop/zoom/drag, 90° rotate, portrait/landscape (existing, unchanged)
 - **Filters** — B&W, Warm, Cold, Vintage, DuoTone, Legacy, Smooth
   - DuoTone is a **true 2-stop gradient** (palette remap technique), not an approximation
-- **Adjust** — Brightness, Contrast, Saturation
+- **Adjust** — Brightness, Contrast, Saturation, Gamma, Exposure, Clarity, Shadows, Highlights
+  (Shadows/Highlights are global approximations — see "Notes on feasibility limits")
 - **Text** — multi-layer captions: font size, bold, alignment, color, background color,
   line spacing, rotation, drag-to-move, duplicate/delete
 - **Elements** — sticker shapes (circle, square, star, heart, arrow, line), colored,
@@ -42,7 +43,6 @@ how feasible + valuable each is to build next:
 
 | Item | What the reference has | Status |
 |---|---|---|
-| **Adjust — more sliders** | Gamma, Clarity, Shadows, Highlights, Exposure (we only have Brightness/Contrast/Saturation) | **In progress this turn** |
 | **Overlays** | Texture/light-leak composites (Bokeh, Hearts, Light Leak, Wood, Grain, Clouds, etc.) | **In progress this turn** — reusing the Draw layer's compositing pipeline, with procedurally-generated bundled textures (no internet access to fetch real ones) |
 | **Focus** | Radial / Mirrored / Linear / Gaussian tilt-shift blur | Not started |
 | **Text Design** | Library of pre-made word-art templates (multi-text-layer compositions with stylized layouts), Shuffle Layout, Invert | Not started — this was the mystery "bookmark" icon |

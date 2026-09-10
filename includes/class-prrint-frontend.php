@@ -217,12 +217,26 @@ class Prrint_Frontend {
 							</div>
 
 							<div class="prrint-tool-panel" data-panel="adjust" hidden>
-								<label class="prrint-slider-row"><span><?php esc_html_e( 'Brightness', 'prrint' ); ?></span>
+								<p class="prrint-field-label"><?php esc_html_e( 'Basic', 'prrint' ); ?></p>
+								<label class="prrint-slider-row"><span><?php esc_html_e( 'Brightness', 'prrint' ); ?> <output id="prrint-adj-brightness-out">0</output></span>
 									<input type="range" id="prrint-adj-brightness" min="-100" max="100" value="0" /></label>
-								<label class="prrint-slider-row"><span><?php esc_html_e( 'Contrast', 'prrint' ); ?></span>
+								<label class="prrint-slider-row"><span><?php esc_html_e( 'Contrast', 'prrint' ); ?> <output id="prrint-adj-contrast-out">0</output></span>
 									<input type="range" id="prrint-adj-contrast" min="-100" max="100" value="0" /></label>
-								<label class="prrint-slider-row"><span><?php esc_html_e( 'Saturation', 'prrint' ); ?></span>
+								<label class="prrint-slider-row"><span><?php esc_html_e( 'Saturation', 'prrint' ); ?> <output id="prrint-adj-saturation-out">100</output></span>
 									<input type="range" id="prrint-adj-saturation" min="0" max="100" value="100" /></label>
+								<label class="prrint-slider-row"><span><?php esc_html_e( 'Gamma', 'prrint' ); ?> <output id="prrint-adj-gamma-out">0</output></span>
+									<input type="range" id="prrint-adj-gamma" min="-100" max="100" value="0" /></label>
+
+								<p class="prrint-field-label"><?php esc_html_e( 'Refinements', 'prrint' ); ?></p>
+								<label class="prrint-slider-row"><span><?php esc_html_e( 'Clarity', 'prrint' ); ?> <output id="prrint-adj-clarity-out">0</output></span>
+									<input type="range" id="prrint-adj-clarity" min="0" max="100" value="0" /></label>
+								<label class="prrint-slider-row"><span><?php esc_html_e( 'Shadows', 'prrint' ); ?> <output id="prrint-adj-shadows-out">0</output></span>
+									<input type="range" id="prrint-adj-shadows" min="-100" max="100" value="0" /></label>
+								<label class="prrint-slider-row"><span><?php esc_html_e( 'Highlights', 'prrint' ); ?> <output id="prrint-adj-highlights-out">0</output></span>
+									<input type="range" id="prrint-adj-highlights" min="-100" max="100" value="0" /></label>
+								<label class="prrint-slider-row"><span><?php esc_html_e( 'Exposure', 'prrint' ); ?> <output id="prrint-adj-exposure-out">0</output></span>
+									<input type="range" id="prrint-adj-exposure" min="-100" max="100" value="0" /></label>
+
 								<button type="button" class="prrint-btn-secondary prrint-adj-reset" id="prrint-adj-reset"><?php esc_html_e( 'Reset', 'prrint' ); ?></button>
 							</div>
 

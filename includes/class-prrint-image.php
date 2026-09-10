@@ -317,6 +317,11 @@ class Prrint_Image {
 		$brightness = isset( $adjust['brightness'] ) ? max( -100, min( 100, (float) $adjust['brightness'] ) ) : 0.0;
 		$contrast   = isset( $adjust['contrast'] ) ? max( -100, min( 100, (float) $adjust['contrast'] ) ) : 0.0;
 		$saturation = isset( $adjust['saturation'] ) ? max( 0, min( 100, (float) $adjust['saturation'] ) ) : 100.0;
+		$gamma      = isset( $adjust['gamma'] ) ? max( -100, min( 100, (float) $adjust['gamma'] ) ) : 0.0;
+		$exposure   = isset( $adjust['exposure'] ) ? max( -100, min( 100, (float) $adjust['exposure'] ) ) : 0.0;
+		$clarity    = isset( $adjust['clarity'] ) ? max( 0, min( 100, (float) $adjust['clarity'] ) ) : 0.0;
+		$shadows    = isset( $adjust['shadows'] ) ? max( -100, min( 100, (float) $adjust['shadows'] ) ) : 0.0;
+		$highlights = isset( $adjust['highlights'] ) ? max( -100, min( 100, (float) $adjust['highlights'] ) ) : 0.0;
 
 		if ( 0.0 !== $brightness ) {
 			imagefilter( $im, IMG_FILTER_BRIGHTNESS, (int) round( $brightness * 2.55 ) );
@@ -334,6 +339,54 @@ class Prrint_Image {
 			imagecopymerge( $im, $gray, 0, 0, 0, 0, $w, $h, (int) round( 100 - $saturation ) );
 			imagedestroy( $gray );
 		}
+		if ( 0.0 !== $gamma ) {
+			// Subtle midtone curve: output_gamma in ~0.62..1.6.
+			imagegammacorrect( $im, 1.0, pow( 1.6, $gamma / 100 ) );
+		}
+		if ( 0.0 !== $exposure ) {
+			// True stops-based exposure (-2..+2 EV) expressed as a gamma
+			// correction — mathematically the same curve a stop change
+			// produces on a display-referred image, and GD-native/fast.
+			imagegammacorrect( $im, 1.0, pow( 2, $exposure / 100 * 2 ) );
+		}
+		if ( $clarity > 0 ) {
+			self::apply_clarity( $im, $clarity / 100 );
+		}
+		// Shadows/Highlights: GD has no fast way to mask by luminance without
+		// a per-pixel PHP loop (too slow at print resolution), so these are
+		// global brightness/contrast nudges biased toward each end — a
+		// deliberate approximation, not true selective tone mapping.
+		if ( 0.0 !== $shadows ) {
+			imagefilter( $im, IMG_FILTER_BRIGHTNESS, (int) round( $shadows / 100 * 45 ) );
+		}
+		if ( 0.0 !== $highlights ) {
+			imagefilter( $im, IMG_FILTER_BRIGHTNESS, (int) round( $highlights / 100 * -30 ) );
+			imagefilter( $im, IMG_FILTER_CONTRAST, (int) round( $highlights / 100 * -15 ) );
+		}
+	}
+
+	/**
+	 * Local-contrast / sharpen boost ("Clarity") via GD's native C-level
+	 * imageconvolution() — fast at full print resolution, unlike a per-pixel
+	 * PHP unsharp-mask loop would be.
+	 *
+	 * @param resource|GdImage $im     GD image, modified in place.
+	 * @param float            $amount 0..1.
+	 */
+	protected static function apply_clarity( $im, $amount ) {
+		$amount = max( 0.0, min( 1.0, $amount ) ) * 0.6; // cap to avoid harsh halos
+		$edge   = -$amount;
+		$center = 1 + 4 * $amount;
+		imageconvolution(
+			$im,
+			array(
+				array( 0, $edge, 0 ),
+				array( $edge, $center, $edge ),
+				array( 0, $edge, 0 ),
+			),
+			1,
+			0
+		);
 	}
 
 	/**

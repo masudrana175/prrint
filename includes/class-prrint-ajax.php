@@ -270,19 +270,30 @@ class Prrint_Ajax {
 			'brightness' => 0.0,
 			'contrast'   => 0.0,
 			'saturation' => 100.0,
+			'gamma'      => 0.0,
+			'exposure'   => 0.0,
+			'clarity'    => 0.0,
+			'shadows'    => 0.0,
+			'highlights' => 0.0,
 		);
 		$has_adjust = false;
 		if ( isset( $raw['adjust'] ) && is_array( $raw['adjust'] ) ) {
-			if ( isset( $raw['adjust']['brightness'] ) ) {
-				$adjust['brightness'] = max( -100, min( 100, (float) $raw['adjust']['brightness'] ) );
-			}
-			if ( isset( $raw['adjust']['contrast'] ) ) {
-				$adjust['contrast'] = max( -100, min( 100, (float) $raw['adjust']['contrast'] ) );
+			foreach ( array( 'brightness', 'contrast', 'gamma', 'exposure', 'shadows', 'highlights' ) as $key ) {
+				if ( isset( $raw['adjust'][ $key ] ) ) {
+					$adjust[ $key ] = max( -100, min( 100, (float) $raw['adjust'][ $key ] ) );
+				}
 			}
 			if ( isset( $raw['adjust']['saturation'] ) ) {
 				$adjust['saturation'] = max( 0, min( 100, (float) $raw['adjust']['saturation'] ) );
 			}
-			$has_adjust = ( 0.0 !== $adjust['brightness'] || 0.0 !== $adjust['contrast'] || 100.0 !== $adjust['saturation'] );
+			if ( isset( $raw['adjust']['clarity'] ) ) {
+				$adjust['clarity'] = max( 0, min( 100, (float) $raw['adjust']['clarity'] ) );
+			}
+			$has_adjust = (
+				0.0 !== $adjust['brightness'] || 0.0 !== $adjust['contrast'] || 100.0 !== $adjust['saturation'] ||
+				0.0 !== $adjust['gamma'] || 0.0 !== $adjust['exposure'] || 0.0 !== $adjust['clarity'] ||
+				0.0 !== $adjust['shadows'] || 0.0 !== $adjust['highlights']
+			);
 		}
 
 		$border = array(
