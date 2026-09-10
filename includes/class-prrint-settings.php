@@ -78,6 +78,7 @@ class Prrint_Settings {
 		$out['min_dpi']      = max( 30, min( 600, isset( $input['min_dpi'] ) ? absint( $input['min_dpi'] ) : $defaults['min_dpi'] ) );
 		$out['border_in']    = max( 0.05, min( 2, isset( $input['border_in'] ) ? (float) $input['border_in'] : $defaults['border_in'] ) );
 		$out['upload_retention_days'] = max( 1, min( 365, isset( $input['upload_retention_days'] ) ? absint( $input['upload_retention_days'] ) : $defaults['upload_retention_days'] ) );
+		$out['scale_unit'] = isset( $input['scale_unit'] ) && 'px' === $input['scale_unit'] ? 'px' : 'in';
 
 		$out['studio_product_id'] = isset( $input['studio_product_id'] ) ? absint( $input['studio_product_id'] ) : 0;
 
@@ -238,6 +239,15 @@ class Prrint_Settings {
 							<td>
 								<input type="number" id="prrint_upload_retention_days" name="prrint_settings[upload_retention_days]" value="<?php echo esc_attr( $s['upload_retention_days'] ); ?>" min="1" max="365" class="small-text" />
 								<p class="description"><?php esc_html_e( 'How long an uploaded photo is kept before automatic deletion — applies to every upload, signed in or not. A signed-in customer\'s permanent "My Photos" library is separate and never auto-deleted.', 'prrint' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><?php esc_html_e( 'Editor ruler units', 'prrint' ); ?></th>
+							<td>
+								<label><input type="radio" name="prrint_settings[scale_unit]" value="in" <?php checked( $s['scale_unit'], 'in' ); ?> /> <?php esc_html_e( 'Inches', 'prrint' ); ?></label>
+								&nbsp; &nbsp;
+								<label><input type="radio" name="prrint_settings[scale_unit]" value="px" <?php checked( $s['scale_unit'], 'px' ); ?> /> <?php esc_html_e( 'Pixels', 'prrint' ); ?></label>
+								<p class="description"><?php esc_html_e( 'Units shown on the ruler along the editor canvas.', 'prrint' ); ?></p>
 							</td>
 						</tr>
 					</table>

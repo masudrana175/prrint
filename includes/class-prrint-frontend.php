@@ -144,6 +144,7 @@ class Prrint_Frontend {
 			'minDpi'         => (int) $settings['min_dpi'],
 			'targetDpi'      => (int) $settings['target_dpi'],
 			'borderIn'       => (float) $settings['border_in'],
+			'scaleUnit'      => $settings['scale_unit'],
 			'preselectSize'  => $preselect_size,
 			'preselectPaper' => $preselect_paper,
 			'cartUrl'        => wc_get_cart_url(),
@@ -170,12 +171,17 @@ class Prrint_Frontend {
 			'textBgColors'   => array_values( $settings['text_bg_colors'] ),
 			'borderColors'   => array_values( $settings['border_colors'] ),
 			'shapes'         => array(
-				array( 'id' => 'circle', 'label' => '●' ),
-				array( 'id' => 'square', 'label' => '■' ),
-				array( 'id' => 'star',   'label' => '★' ),
-				array( 'id' => 'heart',  'label' => '♥' ),
-				array( 'id' => 'arrow',  'label' => '➤' ),
-				array( 'id' => 'line',   'label' => '—' ),
+				array( 'id' => 'circle',   'label' => '●' ),
+				array( 'id' => 'square',   'label' => '■' ),
+				array( 'id' => 'triangle', 'label' => '▲' ),
+				array( 'id' => 'diamond',  'label' => '◆' ),
+				array( 'id' => 'pentagon', 'label' => '⬠' ),
+				array( 'id' => 'hexagon',  'label' => '⬡' ),
+				array( 'id' => 'star',     'label' => '★' ),
+				array( 'id' => 'heart',    'label' => '♥' ),
+				array( 'id' => 'arrow',    'label' => '➤' ),
+				array( 'id' => 'cross',    'label' => '✚' ),
+				array( 'id' => 'line',     'label' => '—' ),
 			),
 			'shapeColors'    => array_values( $settings['shape_colors'] ),
 			'textTemplates'  => self::enabled_text_templates( $settings['text_templates_enabled'] ),
@@ -383,6 +389,13 @@ class Prrint_Frontend {
 						<div class="prrint-tool-panels">
 							<div class="prrint-tool-panel" data-panel="transform">
 								<input type="range" id="prrint-zoom" min="0" max="100" value="0" aria-label="<?php esc_attr_e( 'Zoom', 'prrint' ); ?>" />
+								<label class="prrint-zoom-input-row">
+									<span><?php esc_html_e( 'Zoom', 'prrint' ); ?></span>
+									<span class="prrint-zoom-input-wrap">
+										<input type="number" id="prrint-zoom-input" min="0" max="100" step="1" value="0" />
+										<span>%</span>
+									</span>
+								</label>
 								<div class="prrint-panel-row">
 									<button type="button" class="prrint-tool" id="prrint-rotate" title="<?php esc_attr_e( 'Rotate 90°', 'prrint' ); ?>">⟳ <?php esc_html_e( 'Rotate', 'prrint' ); ?></button>
 									<button type="button" class="prrint-tool" id="prrint-orient" title="<?php esc_attr_e( 'Portrait / landscape', 'prrint' ); ?>">▭ <?php esc_html_e( 'Orientation', 'prrint' ); ?></button>

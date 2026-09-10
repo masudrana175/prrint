@@ -311,7 +311,7 @@ class Prrint_Ajax {
 			$border['width_in'] = isset( $raw['border']['width_in'] ) ? max( 0.05, min( 2, (float) $raw['border']['width_in'] ) ) : 0.25;
 		}
 
-		$allowed_shapes = array( 'circle', 'square', 'star', 'heart', 'arrow', 'line' );
+		$allowed_shapes = array( 'circle', 'square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'star', 'heart', 'arrow', 'cross', 'line' );
 
 		$layers = array();
 		if ( isset( $raw['layers'] ) && is_array( $raw['layers'] ) ) {

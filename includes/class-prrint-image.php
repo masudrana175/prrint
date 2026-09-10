@@ -674,9 +674,42 @@ class Prrint_Image {
 
 			case 'line':
 				return array( array( -0.5, -0.06 ), array( 0.5, -0.06 ), array( 0.5, 0.06 ), array( -0.5, 0.06 ) );
+
+			case 'triangle':
+				return self::regular_polygon_points( 3 );
+
+			case 'diamond':
+				return array( array( 0, -0.5 ), array( 0.5, 0 ), array( 0, 0.5 ), array( -0.5, 0 ) );
+
+			case 'pentagon':
+				return self::regular_polygon_points( 5 );
+
+			case 'hexagon':
+				return self::regular_polygon_points( 6 );
+
+			case 'cross':
+				return array(
+					array( -0.15, -0.5 ), array( 0.15, -0.5 ), array( 0.15, -0.15 ), array( 0.5, -0.15 ),
+					array( 0.5, 0.15 ), array( 0.15, 0.15 ), array( 0.15, 0.5 ), array( -0.15, 0.5 ),
+					array( -0.15, 0.15 ), array( -0.5, 0.15 ), array( -0.5, -0.15 ), array( -0.15, -0.15 ),
+				);
 		}
 
 		return array();
+	}
+
+	/**
+	 * A regular N-gon inscribed in a 0.5 radius, first vertex pointing up —
+	 * shared point-generator for triangle/pentagon/hexagon so both stay
+	 * exactly the same shape as an equilateral/regular polygon.
+	 */
+	protected static function regular_polygon_points( $sides ) {
+		$pts = array();
+		for ( $i = 0; $i < $sides; $i++ ) {
+			$t     = ( $i / $sides ) * 2 * M_PI - M_PI / 2;
+			$pts[] = array( 0.5 * cos( $t ), 0.5 * sin( $t ) );
+		}
+		return $pts;
 	}
 
 	/**

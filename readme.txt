@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.15.0
+Stable tag: 1.16.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,18 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.16.0 =
+* Polish the Transform panel's buttons (Rotate, Orientation, Flip H/V,
+  Reset): proper padding and a subtle fill instead of a faint outline,
+  plus consistent spacing between rows and above/below the zoom slider.
+* Add a typeable Zoom % field next to the slider for precise numeric
+  zoom control.
+* Add an inch/pixel ruler along the editor's print frame, with a new
+  admin setting (Quality & uploads → "Editor ruler units") to choose
+  which.
+* Add 5 more Elements shapes: Triangle, Diamond, Pentagon, Hexagon,
+  Cross — 11 total now.
 
 = 1.15.0 =
 * Add a "Keep uploaded photos for (days)" setting (default 14, applies

@@ -84,6 +84,7 @@
 		zoomOut: document.getElementById('prrint-zoom-out'),
 		zoomIn: document.getElementById('prrint-zoom-in'),
 		zoomPct: document.getElementById('prrint-zoom-pct'),
+		zoomInput: document.getElementById('prrint-zoom-input'),
 		undoBtn: document.getElementById('prrint-undo'),
 		redoBtn: document.getElementById('prrint-redo'),
 		textSpacingOut: document.getElementById('prrint-text-spacing-out'),
@@ -394,8 +395,41 @@
 		},
 		line: function () {
 			return [[-0.5, -0.06], [0.5, -0.06], [0.5, 0.06], [-0.5, 0.06]];
+		},
+		triangle: function () {
+			return regularPolygonPoints(3);
+		},
+		diamond: function () {
+			return [[0, -0.5], [0.5, 0], [0, 0.5], [-0.5, 0]];
+		},
+		pentagon: function () {
+			return regularPolygonPoints(5);
+		},
+		hexagon: function () {
+			return regularPolygonPoints(6);
+		},
+		cross: function () {
+			return [
+				[-0.15, -0.5], [0.15, -0.5], [0.15, -0.15], [0.5, -0.15],
+				[0.5, 0.15], [0.15, 0.15], [0.15, 0.5], [-0.15, 0.5],
+				[-0.15, 0.15], [-0.5, 0.15], [-0.5, -0.15], [-0.15, -0.15]
+			];
 		}
 	};
+
+	/**
+	 * A regular N-gon inscribed in a 0.5 radius, first vertex pointing up —
+	 * mirrors Prrint_Image::regular_polygon_points() exactly, point for
+	 * point, so client preview and server print match.
+	 */
+	function regularPolygonPoints(sides) {
+		var pts = [];
+		for (var i = 0; i < sides; i++) {
+			var t = (i / sides) * 2 * Math.PI - Math.PI / 2;
+			pts.push([0.5 * Math.cos(t), 0.5 * Math.sin(t)]);
+		}
+		return pts;
+	}
 
 	/**
 	 * Text Design: pre-made word-art layouts. Each is a small set of text
@@ -1317,7 +1351,91 @@
 				ctx.lineTo(f.x + f.w, f.y + (f.h * i) / 3);
 			}
 			ctx.stroke();
+
+			drawRulers(f);
 		}
+	}
+
+	/**
+	 * Inch/pixel ruler along the top and left of the print frame — always
+	 * describes the fixed print output (frame size never changes with
+	 * zoom/pan, only what's visible inside it does), so the tick math only
+	 * depends on the selected size/orientation, not the current zoom.
+	 * "Pixel" mode ticks are print-output pixels at the configured target
+	 * DPI, the same frame of reference "inch" mode uses (the print), not
+	 * the source photo's own resolution.
+	 */
+	function drawRulers(f) {
+		var RULER = 20;
+		if (f.x < RULER || f.y < RULER) { return; } // not enough margin to draw without clipping
+
+		var p = edPrintDims();
+		var unit = cfg.scaleUnit === 'px' ? 'px' : 'in';
+		var totalW = unit === 'px' ? p.w * cfg.targetDpi : p.w;
+		var totalH = unit === 'px' ? p.h * cfg.targetDpi : p.h;
+		var pxPerUnitX = f.w / totalW;
+		var pxPerUnitY = f.h / totalH;
+
+		var candidates = unit === 'px' ? [50, 100, 250, 500, 1000, 2000] : [0.25, 0.5, 1, 2, 5, 10];
+		var interval = candidates[candidates.length - 1];
+		for (var i = 0; i < candidates.length; i++) {
+			if (candidates[i] * pxPerUnitX >= 40) { interval = candidates[i]; break; }
+		}
+
+		function formatUnit(v) {
+			if (unit === 'px') { return String(Math.round(v)); }
+			return (Math.round(v * 100) / 100) % 1 === 0 ? String(v) : v.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+		}
+
+		ctx.save();
+		ctx.fillStyle = 'rgba(11,11,15,0.92)';
+		ctx.fillRect(f.x, f.y - RULER, f.w, RULER);
+		ctx.fillRect(f.x - RULER, f.y, RULER, f.h);
+		ctx.fillRect(f.x - RULER, f.y - RULER, RULER, RULER);
+
+		ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+		ctx.fillStyle = 'rgba(255,255,255,0.85)';
+		ctx.font = '10px sans-serif';
+		ctx.lineWidth = 1;
+
+		ctx.beginPath();
+		var xUnit, px;
+		for (xUnit = 0; xUnit <= totalW + 0.001; xUnit += interval) {
+			px = f.x + xUnit * pxPerUnitX;
+			ctx.moveTo(px, f.y - RULER);
+			ctx.lineTo(px, f.y - RULER * 0.35);
+		}
+		ctx.stroke();
+		ctx.textAlign = 'left';
+		ctx.textBaseline = 'middle';
+		for (xUnit = 0; xUnit <= totalW + 0.001; xUnit += interval) {
+			px = f.x + xUnit * pxPerUnitX;
+			if (px + 22 > f.x + f.w) { continue; }
+			ctx.fillText(formatUnit(xUnit), px + 3, f.y - RULER / 2);
+		}
+
+		ctx.beginPath();
+		var yUnit, py;
+		for (yUnit = 0; yUnit <= totalH + 0.001; yUnit += interval) {
+			py = f.y + yUnit * pxPerUnitY;
+			ctx.moveTo(f.x - RULER, py);
+			ctx.lineTo(f.x - RULER * 0.35, py);
+		}
+		ctx.stroke();
+		ctx.save();
+		ctx.textAlign = 'center';
+		for (yUnit = 0; yUnit <= totalH + 0.001; yUnit += interval) {
+			py = f.y + yUnit * pxPerUnitY;
+			if (py - 14 < f.y) { continue; }
+			ctx.save();
+			ctx.translate(f.x - RULER / 2, py - 6);
+			ctx.rotate(-Math.PI / 2);
+			ctx.fillText(formatUnit(yUnit), 0, 0);
+			ctx.restore();
+		}
+		ctx.restore();
+
+		ctx.restore();
 	}
 
 	function edUpdateDpi() {
@@ -2280,6 +2398,7 @@
 
 	function updateZoomPct() {
 		if (els.zoomPct) { els.zoomPct.textContent = els.zoom.value + '%'; }
+		if (els.zoomInput && document.activeElement !== els.zoomInput) { els.zoomInput.value = els.zoom.value; }
 	}
 
 	function setZoomFraction(t) {
@@ -2324,6 +2443,15 @@
 		els.zoomIn.addEventListener('click', function () {
 			if (!ed.item) { return; }
 			setZoomFraction(Number(els.zoom.value) + 10);
+		});
+	}
+	if (els.zoomInput) {
+		els.zoomInput.addEventListener('change', function () {
+			if (!ed.item) { return; }
+			var v = Number(els.zoomInput.value);
+			if (isNaN(v)) { v = Number(els.zoom.value); }
+			setZoomFraction(v);
+			pushHistory();
 		});
 	}
 

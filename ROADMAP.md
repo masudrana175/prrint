@@ -76,15 +76,20 @@ lands — check git log for the commit implementing each item.
   right in the tool, not just after clicking it.
 
 ### Editor — tool rail
-- **Transform** — crop/zoom/drag, 90° rotate, portrait/landscape (existing, unchanged)
+- **Transform** — crop/zoom/drag, 90° rotate, portrait/landscape, flip H/V, a typeable
+  Zoom % field (in addition to drag/wheel/slider) for exact numeric control, and an
+  inch/pixel ruler along the print frame (admin-configurable unit) — the frame is the
+  fixed print output, so ruler ticks depend only on the selected size, not zoom
 - **Filters** — B&W, Warm, Cold, Vintage, DuoTone, Legacy, Smooth
   - DuoTone is a **true 2-stop gradient** (palette remap technique), not an approximation
 - **Adjust** — Brightness, Contrast, Saturation, Gamma, Exposure, Clarity, Shadows, Highlights
   (Shadows/Highlights are global approximations — see "Notes on feasibility limits")
 - **Text** — multi-layer captions: font size, bold, alignment, color, background color,
   line spacing, rotation, drag-to-move, duplicate/delete
-- **Elements** — sticker shapes (circle, square, star, heart, arrow, line), colored,
-  resizable, rotatable; identical geometry client- and server-side
+- **Elements** — sticker shapes (circle, square, triangle, diamond, pentagon, hexagon,
+  star, heart, arrow, cross, line), colored, resizable, rotatable; identical geometry
+  client- and server-side (verified point-for-point equal, and rendered through the
+  real GD drawing function before shipping)
 - **Draw** — freehand doodle brush, composited as a transparent PNG layer
 - **Border** — any color/width, not just white
 - **Overlays** — texture composites (Vignette, Glow, Light Leak, Grain, Bokeh, Scratches),
@@ -155,6 +160,10 @@ lands — check git log for the commit implementing each item.
   history rows with pill-shaped action buttons, hover-lift photo tiles, and a
   mobile layout where the table collapses into stacked cards below 700px — verified
   both breakpoints via Playwright
+- **Transform panel buttons polished** — Rotate/Orientation/Flip H/Flip V/Reset had
+  zero spacing between rows and a faint transparent-outline look; now have proper
+  padding, a subtle fill so they read as real buttons, and consistent vertical rhythm
+  above/below each row.
 
 ## 🚧 Not started / partially covered
 
@@ -163,7 +172,7 @@ how feasible + valuable each is to build next:
 
 | Item | What the reference has | Status |
 |---|---|---|
-| **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | **Flip H/V and Reset to Default shipped.** Numeric crop W×H, aspect-ratio presets and a continuous-rotation dial are still not started — see feasibility note below |
+| **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | **Flip H/V, Reset to Default, and a typeable Zoom % field shipped.** A literal numeric Width×Height crop input isn't meaningful as its own control — the print's physical W×H is fully determined by the selected Size, not something separate to type (that's what the Zoom field now covers: precise numeric control over how much of the photo fills that fixed frame). Aspect-ratio presets and a continuous-rotation dial are still not started — see feasibility note below |
 | **Floating layer toolbar** | Edit/Move to Front/Duplicate/Delete appears *above the selected layer on canvas*; drag-handle for rotation | We built these as side-panel controls instead — functionally equivalent, visually different |
 
 ## ❌ Not started at all

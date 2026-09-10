@@ -22,11 +22,11 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
   Undo/Redo and Save/Close, left icon rail, and per-tool side panels with
   large filter preview tiles.
 - **Crop editor** — full-screen modal editor per photo: drag to reposition,
-  scroll-wheel & slider zoom (with a live zoom % readout), 90° rotation,
-  flip horizontal/vertical, a one-click Reset to Default, portrait/landscape
-  toggle, rule-of-thirds guides. The crop frame is always locked to the
-  chosen print size's aspect ratio: what the customer sees is exactly what
-  prints.
+  scroll-wheel, slider or typed-number zoom, 90° rotation, flip
+  horizontal/vertical, a one-click Reset to Default, portrait/landscape
+  toggle, rule-of-thirds guides, and an inch/pixel ruler along the print
+  frame. The crop frame is always locked to the chosen print size's aspect
+  ratio: what the customer sees is exactly what prints.
 - **Filters & adjust** — one-click tone presets (B&W, Warm, Cold, Vintage,
   DuoTone, Legacy, Smooth) plus brightness/contrast/saturation sliders,
   rendered identically in the browser preview and the GD print pipeline.
@@ -38,9 +38,10 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
 - **Text layers** — add captions on top of the photo: font size, bold,
   alignment, text color, background color, line spacing and rotation, with
   move-by-drag, duplicate and delete. Great for cards, gifts and greetings.
-- **Elements** — colored sticker shapes (circle, square, star, heart, arrow,
-  line), resizable and rotatable, drawn from the same geometry client- and
-  server-side so what you place is exactly what prints.
+- **Elements** — colored sticker shapes (circle, square, triangle, diamond,
+  pentagon, hexagon, star, heart, arrow, cross, line), resizable and
+  rotatable, drawn from the same geometry client- and server-side so what
+  you place is exactly what prints.
 - **Draw** — a freehand doodle brush right on the photo, for a quick note,
   circle or arrow.
 - **Focus** — tilt-shift style depth-of-field blur: Radial (a soft circular
