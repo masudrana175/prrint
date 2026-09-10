@@ -404,6 +404,24 @@ class Prrint_Frontend {
 									<button type="button" class="prrint-tool" id="prrint-flip-h" title="<?php esc_attr_e( 'Flip horizontal', 'prrint' ); ?>">⇋ <?php esc_html_e( 'Flip H', 'prrint' ); ?></button>
 									<button type="button" class="prrint-tool" id="prrint-flip-v" title="<?php esc_attr_e( 'Flip vertical', 'prrint' ); ?>">⇵ <?php esc_html_e( 'Flip V', 'prrint' ); ?></button>
 								</div>
+								<label class="prrint-border-label prrint-keep-res-label"><input type="checkbox" id="prrint-keep-resolution" /> <?php esc_html_e( 'Keep Resolution', 'prrint' ); ?></label>
+								<p class="prrint-field-label"><?php esc_html_e( 'Crop Size', 'prrint' ); ?></p>
+								<div class="prrint-panel-row prrint-crop-size-row">
+									<label class="prrint-crop-size-field">
+										<span><?php esc_html_e( 'W', 'prrint' ); ?></span>
+										<span class="prrint-crop-size-wrap">
+											<input type="number" id="prrint-crop-w" min="1" step="1" />
+											<span><?php esc_html_e( 'px', 'prrint' ); ?></span>
+										</span>
+									</label>
+									<label class="prrint-crop-size-field">
+										<span><?php esc_html_e( 'H', 'prrint' ); ?></span>
+										<span class="prrint-crop-size-wrap">
+											<input type="number" id="prrint-crop-h" min="1" step="1" />
+											<span><?php esc_html_e( 'px', 'prrint' ); ?></span>
+										</span>
+									</label>
+								</div>
 								<button type="button" class="prrint-btn-secondary prrint-adj-reset" id="prrint-transform-reset"><?php esc_html_e( 'Reset to Default', 'prrint' ); ?></button>
 							</div>
 

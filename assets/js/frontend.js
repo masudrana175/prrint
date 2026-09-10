@@ -91,6 +91,9 @@
 		flipH: document.getElementById('prrint-flip-h'),
 		flipV: document.getElementById('prrint-flip-v'),
 		transformReset: document.getElementById('prrint-transform-reset'),
+		keepResolution: document.getElementById('prrint-keep-resolution'),
+		cropW: document.getElementById('prrint-crop-w'),
+		cropH: document.getElementById('prrint-crop-h'),
 		focusShapes: document.getElementById('prrint-focus-shapes'),
 		focusFields: document.getElementById('prrint-focus-fields'),
 		focusPositionFields: document.getElementById('prrint-focus-position-fields'),
@@ -1156,6 +1159,7 @@
 		scale: 1,
 		minScale: 1,
 		maxScale: 1,
+		keepResolution: false,
 		off: { x: 0, y: 0 },
 		cssW: 0,
 		cssH: 0,
@@ -1455,6 +1459,62 @@
 			els.dpi.textContent = cfg.i18n.dpiLow + ' · ' + Math.round(dpi) + ' DPI';
 			els.dpi.classList.add('prrint-dpi-low');
 		}
+		syncCropSizeInputs(crop);
+	}
+
+	/**
+	 * The most the customer can zoom in (in `ed.scale` terms) while keeping
+	 * the effective print DPI at or above the configured target — used only
+	 * when the "Keep Resolution" toggle is on.
+	 */
+	function edKeepResMaxScale() {
+		var p = edPrintDims();
+		var f = ed.frame;
+		return Math.max(ed.minScale, f.w / (p.w * cfg.targetDpi));
+	}
+
+	function edEffectiveMaxScale() {
+		return ed.keepResolution ? Math.min(ed.maxScale, edKeepResMaxScale()) : ed.maxScale;
+	}
+
+	/**
+	 * Reflect the current crop rectangle (source-photo pixels) into the
+	 * numeric "Crop Size" W/H fields, unless the customer is actively typing
+	 * in one of them.
+	 */
+	function syncCropSizeInputs(crop) {
+		if (!els.cropW || !els.cropH) { return; }
+		if (document.activeElement === els.cropW || document.activeElement === els.cropH) { return; }
+		crop = crop || edExportCrop();
+		els.cropW.value = String(Math.round(crop.w));
+		els.cropH.value = String(Math.round(crop.h));
+	}
+
+	/**
+	 * Set the crop's source-pixel width (or height); the other dimension
+	 * follows automatically since the crop is always locked to the selected
+	 * print size's aspect ratio.
+	 */
+	function setCropWidthPx(px) {
+		if (!ed.item || !px || px <= 0) { return; }
+		var f = ed.frame;
+		ed.scale = Math.max(ed.minScale, Math.min(edEffectiveMaxScale(), f.w / px));
+		edClamp();
+		edDraw();
+		edUpdateDpi();
+		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
+		updateZoomPct();
+	}
+
+	function setCropHeightPx(px) {
+		if (!ed.item || !px || px <= 0) { return; }
+		var f = ed.frame;
+		ed.scale = Math.max(ed.minScale, Math.min(edEffectiveMaxScale(), f.h / px));
+		edClamp();
+		edDraw();
+		edUpdateDpi();
+		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
+		updateZoomPct();
 	}
 
 	/* --------------------------------------------------------- tool rail */
@@ -2241,6 +2301,8 @@
 		ed.selectedLayerId = null;
 		ed.history = [];
 		ed.historyIndex = -1;
+		ed.keepResolution = false;
+		if (els.keepResolution) { els.keepResolution.checked = false; }
 
 		syncPanelUI();
 		updateStylePreviewThumbnails();
@@ -2403,8 +2465,8 @@
 
 	function setZoomFraction(t) {
 		t = Math.max(0, Math.min(100, t));
-		els.zoom.value = String(Math.round(t));
-		ed.scale = ed.minScale + (ed.maxScale - ed.minScale) * (t / 100);
+		ed.scale = Math.min(ed.minScale + (ed.maxScale - ed.minScale) * (t / 100), edEffectiveMaxScale());
+		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
 		edClamp();
 		edDraw();
 		edUpdateDpi();
@@ -2415,7 +2477,7 @@
 		if (!ed.item || ed.activeTool !== 'transform') { return; }
 		e.preventDefault();
 		var factor = Math.pow(1.0015, -e.deltaY);
-		ed.scale = Math.max(ed.minScale, Math.min(ed.maxScale, ed.scale * factor));
+		ed.scale = Math.max(ed.minScale, Math.min(edEffectiveMaxScale(), ed.scale * factor));
 		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
 		edClamp();
 		edDraw();
@@ -2426,7 +2488,8 @@
 	els.zoom.addEventListener('input', function () {
 		if (!ed.item) { return; }
 		var t = Number(this.value) / 100;
-		ed.scale = ed.minScale + (ed.maxScale - ed.minScale) * t;
+		ed.scale = Math.min(ed.minScale + (ed.maxScale - ed.minScale) * t, edEffectiveMaxScale());
+		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
 		edClamp();
 		edDraw();
 		edUpdateDpi();
@@ -2490,6 +2553,37 @@
 			els.flipV.classList.toggle('is-active', ed.design.flipV);
 			edDraw();
 			pushHistory();
+		});
+	}
+
+	if (els.keepResolution) {
+		els.keepResolution.addEventListener('change', function () {
+			if (!ed.item) { return; }
+			ed.keepResolution = this.checked;
+			var cap = edEffectiveMaxScale();
+			if (ed.scale > cap) {
+				ed.scale = cap;
+				edClamp();
+				edDraw();
+				edUpdateDpi();
+				els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
+				updateZoomPct();
+			}
+			pushHistory();
+		});
+	}
+
+	if (els.cropW) {
+		els.cropW.addEventListener('change', function () {
+			var v = Number(els.cropW.value);
+			if (!isNaN(v) && v > 0) { setCropWidthPx(v); pushHistory(); } else { syncCropSizeInputs(); }
+		});
+	}
+
+	if (els.cropH) {
+		els.cropH.addEventListener('change', function () {
+			var v = Number(els.cropH.value);
+			if (!isNaN(v) && v > 0) { setCropHeightPx(v); pushHistory(); } else { syncCropSizeInputs(); }
 		});
 	}
 

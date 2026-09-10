@@ -164,6 +164,18 @@ lands — check git log for the commit implementing each item.
   zero spacing between rows and a faint transparent-outline look; now have proper
   padding, a subtle fill so they read as real buttons, and consistent vertical rhythm
   above/below each row.
+- **Numeric Crop Size + Keep Resolution** — a "Crop Size" W × H field pair (in
+  source-photo pixels) next to Reset to Default: typing either one recalculates
+  zoom to match, and always stays locked to the selected print size's aspect
+  ratio (the crop rectangle's aspect is mathematically forced to equal the
+  frame's, so W and H can never diverge from it). "Keep Resolution" is a
+  checkbox that caps how far you can zoom *in* so the crop's effective DPI
+  never drops below the admin's configured target DPI — reusing the exact DPI
+  formula the live badge already shows. This corrects an earlier note below
+  that called a numeric crop control "not meaningful" — the reference's field
+  describes the crop rectangle in source pixels (exactly what
+  `edExportCrop()` already computes), not the print's physical inches, so it
+  was buildable without the bigger architecture change that note worried about.
 
 ## 🚧 Not started / partially covered
 
@@ -172,7 +184,7 @@ how feasible + valuable each is to build next:
 
 | Item | What the reference has | Status |
 |---|---|---|
-| **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | **Flip H/V, Reset to Default, and a typeable Zoom % field shipped.** A literal numeric Width×Height crop input isn't meaningful as its own control — the print's physical W×H is fully determined by the selected Size, not something separate to type (that's what the Zoom field now covers: precise numeric control over how much of the photo fills that fixed frame). Aspect-ratio presets and a continuous-rotation dial are still not started — see feasibility note below |
+| **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | **Flip H/V, Reset to Default, typeable Zoom %, numeric Crop Size (W×H in source pixels, aspect-locked), and Keep Resolution all shipped.** Common aspect-ratio/size presets (the reference's "COMMON" grid — Square, 6x4, 4x6, 7x5, 10x8, 14x11, etc.) and a continuous-rotation dial are still not started. The presets grid raises a bigger question first: those tiles look like a second way to pick print size/aspect *from inside the editor*, which currently only lives in the card's Size dropdown outside the editor — needs a decision on whether to duplicate size-selection into the editor (and keep it synced both ways) before building it, rather than building a grid that doesn't actually change anything |
 | **Floating layer toolbar** | Edit/Move to Front/Duplicate/Delete appears *above the selected layer on canvas*; drag-handle for rotation | We built these as side-panel controls instead — functionally equivalent, visually different |
 
 ## ❌ Not started at all

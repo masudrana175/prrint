@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.16.0
+Stable tag: 1.17.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,15 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.17.0 =
+* Add a numeric "Crop Size" (W × H, in source-photo pixels) to the Transform
+  panel — type exact numbers instead of only dragging the zoom slider or
+  scroll-wheeling; the two fields stay locked to the selected print size's
+  aspect ratio, so entering one updates the other.
+* Add a "Keep Resolution" checkbox next to it: turn it on and the editor
+  won't let you zoom in past the point where the print would drop below
+  the configured target DPI.
 
 = 1.16.0 =
 * Polish the Transform panel's buttons (Rotate, Orientation, Flip H/V,
