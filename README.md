@@ -27,6 +27,13 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
   crops never come out sideways.
 - **Cart shows the real thing** — each cart line displays a thumbnail of the
   customer's actual cropped photo plus its size, paper and border.
+- **My Account → My Prints** — every past order's print items, with a
+  thumbnail, size/paper/qty, download links for the customer's own photo and
+  print-ready file, and a one-click **Reorder** that re-adds the exact same
+  print (crop, size, paper, border) to the cart.
+- **My Account → My Photos** — every photo a signed-in customer uploads is
+  automatically saved to a permanent personal library (separate from the
+  8-day temp-upload cleanup), viewable and deletable from their account.
 
 ### Store-owner facing (admin)
 - **Global settings page** (WooCommerce → Prrint Studio): editable tables of
@@ -74,7 +81,8 @@ to preselect options — handy for category-style landing links such as
 
 - Customer files live in `wp-content/uploads/prrint/` with random,
   unguessable names (`tmp/` for pending uploads, `orders/` for permanent
-  order files, `previews/` for cart thumbnails).
+  order files, `previews/` for cart thumbnails, `library/<user_id>/` for
+  signed-in customers' saved-photo library).
 - Crop coordinates are exchanged between the browser editor and the GD
   renderer in a single well-defined space (source pixels after N quarter-turn
   rotations), so client preview and server output always match.

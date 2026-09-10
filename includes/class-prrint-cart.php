@@ -126,5 +126,20 @@ class Prrint_Cart {
 		if ( ! empty( $v['preview'] ) ) {
 			$item->add_meta_data( '_prrint_preview', $v['preview'] );
 		}
+
+		// Full snapshot of the pricing/crop inputs so "My Prints" in the
+		// customer's account can offer an exact one-click reorder later.
+		$item->add_meta_data( '_prrint_reorder', wp_json_encode( array(
+			'size_label'  => $v['size_label'],
+			'size_price'  => $v['size_price'],
+			'w_in'        => $v['w_in'],
+			'h_in'        => $v['h_in'],
+			'paper_label' => $v['paper_label'],
+			'surcharge'   => $v['surcharge'],
+			'orientation' => $v['orientation'],
+			'border'      => $v['border'],
+			'rotation'    => $v['rotation'],
+			'crop'        => $v['crop'],
+		) ) );
 	}
 }

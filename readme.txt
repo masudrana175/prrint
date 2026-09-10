@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,9 @@ pages, the way dedicated print sites work:
 * Print-ready 300 DPI JPEGs generated on checkout, with admin download
   buttons and a per-order "Download all as ZIP"
 * Global settings page plus per-product overrides
+* "My Prints" order history in My Account with one-click reorder
+* "My Photos" — a permanent, personal saved-photo library for signed-in
+  customers, filled automatically as they upload
 * HPOS compatible, no jQuery, no template overrides, GD-only requirement
 
 == Installation ==
@@ -47,6 +50,12 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.1.0 =
+* Add "My Prints" order/print history tab in My Account, with a one-click
+  Reorder that re-adds a past print with its exact crop, size and paper.
+* Add "My Photos" — a permanent per-customer saved-photo library, filled
+  automatically as signed-in customers upload, with delete support.
 
 = 1.0.0 =
 * Initial release.

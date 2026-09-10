@@ -3,7 +3,7 @@
  * Plugin Name: Prrint — Photo Print Studio for WooCommerce
  * Plugin URI:  https://github.com/masudrana175/prrint
  * Description: Turn WooCommerce products into a full photo print shop: multi-photo upload, crop/zoom/rotate editor, print sizes, paper finishes, white borders, live pricing, print-quality checks, and 300 DPI print-ready files on every order.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      Masud Rana
  * Author URI:  https://github.com/masudrana175
  * Text Domain: prrint
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PRRINT_VERSION', '1.0.0' );
+define( 'PRRINT_VERSION', '1.1.0' );
 define( 'PRRINT_FILE', __FILE__ );
 define( 'PRRINT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PRRINT_URL', plugin_dir_url( __FILE__ ) );
@@ -51,6 +51,7 @@ function prrint_bootstrap() {
 	require_once PRRINT_DIR . 'includes/class-prrint-settings.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-product.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-frontend.php';
+	require_once PRRINT_DIR . 'includes/class-prrint-account.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-ajax.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-cart.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-orders.php';
@@ -58,9 +59,22 @@ function prrint_bootstrap() {
 	Prrint_Settings::init();
 	Prrint_Product::init();
 	Prrint_Frontend::init();
+	Prrint_Account::init();
 	Prrint_Ajax::init();
 	Prrint_Cart::init();
 	Prrint_Orders::init();
+}
+
+/* -------------------------------------------------------------------------
+ * My Account endpoints ("My Prints" order history, "My Photos" library).
+ * Registered unconditionally (harmless without WooCommerce) so activation
+ * can flush rewrite rules for them.
+ * ---------------------------------------------------------------------- */
+add_action( 'init', 'prrint_register_endpoints', 5 );
+
+function prrint_register_endpoints() {
+	add_rewrite_endpoint( 'prrint-prints', EP_ROOT | EP_PAGES );
+	add_rewrite_endpoint( 'prrint-photos', EP_ROOT | EP_PAGES );
 }
 
 /* -------------------------------------------------------------------------
@@ -77,10 +91,14 @@ function prrint_activate() {
 	prrint_upload_dir( 'tmp' );
 	prrint_upload_dir( 'orders' );
 	prrint_upload_dir( 'previews' );
+	prrint_upload_dir( 'library' );
 
 	if ( ! wp_next_scheduled( 'prrint_daily_cleanup' ) ) {
 		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'prrint_daily_cleanup' );
 	}
+
+	prrint_register_endpoints();
+	flush_rewrite_rules();
 
 	// Create a ready-to-use sample product the first time only.
 	if ( ! get_option( 'prrint_sample_product' ) && class_exists( 'WC_Product_Simple' ) ) {
@@ -102,6 +120,7 @@ function prrint_activate() {
 
 function prrint_deactivate() {
 	wp_clear_scheduled_hook( 'prrint_daily_cleanup' );
+	flush_rewrite_rules();
 }
 
 add_action( 'admin_notices', function () {

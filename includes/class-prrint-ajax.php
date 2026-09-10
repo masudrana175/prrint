@@ -79,6 +79,10 @@ class Prrint_Ajax {
 			'height' => (int) $info[1],
 		), WEEK_IN_SECONDS );
 
+		// Logged-in customers keep a permanent copy in their "My Photos"
+		// library so it can be reused after the tmp upload expires.
+		Prrint_Account::save_upload_to_library( $relative, (int) $info[0], (int) $info[1], isset( $file['name'] ) ? $file['name'] : '' );
+
 		wp_send_json_success( array(
 			'token'  => $token,
 			'url'    => prrint_file_url( $relative ),
