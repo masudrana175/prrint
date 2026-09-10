@@ -110,7 +110,11 @@
 		focusFeatherRow: document.getElementById('prrint-focus-feather-row'),
 		textdesignGrid: document.getElementById('prrint-textdesign-grid'),
 		textdesignShuffle: document.getElementById('prrint-textdesign-shuffle'),
-		textdesignInvert: document.getElementById('prrint-textdesign-invert')
+		textdesignInvert: document.getElementById('prrint-textdesign-invert'),
+		library: document.getElementById('prrint-library'),
+		libraryGrid: document.getElementById('prrint-library-grid'),
+		libraryEmpty: document.getElementById('prrint-library-empty'),
+		libraryRefresh: document.getElementById('prrint-library-refresh')
 	};
 	var ctx = els.canvas.getContext('2d');
 
@@ -605,6 +609,7 @@
 			'<div class="prrint-thumb">' +
 				'<canvas class="prrint-thumb-canvas"></canvas>' +
 				'<span class="prrint-dpi-dot" title=""></span>' +
+				'<a class="prrint-download-btn" href="' + esc(item.img.src) + '" download title="' + esc(cfg.i18n.download) + '">⬇</a>' +
 				'<button type="button" class="prrint-edit-btn">' + esc(cfg.i18n.edit) + '</button>' +
 			'</div>' +
 			'<div class="prrint-item-fields">' +
@@ -865,6 +870,76 @@
 
 	/* --------------------------------------------------------- uploads */
 
+	/**
+	 * POST an AJAX action with FormData and parse the JSON response —
+	 * shared by every prrint_* call that isn't the file-upload XHR (which
+	 * needs its own progress-tracking instance).
+	 */
+	function postAjax(action, fields, onSuccess, onError) {
+		var fd = new FormData();
+		fd.append('action', action);
+		fd.append('nonce', cfg.nonce);
+		Object.keys(fields || {}).forEach(function (key) {
+			fd.append(key, fields[key]);
+		});
+
+		var xhr = new XMLHttpRequest();
+		xhr.open('POST', cfg.ajaxUrl);
+		xhr.onload = function () {
+			var resp = null;
+			try { resp = JSON.parse(xhr.responseText); } catch (err) { /* noop */ }
+			if (resp && resp.success) {
+				onSuccess(resp.data);
+			} else {
+				onError((resp && resp.data && resp.data.message) || '');
+			}
+		};
+		xhr.onerror = function () { onError(''); };
+		xhr.send(fd);
+	}
+
+	/**
+	 * Build a new item card from an upload-shaped response ({ token, url,
+	 * width, height }) — used both for a freshly uploaded file and for
+	 * "Use this photo" on a saved library photo (which returns the exact
+	 * same shape, just pointing at the library's own permanent file).
+	 */
+	function createItemFromUpload(data, placeholder) {
+		var img = new Image();
+		img.onload = function () {
+			if (placeholder) { placeholder.remove(); }
+
+			var item = {
+				id: nextId++,
+				token: data.token,
+				img: img,
+				natW: img.naturalWidth,
+				natH: img.naturalHeight,
+				rot: 0,
+				orientation: img.naturalWidth >= img.naturalHeight ? 'landscape' : 'portrait',
+				sizeIdx: defaultSize,
+				paperIdx: defaultPaper,
+				qty: 1,
+				design: newDesign(),
+				crop: null,
+				ready: true,
+				card: null
+			};
+			item.crop = centeredCrop(item);
+			items.push(item);
+			buildCard(item);
+			updateSummary();
+			if (item.card && item.card.scrollIntoView) {
+				item.card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+			}
+		};
+		img.onerror = function () {
+			if (placeholder) { placeholder.remove(); }
+			toast(cfg.i18n.uploadError, true);
+		};
+		img.src = data.url;
+	}
+
 	function handleFiles(fileList) {
 		Array.prototype.slice.call(fileList).forEach(function (file) {
 			uploadFile(file);
@@ -915,43 +990,93 @@
 				toast((resp && resp.data && resp.data.message) || cfg.i18n.uploadError, true);
 				return;
 			}
-
-			var img = new Image();
-			img.onload = function () {
-				ph.remove();
-
-				var item = {
-					id: nextId++,
-					token: resp.data.token,
-					img: img,
-					natW: img.naturalWidth,
-					natH: img.naturalHeight,
-					rot: 0,
-					orientation: img.naturalWidth >= img.naturalHeight ? 'landscape' : 'portrait',
-					sizeIdx: defaultSize,
-					paperIdx: defaultPaper,
-					qty: 1,
-					design: newDesign(),
-					crop: null,
-					ready: true,
-					card: null
-				};
-				item.crop = centeredCrop(item);
-				items.push(item);
-				buildCard(item);
-				updateSummary();
-			};
-			img.onerror = function () {
-				ph.remove();
-				toast(cfg.i18n.uploadError, true);
-			};
-			img.src = resp.data.url;
+			createItemFromUpload(resp.data, ph);
+			refreshLibrary();
 		};
 		xhr.onerror = function () {
 			ph.remove();
 			toast(cfg.i18n.uploadError, true);
 		};
 		xhr.send(fd);
+	}
+
+	/* ------------------------------------------------------ your photos */
+
+	function libraryTileMarkup(photo) {
+		return '<div class="prrint-library-tile" data-id="' + esc(photo.id) + '">' +
+			'<img src="' + esc(photo.preview) + '" alt="" loading="lazy" />' +
+			'<button type="button" class="prrint-library-use" data-id="' + esc(photo.id) + '">' + esc(cfg.i18n.usePhoto || 'Use this photo') + '</button>' +
+			'<div class="prrint-library-tile-actions">' +
+				'<a href="' + esc(photo.file) + '" class="prrint-library-download" download title="' + esc(cfg.i18n.download) + '">⬇</a>' +
+				'<button type="button" class="prrint-library-delete" data-id="' + esc(photo.id) + '" title="' + esc(cfg.i18n.remove) + '">🗑</button>' +
+			'</div>' +
+		'</div>';
+	}
+
+	function renderLibraryGrid(photos) {
+		if (!els.libraryGrid) { return; }
+		els.libraryGrid.innerHTML = photos.map(libraryTileMarkup).join('');
+		els.libraryGrid.hidden = photos.length === 0;
+		if (els.libraryEmpty) { els.libraryEmpty.hidden = photos.length > 0; }
+	}
+
+	function refreshLibrary() {
+		if (!els.library) { return; }
+		postAjax('prrint_get_library', {}, function (data) {
+			renderLibraryGrid(data.photos || []);
+		}, function () { /* silent — the existing list just stays as-is */ });
+	}
+
+	if (els.libraryRefresh) {
+		els.libraryRefresh.addEventListener('click', function () {
+			els.libraryRefresh.disabled = true;
+			var original = els.libraryRefresh.textContent;
+			els.libraryRefresh.textContent = cfg.i18n.refreshing;
+			postAjax('prrint_get_library', {}, function (data) {
+				renderLibraryGrid(data.photos || []);
+				els.libraryRefresh.disabled = false;
+				els.libraryRefresh.textContent = original;
+			}, function (message) {
+				toast(message || cfg.i18n.uploadError, true);
+				els.libraryRefresh.disabled = false;
+				els.libraryRefresh.textContent = original;
+			});
+		});
+	}
+
+	if (els.libraryGrid) {
+		els.libraryGrid.addEventListener('click', function (e) {
+			var useBtn = e.target.closest('.prrint-library-use');
+			if (useBtn) {
+				useBtn.disabled = true;
+				postAjax('prrint_use_library_photo', { id: useBtn.dataset.id }, function (data) {
+					createItemFromUpload(data, null);
+					useBtn.disabled = false;
+				}, function (message) {
+					toast(message || cfg.i18n.uploadError, true);
+					useBtn.disabled = false;
+				});
+				return;
+			}
+
+			var delBtn = e.target.closest('.prrint-library-delete');
+			if (delBtn) {
+				if (!window.confirm(cfg.i18n.confirmDeletePhoto)) { return; }
+				delBtn.disabled = true;
+				postAjax('prrint_delete_photo', { id: delBtn.dataset.id }, function () {
+					var tile = delBtn.closest('.prrint-library-tile');
+					if (tile) { tile.remove(); }
+					if (els.libraryGrid.children.length === 0) {
+						els.libraryGrid.hidden = true;
+						if (els.libraryEmpty) { els.libraryEmpty.hidden = false; }
+					}
+					toast(cfg.i18n.photoDeleted, false);
+				}, function (message) {
+					toast(message || cfg.i18n.uploadError, true);
+					delBtn.disabled = false;
+				});
+			}
+		});
 	}
 
 	/* dropzone wiring */
@@ -1256,6 +1381,40 @@
 			});
 			els.filterGrid.appendChild(tile);
 		});
+	}
+
+	/**
+	 * Swap the Filters/Overlays swatch tiles from generic placeholder
+	 * gradients to the customer's own photo (with that filter's CSS
+	 * approximation applied), so "what will this actually look like" is
+	 * visible right in the tool instead of an abstract color chip. Called
+	 * whenever the editor opens for a photo.
+	 */
+	function updateStylePreviewThumbnails() {
+		if (!ed.item) { return; }
+		var src = ed.item.img.src;
+
+		if (els.filterGrid) {
+			els.filterGrid.querySelectorAll('.prrint-filter-swatch').forEach(function (tile) {
+				var filterId = tile.dataset.filter;
+				tile.style.backgroundImage = 'url(' + src + ')';
+				tile.style.backgroundSize = 'cover';
+				tile.style.backgroundPosition = 'center';
+				tile.style.filter = (filterId && FILTER_CSS[filterId]) ? FILTER_CSS[filterId] : 'none';
+			});
+		}
+
+		if (els.overlayGrid) {
+			els.overlayGrid.querySelectorAll('.prrint-overlay-swatch').forEach(function (tile) {
+				var overlayId = tile.dataset.overlay;
+				var overlayImg = OVERLAY_IMAGES[overlayId];
+				tile.style.backgroundImage = overlayImg && overlayImg.src
+					? 'url(' + overlayImg.src + '), url(' + src + ')'
+					: 'url(' + src + ')';
+				tile.style.backgroundSize = 'cover';
+				tile.style.backgroundPosition = 'center';
+			});
+		}
 	}
 
 	/* overlays panel — bundled textures composited only over the photo area
@@ -1966,6 +2125,7 @@
 		ed.historyIndex = -1;
 
 		syncPanelUI();
+		updateStylePreviewThumbnails();
 
 		ed.brushColor = cfg.drawColors[0] || '#000000';
 		ed.brushSize = 4;

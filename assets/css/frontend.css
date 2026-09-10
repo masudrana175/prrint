@@ -98,6 +98,125 @@ body.prrint-modal-open {
 	font-size: 0.88em;
 }
 
+/* ------------------------------------------------------- your photos */
+
+.prrint-library {
+	margin-top: 20px;
+}
+
+.prrint-library-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.prrint-library-header h3 {
+	margin: 0;
+	font-size: 1em;
+}
+
+#prrint-library-refresh {
+	font-size: 0.85em;
+	padding: 5px 14px;
+}
+
+.prrint-library-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+	gap: 12px;
+}
+
+.prrint-library-tile {
+	position: relative;
+	border: 1px solid var(--prrint-line);
+	border-radius: var(--prrint-radius);
+	overflow: hidden;
+	background: #fff;
+	box-shadow: 0 1px 3px rgba(16, 24, 40, 0.07);
+	transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.prrint-library-tile:hover {
+	box-shadow: 0 6px 16px rgba(16, 24, 40, 0.14);
+	transform: translateY(-2px);
+}
+
+.prrint-library-tile img {
+	display: block;
+	width: 100%;
+	height: 110px;
+	object-fit: cover;
+	background:
+		repeating-conic-gradient(#f1f2f4 0% 25%, #fafbfc 0% 50%) 0 0 / 20px 20px;
+}
+
+.prrint-library-use {
+	display: block;
+	width: 100%;
+	border: 0;
+	padding: 7px 6px;
+	background: var(--prrint-accent);
+	color: #fff;
+	font-size: 0.78em;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+
+.prrint-library-use:hover {
+	background: var(--prrint-accent-dark);
+}
+
+.prrint-library-use:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.prrint-library-tile-actions {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 6px;
+	border-top: 1px solid var(--prrint-line);
+}
+
+.prrint-library-download,
+.prrint-library-delete {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	border: 1px solid var(--prrint-line);
+	background: #fff;
+	color: var(--prrint-muted);
+	font-size: 0.8em;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.prrint-library-download:hover {
+	background: #eef2ff;
+	color: var(--prrint-accent);
+	border-color: var(--prrint-accent);
+}
+
+.prrint-library-delete:hover {
+	background: #fef3f2;
+	color: var(--prrint-bad);
+	border-color: var(--prrint-bad);
+}
+
+.prrint-library-empty {
+	color: var(--prrint-muted);
+	font-size: 0.9em;
+}
+
 /* ---------------------------------------------------------- item cards */
 
 .prrint-items {
@@ -171,6 +290,28 @@ body.prrint-modal-open {
 }
 
 .prrint-edit-btn:hover {
+	background: var(--prrint-accent);
+	color: #fff;
+}
+
+.prrint-download-btn {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	width: 26px;
+	height: 26px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: rgba(17, 24, 39, 0.75);
+	color: #fff;
+	font-size: 0.85em;
+	text-decoration: none;
+	transition: background 0.15s ease;
+}
+
+.prrint-download-btn:hover {
 	background: var(--prrint-accent);
 	color: #fff;
 }

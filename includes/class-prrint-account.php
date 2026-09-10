@@ -22,6 +22,8 @@ class Prrint_Account {
 
 		add_action( 'wp_ajax_prrint_reorder', array( __CLASS__, 'reorder' ) );
 		add_action( 'wp_ajax_prrint_delete_photo', array( __CLASS__, 'delete_photo' ) );
+		add_action( 'wp_ajax_prrint_get_library', array( __CLASS__, 'get_library_json' ) );
+		add_action( 'wp_ajax_prrint_use_library_photo', array( __CLASS__, 'use_library_photo' ) );
 	}
 
 	public static function menu_items( $items ) {
@@ -172,16 +174,92 @@ class Prrint_Account {
 		wp_send_json_success();
 	}
 
+	/**
+	 * A user's saved-photo library, newest first. Shared by the My Account
+	 * tab and the studio page's "Your Photos" section.
+	 *
+	 * @return array[] Rows of { id, file, preview, width, height, name, added }.
+	 */
+	public static function get_library_rows( $user_id ) {
+		$library = get_user_meta( $user_id, 'prrint_photo_library', true );
+		if ( ! is_array( $library ) ) {
+			$library = array();
+		}
+		return array_reverse( $library );
+	}
+
+	/**
+	 * AJAX: re-fetch the current user's library as JSON — backs the studio
+	 * page's Refresh button (e.g. after uploading from another tab/device).
+	 */
+	public static function get_library_json() {
+		check_ajax_referer( 'prrint_studio', 'nonce' );
+
+		if ( ! is_user_logged_in() ) {
+			wp_send_json_error( array( 'message' => __( 'Please log in.', 'prrint' ) ) );
+		}
+
+		$rows = array_map( array( __CLASS__, 'library_row_for_js' ), self::get_library_rows( get_current_user_id() ) );
+		wp_send_json_success( array( 'photos' => array_values( $rows ) ) );
+	}
+
+	protected static function library_row_for_js( $row ) {
+		return array(
+			'id'      => $row['id'],
+			'preview' => prrint_file_url( ! empty( $row['preview'] ) ? $row['preview'] : $row['file'] ),
+			'file'    => prrint_file_url( $row['file'] ),
+			'added'   => (int) $row['added'],
+		);
+	}
+
+	/**
+	 * AJAX: turn a saved library photo into a fresh upload token, so the
+	 * studio can build a new item card from it exactly like a new upload —
+	 * no file copy needed, the token just points at the library's own
+	 * permanent copy instead of a tmp/ upload.
+	 */
+	public static function use_library_photo() {
+		check_ajax_referer( 'prrint_studio', 'nonce' );
+
+		if ( ! is_user_logged_in() ) {
+			wp_send_json_error( array( 'message' => __( 'Please log in.', 'prrint' ) ) );
+		}
+
+		$id   = isset( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : '';
+		$rows = self::get_library_rows( get_current_user_id() );
+		$row  = null;
+		foreach ( $rows as $candidate ) {
+			if ( isset( $candidate['id'] ) && $candidate['id'] === $id ) {
+				$row = $candidate;
+				break;
+			}
+		}
+
+		if ( ! $row || empty( $row['file'] ) || ! file_exists( prrint_file_path( $row['file'] ) ) ) {
+			wp_send_json_error( array( 'message' => __( 'Photo not found.', 'prrint' ) ) );
+		}
+
+		$token = wp_generate_password( 32, false, false );
+		set_transient( 'prrint_up_' . $token, array(
+			'file'   => $row['file'],
+			'width'  => (int) $row['width'],
+			'height' => (int) $row['height'],
+		), WEEK_IN_SECONDS );
+
+		wp_send_json_success( array(
+			'token'  => $token,
+			'url'    => prrint_file_url( $row['file'] ),
+			'width'  => (int) $row['width'],
+			'height' => (int) $row['height'],
+		) );
+	}
+
 	public static function render_photos_tab() {
 		if ( ! is_user_logged_in() ) {
 			return;
 		}
 
-		$library = get_user_meta( get_current_user_id(), 'prrint_photo_library', true );
-		if ( ! is_array( $library ) ) {
-			$library = array();
-		}
-		$library = array_reverse( $library );
+		$library = self::get_library_rows( get_current_user_id() );
 
 		echo '<p>' . esc_html__( 'Every photo you upload while signed in is saved here automatically, so you can reuse it on a future order without re-uploading.', 'prrint' ) . '</p>';
 
@@ -199,9 +277,14 @@ class Prrint_Account {
 			printf(
 				'<div class="prrint-photo-tile"><img src="%1$s" alt="" loading="lazy" />' .
 				'<div class="prrint-photo-meta">%2$s</div>' .
-				'<button type="button" class="prrint-photo-delete button" data-id="%3$s">%4$s</button></div>',
+				'<div class="prrint-photo-tile-actions">' .
+				'<a href="%3$s" class="prrint-photo-download" download title="%4$s">⬇</a>' .
+				'<button type="button" class="prrint-photo-delete button" data-id="%5$s">%6$s</button>' .
+				'</div></div>',
 				esc_url( prrint_file_url( $preview ) ),
 				esc_html( gmdate( get_option( 'date_format' ), (int) $row['added'] ) ),
+				esc_url( prrint_file_url( $row['file'] ) ),
+				esc_attr__( 'Download', 'prrint' ),
 				esc_attr( $row['id'] ),
 				esc_html__( 'Delete', 'prrint' )
 			);

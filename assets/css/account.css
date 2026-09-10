@@ -52,8 +52,36 @@
 	padding: 10px 10px 0;
 }
 
+.prrint-photo-tile-actions {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	margin: 8px;
+}
+
+.prrint-photo-download {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: #fff;
+	color: var(--prrint-accent, #4f46e5);
+	border: 1px solid var(--prrint-line, #e5e7eb);
+	text-decoration: none;
+	font-size: 13px;
+	transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.prrint-photo-download:hover {
+	background: #eef2ff;
+	border-color: var(--prrint-accent, #4f46e5);
+}
+
 .prrint-photo-delete.button {
-	margin: 8px !important;
+	margin: 0 !important;
 	background: #fff !important;
 	color: #b42318 !important;
 	border: 1px solid #fecdca !important;

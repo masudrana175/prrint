@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.13.0
+Stable tag: 1.14.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,17 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.14.0 =
+* Add "Your uploaded photos" directly to the studio page for signed-in
+  customers: their saved photo library shows by default, with Use
+  this photo (starts a new size/paper/qty/cart item from it), Delete,
+  Download, and a Refresh button next to Upload.
+* Add a Download link to every item card and saved photo, so
+  customers can save their original file locally.
+* Filters and Overlays swatches now preview on the customer's own
+  photo instead of a generic color gradient, so it's clear what each
+  style actually does before picking one.
 
 = 1.13.0 =
 * Redesign the My Account pages (My Prints, My Photos), which had

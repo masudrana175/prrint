@@ -233,6 +233,12 @@ class Prrint_Frontend {
 				'shuffleLayout' => __( 'Shuffle Layout', 'prrint' ),
 				'invertColors'  => __( 'Invert', 'prrint' ),
 				'noTextDesign'  => __( 'Choose a layout first.', 'prrint' ),
+				'download'      => __( 'Download', 'prrint' ),
+				'usePhoto'      => __( 'Use this photo', 'prrint' ),
+				'confirmDeletePhoto' => __( 'Remove this photo from your saved photos? This cannot be undone.', 'prrint' ),
+				'photoDeleted'  => __( 'Photo deleted.', 'prrint' ),
+				'libraryEmpty'  => __( "You haven't uploaded any photos yet — they'll show up here once you do.", 'prrint' ),
+				'refreshing'    => __( 'Refreshing…', 'prrint' ),
 			),
 		) );
 	}
@@ -289,6 +295,36 @@ class Prrint_Frontend {
 				<p class="prrint-dz-sub"><?php esc_html_e( 'Drag & drop or click to browse — JPEG, PNG, WebP', 'prrint' ); ?></p>
 				<input type="file" id="prrint-file-input" accept="image/jpeg,image/png,image/webp" multiple hidden />
 			</div>
+
+			<?php if ( is_user_logged_in() ) : ?>
+				<?php $library_rows = Prrint_Account::get_library_rows( get_current_user_id() ); ?>
+				<div class="prrint-library" id="prrint-library">
+					<div class="prrint-library-header">
+						<h3><?php esc_html_e( 'Your uploaded photos', 'prrint' ); ?></h3>
+						<button type="button" class="prrint-btn-secondary" id="prrint-library-refresh">
+							↻ <?php esc_html_e( 'Refresh', 'prrint' ); ?>
+						</button>
+					</div>
+					<div class="prrint-library-grid" id="prrint-library-grid" <?php echo empty( $library_rows ) ? 'hidden' : ''; ?>>
+						<?php foreach ( $library_rows as $row ) : ?>
+							<?php if ( empty( $row['file'] ) || ! file_exists( prrint_file_path( $row['file'] ) ) ) { continue; } ?>
+							<div class="prrint-library-tile" data-id="<?php echo esc_attr( $row['id'] ); ?>">
+								<img src="<?php echo esc_url( prrint_file_url( ! empty( $row['preview'] ) ? $row['preview'] : $row['file'] ) ); ?>" alt="" loading="lazy" />
+								<button type="button" class="prrint-library-use" data-id="<?php echo esc_attr( $row['id'] ); ?>">
+									<?php esc_html_e( 'Use this photo', 'prrint' ); ?>
+								</button>
+								<div class="prrint-library-tile-actions">
+									<a href="<?php echo esc_url( prrint_file_url( $row['file'] ) ); ?>" class="prrint-library-download" download title="<?php esc_attr_e( 'Download', 'prrint' ); ?>">⬇</a>
+									<button type="button" class="prrint-library-delete" data-id="<?php echo esc_attr( $row['id'] ); ?>" title="<?php esc_attr_e( 'Delete', 'prrint' ); ?>">🗑</button>
+								</div>
+							</div>
+						<?php endforeach; ?>
+					</div>
+					<p class="prrint-library-empty" id="prrint-library-empty" <?php echo empty( $library_rows ) ? '' : 'hidden'; ?>>
+						<?php esc_html_e( "You haven't uploaded any photos yet — they'll show up here once you do.", 'prrint' ); ?>
+					</p>
+				</div>
+			<?php endif; ?>
 
 			<div class="prrint-items" id="prrint-items"></div>
 

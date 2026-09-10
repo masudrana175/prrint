@@ -16,6 +16,32 @@ lands — check git log for the commit implementing each item.
 ### My Account
 - **My Prints** — order/print history tab, one-click Reorder with exact crop/design replay
 - **My Photos** — permanent saved-photo library for signed-in customers, auto-filled on upload
+- **Download** — every saved photo and item card has a Download link to save the original file locally
+
+### Studio page — "Your uploaded photos"
+- Signed-in customers now see their saved photo library **directly on the studio page**
+  (product page or `[prrint_studio]`), not just tucked away in My Account — shown by
+  default above the item cards, so returning customers don't have to re-upload.
+- **Use this photo** on any library tile starts a new item card from it — same
+  size/paper/qty/Add to cart flow as a fresh upload. Implemented by pointing a
+  fresh upload token directly at the library's existing permanent file (no file
+  copy needed) and reusing the exact upload-success code path, so it's the same
+  server-verified pipeline either way, not a parallel one.
+- **Delete** removes a photo from the library right from the studio page (same
+  endpoint the My Account tab already used).
+- **Refresh** re-fetches the library over AJAX — e.g. after uploading from another
+  tab or device, without reloading the page. A fresh upload also refreshes the
+  list automatically.
+- Verified the new use/delete/list endpoints against a mock WP harness (10
+  assertions: auth checks, response shape, the token pointing at the right file,
+  row removal) and the full layout via Playwright at desktop and mobile widths.
+
+### Editor — style previews show the real photo
+- Filters and Overlays swatches now render the customer's own uploaded photo with
+  each style actually applied (Filters via the same CSS approximation the live
+  preview already uses; Overlays layers the texture over the photo) instead of an
+  abstract color-gradient placeholder — so "what will this look like" is visible
+  right in the tool, not just after clicking it.
 
 ### Editor — tool rail
 - **Transform** — crop/zoom/drag, 90° rotate, portrait/landscape (existing, unchanged)
