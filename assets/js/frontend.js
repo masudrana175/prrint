@@ -107,7 +107,10 @@
 		focusOrientRow: document.getElementById('prrint-focus-orient-row'),
 		focusRadiusRow: document.getElementById('prrint-focus-radius-row'),
 		focusWidthRow: document.getElementById('prrint-focus-width-row'),
-		focusFeatherRow: document.getElementById('prrint-focus-feather-row')
+		focusFeatherRow: document.getElementById('prrint-focus-feather-row'),
+		textdesignGrid: document.getElementById('prrint-textdesign-grid'),
+		textdesignShuffle: document.getElementById('prrint-textdesign-shuffle'),
+		textdesignInvert: document.getElementById('prrint-textdesign-invert')
 	};
 	var ctx = els.canvas.getContext('2d');
 
@@ -388,6 +391,38 @@
 		line: function () {
 			return [[-0.5, -0.06], [0.5, -0.06], [0.5, 0.06], [-0.5, 0.06]];
 		}
+	};
+
+	/**
+	 * Text Design: pre-made word-art layouts. Each is a small set of text
+	 * layers (fontSize/x/y/w fractions of the canvas — the same
+	 * resolution-independent scheme every text layer already uses), applied
+	 * on top of the Text tool's freeform single-layer editing rather than
+	 * replacing it. Layers a template creates are tagged `_tpl` (stripped by
+	 * the server sanitizer, which only reads the fields it whitelists) so
+	 * Shuffle/Invert and re-applying a different layout only touch the
+	 * template's own layers, not anything the customer added by hand.
+	 */
+	var TEXT_TEMPLATES = {
+		banner: [
+			{ text: 'YOUR TEXT HERE', fontSize: 0.08, bold: true, align: 'center', color: '#ffffff', bgColor: '#000000', lineSpacing: 1.2, x: 0.1, y: 0.8, w: 0.8, rotation: 0 }
+		],
+		stacked: [
+			{ text: 'TITLE', fontSize: 0.1, bold: true, align: 'center', color: '#ffffff', bgColor: '', lineSpacing: 1.2, x: 0.1, y: 0.06, w: 0.8, rotation: 0 },
+			{ text: 'a little subtitle', fontSize: 0.045, bold: false, align: 'center', color: '#ffffff', bgColor: '', lineSpacing: 1.2, x: 0.15, y: 0.19, w: 0.7, rotation: 0 }
+		],
+		quote: [
+			{ text: '"Your quote here"', fontSize: 0.06, bold: false, align: 'center', color: '#ffffff', bgColor: '', lineSpacing: 1.3, x: 0.1, y: 0.44, w: 0.8, rotation: 0 }
+		],
+		corner: [
+			{ text: 'Est. 2024', fontSize: 0.04, bold: false, align: 'left', color: '#000000', bgColor: '#ffffff', lineSpacing: 1.2, x: 0.05, y: 0.87, w: 0.4, rotation: 0 }
+		],
+		stamp: [
+			{ text: 'SPECIAL', fontSize: 0.045, bold: true, align: 'center', color: '#ffffff', bgColor: '#dc2626', lineSpacing: 1.2, x: 0.58, y: 0.06, w: 0.36, rotation: 10 }
+		],
+		sidestrip: [
+			{ text: 'MEMORIES', fontSize: 0.06, bold: true, align: 'center', color: '#ffffff', bgColor: '#000000', lineSpacing: 1.2, x: -0.18, y: 0.35, w: 0.55, rotation: -90 }
+		]
 	};
 
 	function shapeLayerBox(layer, frame) {
@@ -1255,6 +1290,124 @@
 		});
 	}
 
+	/* text design panel — pre-made word-art layouts */
+	function makeTemplateLayer(def, tplId) {
+		return {
+			id: 'l' + (nextLayerId++),
+			type: 'text',
+			text: def.text,
+			fontSize: def.fontSize,
+			bold: def.bold,
+			align: def.align,
+			color: def.color,
+			bgColor: def.bgColor,
+			lineSpacing: def.lineSpacing,
+			x: def.x,
+			y: def.y,
+			w: def.w,
+			rotation: def.rotation,
+			_tpl: true,
+			_tplId: tplId
+		};
+	}
+
+	/**
+	 * Which template (if any) the current text-design layers came from —
+	 * derived from the layers themselves (not separately tracked editor
+	 * state) so it stays correct across Undo/Redo, which replaces
+	 * ed.design wholesale from a JSON snapshot.
+	 */
+	function activeTextTemplateId() {
+		var l = ed.design.layers.filter(function (l) { return l._tpl; })[0];
+		return l ? l._tplId : '';
+	}
+
+	function applyTextTemplate(tplId, preserveText) {
+		var defs = TEXT_TEMPLATES[tplId];
+		if (!defs || !ed.item) { return; }
+		var oldTplLayers = ed.design.layers.filter(function (l) { return l._tpl; });
+		ed.design.layers = ed.design.layers.filter(function (l) { return !l._tpl; });
+		var newLayers = defs.map(function (def, i) {
+			var layer = makeTemplateLayer(def, tplId);
+			if (preserveText && oldTplLayers[i] && oldTplLayers[i].text) {
+				layer.text = oldTplLayers[i].text;
+			}
+			return layer;
+		});
+		ed.design.layers = ed.design.layers.concat(newLayers);
+		syncTextDesignPanelUI();
+		selectLayer(newLayers[0] ? newLayers[0].id : null);
+		edDraw();
+		pushHistory();
+	}
+
+	function syncTextDesignPanelUI() {
+		if (!els.textdesignGrid) { return; }
+		var activeId = activeTextTemplateId();
+		els.textdesignGrid.querySelectorAll('.prrint-filter-swatch').forEach(function (b) {
+			b.classList.toggle('is-active', b.dataset.template === activeId);
+		});
+	}
+
+	function templatePreviewMarkup(defs) {
+		return defs.map(function (def) {
+			var rot = def.rotation ? ' rotate(' + def.rotation + 'deg)' : '';
+			// A layer with no bgColor still needs a visible placeholder bar
+			// in this miniature preview, or it'd be an invisible blank spot.
+			var bg = def.bgColor || (def.color === '#ffffff' ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.4)');
+			var barH = Math.max(4, def.fontSize * 60);
+			var style = 'position:absolute;left:' + (def.x * 100) + '%;top:' + (def.y * 100) + '%;' +
+				'width:' + (def.w * 100) + '%;height:' + barH + 'px;background:' + bg + ';border-radius:2px;' +
+				'transform:translate(0,0)' + rot + ';';
+			return '<span style="' + style + '"></span>';
+		}).join('');
+	}
+
+	if (els.textdesignGrid) {
+		cfg.textTemplates.forEach(function (t) {
+			var tile = document.createElement('button');
+			tile.type = 'button';
+			tile.className = 'prrint-filter-swatch prrint-filter-preview-none';
+			tile.dataset.template = t.id;
+			tile.innerHTML = templatePreviewMarkup(TEXT_TEMPLATES[t.id] || []) +
+				'<span class="prrint-filter-caption">' + esc(t.label) + '</span>';
+			tile.addEventListener('click', function () {
+				applyTextTemplate(t.id, false);
+			});
+			els.textdesignGrid.appendChild(tile);
+		});
+	}
+
+	if (els.textdesignShuffle) {
+		els.textdesignShuffle.addEventListener('click', function () {
+			if (!ed.item) { return; }
+			var current = activeTextTemplateId();
+			var ids = Object.keys(TEXT_TEMPLATES).filter(function (id) { return id !== current; });
+			if (!ids.length) { return; }
+			var pick = ids[Math.floor(Math.random() * ids.length)];
+			applyTextTemplate(pick, true);
+		});
+	}
+
+	if (els.textdesignInvert) {
+		els.textdesignInvert.addEventListener('click', function () {
+			if (!ed.item) { return; }
+			var any = false;
+			ed.design.layers.forEach(function (l) {
+				if (!l._tpl) { return; }
+				any = true;
+				if (l.bgColor) {
+					var c = l.color; l.color = l.bgColor; l.bgColor = c;
+				} else {
+					l.color = (l.color === '#000000') ? '#ffffff' : '#000000';
+				}
+			});
+			if (!any) { toast(cfg.i18n.noTextDesign, true); return; }
+			edDraw();
+			pushHistory();
+		});
+	}
+
 	/* adjust panel */
 	function edAdjustInput(el, key) {
 		if (!el) { return; }
@@ -1765,6 +1918,7 @@
 		if (els.flipH) { els.flipH.classList.toggle('is-active', !!ed.design.flipH); }
 		if (els.flipV) { els.flipV.classList.toggle('is-active', !!ed.design.flipV); }
 		syncFocusPanelUI();
+		syncTextDesignPanelUI();
 		els.borderEnable.checked = !!ed.design.border.enabled;
 		els.borderFields.hidden = !ed.design.border.enabled;
 		els.borderWidth.value = String(Math.round(ed.design.border.width_in * 100));

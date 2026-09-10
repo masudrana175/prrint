@@ -9,10 +9,17 @@ defined( 'ABSPATH' ) || exit;
 
 class Prrint_Frontend {
 
+	/**
+	 * Guards against enqueuing prrintData twice (e.g. the [prrint_studio]
+	 * shortcode used on the product page itself, or called more than once).
+	 */
+	protected static $enqueued = false;
+
 	public static function init() {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
 		add_action( 'woocommerce_before_add_to_cart_button', array( __CLASS__, 'render_studio' ) );
 		add_filter( 'body_class', array( __CLASS__, 'body_class' ) );
+		add_shortcode( 'prrint_studio', array( __CLASS__, 'shortcode' ) );
 	}
 
 	protected static function current_enabled_product() {
@@ -21,6 +28,47 @@ class Prrint_Frontend {
 		}
 		$product = wc_get_product( get_queried_object_id() );
 		return ( $product && prrint_is_enabled( $product ) ) ? $product : null;
+	}
+
+	/**
+	 * The product a [prrint_studio] shortcode should design for: an explicit
+	 * id="" attribute, else the store's configured/auto-created default —
+	 * the studio's design UI lives on its own page via this shortcode, but
+	 * still needs one regular WooCommerce product behind it to actually
+	 * process the order (pricing, cart, checkout, order management).
+	 */
+	protected static function shortcode_product( $atts ) {
+		$product_id = ! empty( $atts['id'] ) ? absint( $atts['id'] ) : (int) get_option( 'prrint_sample_product' );
+		if ( ! $product_id ) {
+			return null;
+		}
+		$product = wc_get_product( $product_id );
+		return ( $product && prrint_is_enabled( $product ) ) ? $product : null;
+	}
+
+	/**
+	 * [prrint_studio] / [prrint_studio id="123"] — the standalone design +
+	 * order page: upload, editor, size/paper/qty and Add to cart, usable on
+	 * any WordPress Page, independent of the WooCommerce single-product
+	 * template. The referenced product is only used to process the order
+	 * (price, cart line, checkout) — its own product page doesn't need to
+	 * be visited at all.
+	 */
+	public static function shortcode( $atts ) {
+		$atts    = shortcode_atts( array( 'id' => '' ), $atts, 'prrint_studio' );
+		$product = self::shortcode_product( $atts );
+		if ( ! $product ) {
+			if ( current_user_can( 'manage_woocommerce' ) ) {
+				return '<p>' . esc_html__( 'Print Studio: no product is configured for this page yet. Set one with [prrint_studio id="123"], or enable Print Studio on a product under WooCommerce → Prrint Studio.', 'prrint' ) . '</p>';
+			}
+			return '';
+		}
+
+		self::enqueue_for_product( $product );
+
+		ob_start();
+		self::render_studio_markup( $product );
+		return ob_get_clean();
 	}
 
 	public static function body_class( $classes ) {
@@ -35,6 +83,14 @@ class Prrint_Frontend {
 		if ( ! $product ) {
 			return;
 		}
+		self::enqueue_for_product( $product );
+	}
+
+	protected static function enqueue_for_product( $product ) {
+		if ( self::$enqueued ) {
+			return;
+		}
+		self::$enqueued = true;
 
 		wp_enqueue_style( 'prrint-frontend', PRRINT_URL . 'assets/css/frontend.css', array(), PRRINT_VERSION );
 		wp_enqueue_script( 'prrint-frontend', PRRINT_URL . 'assets/js/frontend.js', array(), PRRINT_VERSION, true );
@@ -93,6 +149,14 @@ class Prrint_Frontend {
 				array( 'id' => 'line',   'label' => '—' ),
 			),
 			'shapeColors'    => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#eab308' ),
+			'textTemplates'  => array(
+				array( 'id' => 'banner',    'label' => __( 'Banner', 'prrint' ) ),
+				array( 'id' => 'stacked',   'label' => __( 'Stacked', 'prrint' ) ),
+				array( 'id' => 'quote',     'label' => __( 'Quote', 'prrint' ) ),
+				array( 'id' => 'corner',    'label' => __( 'Corner Tag', 'prrint' ) ),
+				array( 'id' => 'stamp',     'label' => __( 'Stamp', 'prrint' ) ),
+				array( 'id' => 'sidestrip', 'label' => __( 'Side Strip', 'prrint' ) ),
+			),
 			'drawColors'     => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6' ),
 			'currency'       => array(
 				'symbol'      => html_entity_decode( get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8' ),
@@ -142,6 +206,10 @@ class Prrint_Frontend {
 				'noShapeLayer'  => __( 'Add a shape first.', 'prrint' ),
 				'addSize'       => __( 'Add size', 'prrint' ),
 				'addAnotherSize' => __( 'Order this same photo in another size', 'prrint' ),
+				'toolTextDesign' => __( 'Text Design', 'prrint' ),
+				'shuffleLayout' => __( 'Shuffle Layout', 'prrint' ),
+				'invertColors'  => __( 'Invert', 'prrint' ),
+				'noTextDesign'  => __( 'Choose a layout first.', 'prrint' ),
 			),
 		) );
 	}
@@ -164,6 +232,10 @@ class Prrint_Frontend {
 		if ( ! $product || ! prrint_is_enabled( $product ) ) {
 			return;
 		}
+		self::render_studio_markup( $product );
+	}
+
+	protected static function render_studio_markup( $product ) {
 		?>
 		<div id="prrint-studio" class="prrint-studio" data-prrint>
 			<div class="prrint-dropzone" id="prrint-dropzone" role="button" tabindex="0"
@@ -213,6 +285,7 @@ class Prrint_Frontend {
 							<button type="button" class="prrint-tool-btn" data-tool="adjust" title="<?php esc_attr_e( 'Adjust', 'prrint' ); ?>">☼</button>
 							<button type="button" class="prrint-tool-btn" data-tool="focus" title="<?php esc_attr_e( 'Focus', 'prrint' ); ?>">◎</button>
 							<button type="button" class="prrint-tool-btn" data-tool="text" title="<?php esc_attr_e( 'Text', 'prrint' ); ?>">A</button>
+							<button type="button" class="prrint-tool-btn" data-tool="textdesign" title="<?php esc_attr_e( 'Text Design', 'prrint' ); ?>">🔖</button>
 							<button type="button" class="prrint-tool-btn" data-tool="elements" title="<?php esc_attr_e( 'Elements', 'prrint' ); ?>">★</button>
 							<button type="button" class="prrint-tool-btn" data-tool="draw" title="<?php esc_attr_e( 'Draw', 'prrint' ); ?>">✎</button>
 							<button type="button" class="prrint-tool-btn" data-tool="overlays" title="<?php esc_attr_e( 'Overlays', 'prrint' ); ?>">▨</button>
@@ -343,6 +416,14 @@ class Prrint_Frontend {
 										<button type="button" class="prrint-btn-secondary" id="prrint-text-duplicate"><?php esc_html_e( 'Duplicate', 'prrint' ); ?></button>
 										<button type="button" class="prrint-btn-secondary" id="prrint-text-delete"><?php esc_html_e( 'Delete', 'prrint' ); ?></button>
 									</div>
+								</div>
+							</div>
+
+							<div class="prrint-tool-panel" data-panel="textdesign" hidden>
+								<div class="prrint-filter-grid" id="prrint-textdesign-grid"></div>
+								<div class="prrint-panel-row">
+									<button type="button" class="prrint-btn-secondary" id="prrint-textdesign-shuffle"><?php esc_html_e( 'Shuffle Layout', 'prrint' ); ?></button>
+									<button type="button" class="prrint-btn-secondary" id="prrint-textdesign-invert"><?php esc_html_e( 'Invert', 'prrint' ); ?></button>
 								</div>
 							</div>
 

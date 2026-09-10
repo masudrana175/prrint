@@ -3,7 +3,7 @@
  * Plugin Name: Prrint — Photo Print Studio for WooCommerce
  * Plugin URI:  https://github.com/masudrana175/prrint
  * Description: Turn WooCommerce products into a full photo print shop: multi-photo upload, crop/zoom/rotate editor, print sizes, paper finishes, white borders, live pricing, print-quality checks, and 300 DPI print-ready files on every order.
- * Version:     1.9.0
+ * Version:     1.11.0
  * Author:      Masud Rana
  * Author URI:  https://github.com/masudrana175
  * Text Domain: prrint
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PRRINT_VERSION', '1.9.0' );
+define( 'PRRINT_VERSION', '1.11.0' );
 define( 'PRRINT_FILE', __FILE__ );
 define( 'PRRINT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PRRINT_URL', plugin_dir_url( __FILE__ ) );
@@ -115,6 +115,23 @@ function prrint_activate() {
 		}
 	}
 
+	// A standalone design + order page — [prrint_studio] — the way
+	// customers reach the studio without visiting a product page at all.
+	if ( ! get_option( 'prrint_sample_page' ) ) {
+		$page_id = wp_insert_post(
+			array(
+				'post_title'   => __( 'Create Your Print', 'prrint' ),
+				'post_name'    => 'create-your-print',
+				'post_content' => '[prrint_studio]',
+				'post_status'  => 'draft',
+				'post_type'    => 'page',
+			)
+		);
+		if ( $page_id && ! is_wp_error( $page_id ) ) {
+			update_option( 'prrint_sample_page', $page_id );
+		}
+	}
+
 	set_transient( 'prrint_activation_notice', 1, MINUTE_IN_SECONDS * 5 );
 }
 
@@ -129,12 +146,14 @@ add_action( 'admin_notices', function () {
 	}
 	delete_transient( 'prrint_activation_notice' );
 	$sample = (int) get_option( 'prrint_sample_product' );
+	$page   = (int) get_option( 'prrint_sample_page' );
 	echo '<div class="notice notice-success is-dismissible"><p><strong>' . esc_html__( 'Prrint Photo Print Studio is ready!', 'prrint' ) . '</strong> ';
 	printf(
-		/* translators: 1: settings link, 2: sample product link */
-		esc_html__( 'Configure sizes and papers in %1$s. A sample draft product was created — %2$s to start selling.', 'prrint' ),
+		/* translators: 1: settings link, 2: sample product link, 3: sample page link */
+		esc_html__( 'Configure sizes and papers in %1$s. A sample draft product was created — %2$s to start selling — and a "Create Your Print" page with the design studio was drafted — %3$s when you\'re ready.', 'prrint' ),
 		'<a href="' . esc_url( admin_url( 'admin.php?page=prrint-settings' ) ) . '">' . esc_html__( 'Prrint Studio settings', 'prrint' ) . '</a>',
-		$sample ? '<a href="' . esc_url( get_edit_post_link( $sample ) ) . '">' . esc_html__( 'publish it', 'prrint' ) . '</a>' : esc_html__( 'enable the Print Studio on any product', 'prrint' )
+		$sample ? '<a href="' . esc_url( get_edit_post_link( $sample ) ) . '">' . esc_html__( 'publish it', 'prrint' ) . '</a>' : esc_html__( 'enable the Print Studio on any product', 'prrint' ),
+		$page ? '<a href="' . esc_url( get_edit_post_link( $page ) ) . '">' . esc_html__( 'publish it', 'prrint' ) . '</a>' : esc_html__( 'add the [prrint_studio] shortcode to a page', 'prrint' )
 	);
 	echo '</p></div>';
 } );

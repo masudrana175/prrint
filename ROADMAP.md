@@ -48,6 +48,26 @@ lands — check git log for the commit implementing each item.
   radial); ~1s at full print resolution. The editor/thumbnail preview uses a
   canvas `blur()` + gradient-mask approximation of the same effect (see
   "Notes on feasibility limits")
+- **Text Design** — a library of 6 pre-made word-art layouts (Banner, Stacked,
+  Quote, Corner Tag, Stamp, Side Strip), Shuffle Layout (reapplies a random
+  other layout to the same typed text) and Invert (swaps foreground/background,
+  or flips black↔white when there's no background). Solves the mystery
+  "bookmark" rail icon from the video. Built entirely on the existing text-layer
+  schema/renderer — a template is just a named preset of layer fields, so no
+  server rendering changes were needed at all, only client-side composition
+  and sanitizer pass-through (which already whitelists layer fields and drops
+  anything else, so the template-tracking fields never reach the server)
+
+### Standalone design & order page
+- **`[prrint_studio]` shortcode** — the full upload → design → order flow on its own
+  WordPress Page, independent of the WooCommerce single-product template (reversing
+  the earlier in-product-page-only decision, per explicit re-request). Designs against
+  one configured/auto-created product behind the scenes purely to process the order
+  (pricing, cart, checkout) — customers never need to see that product's own page.
+  `[prrint_studio id="123"]` points it at a specific product. Activation now also
+  drafts a "Create Your Print" page with the shortcode already in it, alongside the
+  existing sample product. The old product-page integration still works unchanged —
+  this is an additional entry point, not a replacement.
 
 ### Visual design
 - Full-screen dark theme matching the reference (top bar, icon rail, filter preview
@@ -60,7 +80,6 @@ how feasible + valuable each is to build next:
 
 | Item | What the reference has | Status |
 |---|---|---|
-| **Text Design** | Library of pre-made word-art templates (multi-text-layer compositions with stylized layouts), Shuffle Layout, Invert | Not started — this was the mystery "bookmark" icon |
 | **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | **Flip H/V and Reset to Default shipped.** Numeric crop W×H, aspect-ratio presets and a continuous-rotation dial are still not started — see feasibility note below |
 | **Floating layer toolbar** | Edit/Move to Front/Duplicate/Delete appears *above the selected layer on canvas*; drag-handle for rotation | We built these as side-panel controls instead — functionally equivalent, visually different |
 
@@ -69,9 +88,6 @@ how feasible + valuable each is to build next:
 - **Canvas / Wall Art** product type (gallery wrap, frame color, bleed)
 - **Photo Books** product type (multi-page builder, layouts, cover, PDF/per-page export)
 - **Greeting Cards** product type (pack pricing, front caption)
-- **Standalone Design Studio page** — a separate build-your-design-first flow, decided
-  against earlier in favor of the in-product-page editor; would need to be explicitly
-  requested again since it reverses that decision
 - Multi-select bulk sizing (the reference lets you select several uploaded photos at
   once and apply a size/quantity to all of them via +/- next to each size in the list —
   bigger than our current one-photo-at-a-time "Add size" duplicate)

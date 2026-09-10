@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.9.0
+Stable tag: 1.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,19 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.11.0 =
+* Add a [prrint_studio] shortcode: the full upload/design/order studio on
+  any WordPress Page, independent of the WooCommerce single-product
+  template. Designs against one product behind the scenes purely to
+  process the order (pricing, cart, checkout) — [prrint_studio id="123"]
+  targets a specific product, or it falls back to the store's default.
+  Activation now drafts a "Create Your Print" page with the shortcode
+  already in it. The existing product-page integration is unchanged and
+  still works alongside it.
+* Add a Text Design tool to the editor: 6 pre-made word-art layouts
+  (Banner, Stacked, Quote, Corner Tag, Stamp, Side Strip), plus Shuffle
+  Layout and Invert.
 
 = 1.9.0 =
 * Add a Focus tool to the editor: Radial, Linear, Mirrored and Gaussian

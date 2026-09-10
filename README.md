@@ -11,6 +11,11 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
 ## Features
 
 ### Customer-facing (front end)
+- **Standalone design & order page** — a `[prrint_studio]` shortcode puts
+  the whole upload → design → order flow on its own WordPress Page (like a
+  dedicated "Create" page), independent of any WooCommerce product page. A
+  regular product still runs the order behind the scenes (pricing, cart,
+  checkout) — customers never need to see or visit it.
 - **Multi-photo upload** — drag & drop or browse, several photos at once,
   with per-file progress bars. JPEG / PNG / WebP up to a configurable size.
 - **Full-screen dark editor** — a Colorplak-style studio: top bar with
@@ -82,18 +87,40 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
 
 1. Download / clone this repository into `wp-content/plugins/prrint`.
 2. Activate **Prrint — Photo Print Studio for WooCommerce** (WooCommerce must
-   be active).
-3. Publish the auto-created draft product "Photo Prints" (or enable the
-   **Print Studio** checkbox on any simple product) and give it a regular
-   price — the price is the fallback for sizes priced at 0.
-4. Optionally adjust sizes, papers and quality under
+   be active). This also drafts a product ("Photo Prints") and a page
+   ("Create Your Print", containing `[prrint_studio]`) to get you started.
+3. Publish the "Photo Prints" product and give it a regular price — the
+   product is only used to process the order (pricing, cart, checkout); the
+   price is the fallback for sizes priced at 0.
+4. Publish the "Create Your Print" page — that's the studio's URL, the one
+   to link/promote, independent of the product's own page.
+5. Optionally adjust sizes, papers and quality under
    **WooCommerce → Prrint Studio**.
+
+### The `[prrint_studio]` shortcode
+
+The design-and-order studio (upload, editor, sizes/papers, Add to cart) is a
+shortcode, so it can live on any WordPress Page — a dedicated "Create" page,
+your homepage, wherever — instead of a WooCommerce product page. It designs
+against one Print-Studio-enabled product behind the scenes (for pricing and
+checkout only):
+
+- `[prrint_studio]` — uses the store's default product (the auto-created
+  sample product, or whichever one you've pointed it at).
+- `[prrint_studio id="123"]` — designs against a specific product id, e.g.
+  if you run several print types as separate products.
+
+The studio still also appears on the product page itself of any
+Print-Studio-enabled product (via the **Print Studio** checkbox in the
+product editor) — the shortcode is an additional, independent entry point,
+not a replacement; use whichever fits your site, or both.
 
 ### URL preselection
 
-Link to a product with `?size=8x10` or `?paper=luster` (slugs of your labels)
-to preselect options — handy for category-style landing links such as
-"Luster prints".
+Link to the studio with `?size=8x10` or `?paper=luster` (slugs of your
+labels) to preselect options — handy for category-style landing links such
+as "Luster prints". Works on both a product page and a `[prrint_studio]`
+page.
 
 ## Compatibility & conflict safety
 
