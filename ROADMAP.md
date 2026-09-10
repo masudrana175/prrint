@@ -90,6 +90,13 @@ lands — check git log for the commit implementing each item.
 ### Visual design
 - Full-screen dark theme matching the reference (top bar, icon rail, filter preview
   tiles, Text panel layout) — verified with an actual Playwright render, not just CSS review
+- **My Account pages redesigned** — My Prints and My Photos had never gotten the same
+  design attention as the studio/editor (a bare table and an unstyled grid, effectively
+  default browser styling). Rebuilt using the studio's own design tokens (accent color,
+  radius, shadow system) for a consistent look across the plugin: card-style print
+  history rows with pill-shaped action buttons, hover-lift photo tiles, and a
+  mobile layout where the table collapses into stacked cards below 700px — verified
+  both breakpoints via Playwright
 
 ## 🚧 Not started / partially covered
 

@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.12.0
+Stable tag: 1.13.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,14 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.13.0 =
+* Redesign the My Account pages (My Prints, My Photos), which had
+  never gotten the same visual attention as the studio/editor. Uses
+  the studio's own design tokens for a consistent look: card-style
+  print history rows with pill action buttons, hover-lift photo
+  tiles, and a mobile layout where the table collapses into stacked
+  cards below 700px.
 
 = 1.12.0 =
 * Add admin controls under WooCommerce → Prrint Studio: pick which
