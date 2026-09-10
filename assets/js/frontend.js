@@ -81,6 +81,9 @@
 		drawSize: document.getElementById('prrint-draw-size'),
 		drawClear: document.getElementById('prrint-draw-clear'),
 		overlayGrid: document.getElementById('prrint-overlay-grid'),
+		zoomOut: document.getElementById('prrint-zoom-out'),
+		zoomIn: document.getElementById('prrint-zoom-in'),
+		zoomPct: document.getElementById('prrint-zoom-pct'),
 		undoBtn: document.getElementById('prrint-undo'),
 		redoBtn: document.getElementById('prrint-redo'),
 		textSpacingOut: document.getElementById('prrint-text-spacing-out')
@@ -906,6 +909,7 @@
 		ed.off.y = (d.h / 2 - (crop.y + crop.h / 2)) * ed.scale;
 		edClamp();
 		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
+		if (els.zoomPct) { els.zoomPct.textContent = els.zoom.value + '%'; }
 	}
 
 	function edFit() {
@@ -917,6 +921,7 @@
 		ed.off.x = 0;
 		ed.off.y = 0;
 		els.zoom.value = '0';
+		if (els.zoomPct) { els.zoomPct.textContent = '0%'; }
 		edClamp();
 	}
 
@@ -1773,6 +1778,20 @@
 	});
 	els.canvas.addEventListener('pointercancel', function () { dragging = false; dragMode = null; dragLayer = null; });
 
+	function updateZoomPct() {
+		if (els.zoomPct) { els.zoomPct.textContent = els.zoom.value + '%'; }
+	}
+
+	function setZoomFraction(t) {
+		t = Math.max(0, Math.min(100, t));
+		els.zoom.value = String(Math.round(t));
+		ed.scale = ed.minScale + (ed.maxScale - ed.minScale) * (t / 100);
+		edClamp();
+		edDraw();
+		edUpdateDpi();
+		updateZoomPct();
+	}
+
 	els.canvas.addEventListener('wheel', function (e) {
 		if (!ed.item || ed.activeTool !== 'transform') { return; }
 		e.preventDefault();
@@ -1782,6 +1801,7 @@
 		edClamp();
 		edDraw();
 		edUpdateDpi();
+		updateZoomPct();
 	}, { passive: false });
 
 	els.zoom.addEventListener('input', function () {
@@ -1791,7 +1811,21 @@
 		edClamp();
 		edDraw();
 		edUpdateDpi();
+		updateZoomPct();
 	});
+
+	if (els.zoomOut) {
+		els.zoomOut.addEventListener('click', function () {
+			if (!ed.item) { return; }
+			setZoomFraction(Number(els.zoom.value) - 10);
+		});
+	}
+	if (els.zoomIn) {
+		els.zoomIn.addEventListener('click', function () {
+			if (!ed.item) { return; }
+			setZoomFraction(Number(els.zoom.value) + 10);
+		});
+	}
 
 	els.rotate.addEventListener('click', function () {
 		if (!ed.item) { return; }

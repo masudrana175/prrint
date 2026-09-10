@@ -34,6 +34,8 @@ lands — check git log for the commit implementing each item.
   confined to the photo area (not the border), reusing the Draw layer's compositing pipeline
 - **Undo/Redo** — history stack over filter/adjust/border/rotation/layer edits
 - **Order one photo in multiple sizes** — "Add size" clones a card with the same edits
+- **Zoom % readout** — top bar center shows "− 105% +", synced with wheel zoom,
+  the slider, and the ± buttons
 
 ### Visual design
 - Full-screen dark theme matching the reference (top bar, icon rail, filter preview
@@ -50,7 +52,6 @@ how feasible + valuable each is to build next:
 | **Text Design** | Library of pre-made word-art templates (multi-text-layer compositions with stylized layouts), Shuffle Layout, Invert | Not started — this was the mystery "bookmark" icon |
 | **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | Not started (we have drag/zoom/90°-rotate only) |
 | **Floating layer toolbar** | Edit/Move to Front/Duplicate/Delete appears *above the selected layer on canvas*; drag-handle for rotation | We built these as side-panel controls instead — functionally equivalent, visually different |
-| **Zoom % readout** | Top bar shows "− 105.3% +" in the center | We show a hint string there instead |
 
 ## ❌ Not started at all
 

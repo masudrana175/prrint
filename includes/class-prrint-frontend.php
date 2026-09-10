@@ -195,7 +195,11 @@ class Prrint_Frontend {
 							<button type="button" class="prrint-topbar-btn" id="prrint-undo" disabled><?php esc_html_e( 'Undo', 'prrint' ); ?></button>
 							<button type="button" class="prrint-topbar-btn" id="prrint-redo" disabled><?php esc_html_e( 'Redo', 'prrint' ); ?></button>
 						</div>
-						<span class="prrint-editor-hint"><?php esc_html_e( 'Drag to reposition · scroll or slide to zoom', 'prrint' ); ?></span>
+						<div class="prrint-zoom-control" title="<?php esc_attr_e( 'Drag to reposition · scroll or slide to zoom', 'prrint' ); ?>">
+							<button type="button" class="prrint-topbar-btn" id="prrint-zoom-out" aria-label="<?php esc_attr_e( 'Zoom out', 'prrint' ); ?>">−</button>
+							<span id="prrint-zoom-pct">0%</span>
+							<button type="button" class="prrint-topbar-btn" id="prrint-zoom-in" aria-label="<?php esc_attr_e( 'Zoom in', 'prrint' ); ?>">+</button>
+						</div>
 						<div class="prrint-editor-topbar-right">
 							<button type="button" class="prrint-btn-secondary" id="prrint-editor-cancel"><?php esc_html_e( 'Close', 'prrint' ); ?></button>
 							<button type="button" class="prrint-cta" id="prrint-editor-done"><?php esc_html_e( 'Save', 'prrint' ); ?></button>

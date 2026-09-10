@@ -494,6 +494,29 @@ body.prrint-modal-open {
 	flex: 0 0 auto;
 }
 
+.prrint-zoom-control {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	color: var(--prrint-dark-muted);
+	font-size: 0.85em;
+	order: -1;
+	flex: 1 1 100%;
+	justify-content: center;
+}
+
+@media (min-width: 700px) {
+	.prrint-zoom-control {
+		order: 0;
+		flex: 1 1 auto;
+	}
+}
+
+.prrint-zoom-control #prrint-zoom-pct {
+	min-width: 3.5em;
+	text-align: center;
+}
+
 .prrint-topbar-btn {
 	border: 0;
 	background: transparent;
