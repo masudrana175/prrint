@@ -84,8 +84,21 @@ lands — check git log for the commit implementing each item.
   - DuoTone is a **true 2-stop gradient** (palette remap technique), not an approximation
 - **Adjust** — Brightness, Contrast, Saturation, Gamma, Exposure, Clarity, Shadows, Highlights
   (Shadows/Highlights are global approximations — see "Notes on feasibility limits")
-- **Text** — multi-layer captions: font size, bold, alignment, color, background color,
-  line spacing, rotation, drag-to-move, duplicate/delete
+- **Text** — multi-layer captions: any Google Fonts family (typed, with autocomplete —
+  not a fixed picklist), font size, bold, alignment, color, background color, line
+  spacing, rotation, drag-to-move, and an on-canvas floating toolbar (Edit/Move to
+  Front/Duplicate/Delete) above the selected layer, alongside the side-panel controls
+  - Google Fonts: the browser preview loads the family live from Google's CSS2 API;
+    the GD print pipeline (which needs a local TTF, not a webfont) downloads one via
+    Google's legacy `css?family=` endpoint — spoofing an old user agent to get a
+    plain .ttf response instead of woff2, a technique several PDF-generation
+    libraries use for the same reason — and caches it under
+    `wp-content/uploads/prrint/fonts/gfonts/`. Falls back to the bundled Liberation
+    Sans on any failure (no outbound internet, an invalid/unknown family name), so
+    a print never breaks over a font fetch. Family names are validated against the
+    same `[A-Za-z0-9 ]` allowlist both before the client ever builds a Google Fonts
+    URL and again server-side before the AJAX-submitted design is trusted, since the
+    name flows into a server-side outbound HTTP request
 - **Elements** — sticker shapes (circle, square, triangle, diamond, pentagon, hexagon,
   star, heart, arrow, cross, line), colored, resizable, rotatable; identical geometry
   client- and server-side (verified point-for-point equal, and rendered through the
@@ -185,7 +198,7 @@ how feasible + valuable each is to build next:
 | Item | What the reference has | Status |
 |---|---|---|
 | **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | **Flip H/V, Reset to Default, typeable Zoom %, numeric Crop Size (W×H in source pixels, aspect-locked), and Keep Resolution all shipped.** Common aspect-ratio/size presets (the reference's "COMMON" grid — Square, 6x4, 4x6, 7x5, 10x8, 14x11, etc.) and a continuous-rotation dial are still not started. The presets grid raises a bigger question first: those tiles look like a second way to pick print size/aspect *from inside the editor*, which currently only lives in the card's Size dropdown outside the editor — needs a decision on whether to duplicate size-selection into the editor (and keep it synced both ways) before building it, rather than building a grid that doesn't actually change anything |
-| **Floating layer toolbar** | Edit/Move to Front/Duplicate/Delete appears *above the selected layer on canvas*; drag-handle for rotation | We built these as side-panel controls instead — functionally equivalent, visually different |
+| **Floating layer toolbar — rotate handle** | A drag-handle circle below the selected layer for freehand rotation, in addition to Edit/Move to Front/Duplicate/Delete | **The Edit/Move to Front/Duplicate/Delete toolbar itself shipped** (positioned above the selected layer on canvas, matching the reference, alongside the existing side-panel controls). The drag-handle rotation gesture is still not built — the side panel's Rotation slider covers the same value today |
 
 ## ❌ Not started at all
 

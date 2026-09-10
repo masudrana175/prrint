@@ -38,9 +38,12 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
 - **Order one photo in several sizes** — "Add size" on any card clones that
   photo (same crop/edits) into a second, independently priced cart line so
   a customer can order the same shot as, say, one 8×10 and two 5×7s.
-- **Text layers** — add captions on top of the photo: font size, bold,
-  alignment, text color, background color, line spacing and rotation, with
-  move-by-drag, duplicate and delete. Great for cards, gifts and greetings.
+- **Text layers** — add captions on top of the photo: any Google Fonts
+  family (typed with autocomplete suggestions, not a fixed picklist), font
+  size, bold, alignment, text color, background color, line spacing and
+  rotation, with move-by-drag and an on-canvas Edit/Move to Front/
+  Duplicate/Delete toolbar above the selected layer. Great for cards,
+  gifts and greetings.
 - **Elements** — colored sticker shapes (circle, square, triangle, diamond,
   pentagon, hexagon, star, heart, arrow, cross, line), resizable and
   rotatable, drawn from the same geometry client- and server-side so what
@@ -150,8 +153,11 @@ page.
   so the same numbers describe a small cart-preview render and the full
   300 DPI print alike. See `Prrint_Image::render()`.
 - The text tool renders with a bundled Liberation Sans (Regular/Bold,
-  `assets/fonts/`, SIL Open Font License) so print output doesn't depend on
-  fonts installed on the server.
+  `assets/fonts/`, SIL Open Font License) by default, or any Google Fonts
+  family the customer types — downloaded and cached server-side as a TTF
+  the first time it's used (`wp-content/uploads/prrint/fonts/gfonts/`),
+  falling back to Liberation Sans if that download ever fails, so print
+  output never depends on an unreliable font fetch.
 - Uninstalling removes plugin options but intentionally keeps order files.
 
 ## License

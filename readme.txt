@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.17.0
+Stable tag: 1.18.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,18 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.18.0 =
+* Add unlimited Google Fonts to the Text tool: type any Google Fonts family
+  name (with autocomplete suggestions for popular ones) instead of only
+  the bundled Liberation Sans. The browser preview loads it live from
+  Google Fonts; the print pipeline downloads and caches a matching TTF the
+  first time it's used (falling back to Liberation Sans automatically if
+  a site has no outbound internet access or the name doesn't match a real
+  font, so a print never fails to render).
+* Add an on-canvas floating toolbar (Edit, Move To Front, Duplicate,
+  Delete) above the selected text or shape layer, alongside the existing
+  side-panel controls.
 
 = 1.17.0 =
 * Add a numeric "Crop Size" (W × H, in source-photo pixels) to the Transform

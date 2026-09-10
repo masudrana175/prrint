@@ -546,9 +546,7 @@ class Prrint_Image {
 			return;
 		}
 
-		$font = ! empty( $layer['bold'] )
-			? PRRINT_DIR . 'assets/fonts/LiberationSans-Bold.ttf'
-			: PRRINT_DIR . 'assets/fonts/LiberationSans-Regular.ttf';
+		$font = Prrint_Fonts::get_ttf_path( isset( $layer['fontFamily'] ) ? $layer['fontFamily'] : '', ! empty( $layer['bold'] ) );
 		if ( ! file_exists( $font ) ) {
 			return;
 		}

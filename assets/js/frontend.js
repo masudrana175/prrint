@@ -66,6 +66,12 @@
 		textBgSwatches: document.getElementById('prrint-text-bg-swatches'),
 		textDuplicate: document.getElementById('prrint-text-duplicate'),
 		textDelete: document.getElementById('prrint-text-delete'),
+		textFont: document.getElementById('prrint-text-font'),
+		layerToolbar: document.getElementById('prrint-layer-toolbar'),
+		layerEdit: document.getElementById('prrint-layer-edit'),
+		layerFront: document.getElementById('prrint-layer-front'),
+		layerDuplicate: document.getElementById('prrint-layer-duplicate'),
+		layerDelete: document.getElementById('prrint-layer-delete'),
 		borderEnable: document.getElementById('prrint-border-enable'),
 		borderFields: document.getElementById('prrint-border-fields'),
 		borderSwatches: document.getElementById('prrint-border-swatches'),
@@ -282,6 +288,61 @@
 		return parts.length ? parts.join(' ') : 'none';
 	}
 
+	/**
+	 * Any Google Fonts family name a customer types (not a fixed picklist —
+	 * see Prrint_Fonts::popular_families() for the autocomplete suggestions
+	 * only). Loaded on demand via Google's CSS2 API; the server independently
+	 * downloads + caches a TTF for print rendering (Prrint_Fonts::get_ttf_path)
+	 * so the browser preview and the print pipeline use the same family.
+	 */
+	var gfontState = {}; // family -> 'loading' | 'ready'
+
+	function sanitizeFontFamily(name) {
+		name = (name || '').trim();
+		if (!name || name.length > 60 || !/^[A-Za-z0-9 ]+$/.test(name)) { return ''; }
+		return name;
+	}
+
+	function ensureGoogleFont(family, onReady) {
+		family = sanitizeFontFamily(family);
+		if (!family) { return; }
+		if (gfontState[family] === 'ready') {
+			if (onReady) { onReady(); }
+			return;
+		}
+		if (gfontState[family] !== 'loading') {
+			gfontState[family] = 'loading';
+			var link = document.createElement('link');
+			link.rel = 'stylesheet';
+			link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(family).replace(/%20/g, '+') + ':wght@400;700&display=swap';
+			document.head.appendChild(link);
+			var mark = function () { gfontState[family] = 'ready'; };
+			if (window.document && document.fonts && document.fonts.load) {
+				Promise.all([
+					document.fonts.load('400 32px "' + family + '"'),
+					document.fonts.load('700 32px "' + family + '"')
+				]).then(mark).catch(mark);
+			} else {
+				setTimeout(mark, 400);
+			}
+		}
+		if (onReady) {
+			var tries = 0;
+			var poll = setInterval(function () {
+				tries++;
+				if (gfontState[family] === 'ready' || tries > 30) {
+					clearInterval(poll);
+					if (gfontState[family] === 'ready') { onReady(); }
+				}
+			}, 150);
+		}
+	}
+
+	function fontFamilyCss(family) {
+		family = sanitizeFontFamily(family);
+		return family ? '"' + family + '", "Prrint Liberation Sans", Arial, sans-serif' : '"Prrint Liberation Sans", Arial, sans-serif';
+	}
+
 	function wrapTextLine(measureCtx, line, maxW) {
 		var words = line.trim().split(/\s+/);
 		if (!words.length || (words.length === 1 && words[0] === '')) {
@@ -308,8 +369,9 @@
 	 * frame rect the layer's x/y/w fractions are relative to.
 	 */
 	function textLayerBox(drawCtx, layer, frame) {
+		if (layer.fontFamily) { ensureGoogleFont(layer.fontFamily); }
 		var fontPx = Math.max(6, Math.round(layer.fontSize * frame.h));
-		drawCtx.font = (layer.bold ? 'bold ' : '') + fontPx + 'px "Prrint Liberation Sans", Arial, sans-serif';
+		drawCtx.font = (layer.bold ? 'bold ' : '') + fontPx + 'px ' + fontFamilyCss(layer.fontFamily);
 		var x = frame.x + layer.x * frame.w;
 		var y = frame.y + layer.y * frame.h;
 		var w = Math.max(fontPx, layer.w * frame.w);
@@ -1331,6 +1393,8 @@
 		drawDesignOverlay(ctx, ed.design, f, ed.drawCanvas);
 		if (ed.activeTool === 'text' || ed.activeTool === 'elements') {
 			drawLayerHandles();
+		} else {
+			hideLayerToolbar();
 		}
 
 		// Dim outside the frame + white frame stroke + rule-of-thirds guides.
@@ -1835,6 +1899,72 @@
 		return l;
 	}
 
+	/* on-canvas floating toolbar (Edit / Move to Front / Duplicate / Delete) —
+	   shown above whichever text/shape layer is currently selected */
+	function hideLayerToolbar() {
+		if (els.layerToolbar) { els.layerToolbar.hidden = true; }
+	}
+
+	function positionLayerToolbar(box) {
+		if (!els.layerToolbar) { return; }
+		var rect = els.canvas.getBoundingClientRect();
+		els.layerToolbar.hidden = false;
+		els.layerToolbar.style.left = (rect.left + box.x + box.w / 2) + 'px';
+		els.layerToolbar.style.top = (rect.top + box.y - 4) + 'px';
+	}
+
+	function duplicateSelectedLayer() {
+		var l = selectedLayer(null);
+		if (!l) { return; }
+		var copy = JSON.parse(JSON.stringify(l));
+		copy.id = 'l' + (nextLayerId++);
+		copy.x = Math.min(0.9, l.x + 0.04);
+		copy.y = Math.min(0.9, l.y + 0.04);
+		ed.design.layers.push(copy);
+		selectLayer(copy.id);
+		pushHistory();
+	}
+
+	function deleteSelectedLayer() {
+		var l = selectedLayer(null);
+		if (!l) { return; }
+		ed.design.layers = ed.design.layers.filter(function (x) { return x.id !== l.id; });
+		ed.selectedLayerId = null;
+		showLayerFields(null);
+		showShapeFields(null);
+		hideLayerToolbar();
+		edDraw();
+		pushHistory();
+	}
+
+	function moveSelectedLayerToFront() {
+		var l = selectedLayer(null);
+		if (!l) { return; }
+		var layers = ed.design.layers;
+		var idx = layers.indexOf(l);
+		if (idx < 0 || idx === layers.length - 1) { return; }
+		layers.splice(idx, 1);
+		layers.push(l);
+		edDraw();
+		pushHistory();
+	}
+
+	if (els.layerEdit) {
+		els.layerEdit.addEventListener('click', function () {
+			var l = selectedLayer(null);
+			if (l && l.type === 'text' && els.textContent) { els.textContent.focus(); }
+		});
+	}
+	if (els.layerFront) {
+		els.layerFront.addEventListener('click', moveSelectedLayerToFront);
+	}
+	if (els.layerDuplicate) {
+		els.layerDuplicate.addEventListener('click', duplicateSelectedLayer);
+	}
+	if (els.layerDelete) {
+		els.layerDelete.addEventListener('click', deleteSelectedLayer);
+	}
+
 	function showLayerFields(layer) {
 		if (!layer) {
 			els.textFields.hidden = true;
@@ -1842,6 +1972,7 @@
 		}
 		els.textFields.hidden = false;
 		els.textContent.value = layer.text;
+		if (els.textFont) { els.textFont.value = layer.fontFamily || ''; }
 		els.textSize.value = String(Math.round(layer.fontSize * 100));
 		els.textSpacing.value = String(Math.round(layer.lineSpacing * 10));
 		if (els.textSpacingOut) { els.textSpacingOut.textContent = layer.lineSpacing.toFixed(1); }
@@ -1878,6 +2009,7 @@
 			type: 'text',
 			text: cfg.i18n.newTextDefault,
 			fontSize: 0.08,
+			fontFamily: '',
 			bold: false,
 			align: 'center',
 			color: '#ffffff',
@@ -1909,6 +2041,21 @@
 			if (l) { l.fontSize = Number(this.value) / 100; edDraw(); }
 		});
 		els.textSize.addEventListener('change', pushHistory);
+	}
+	if (els.textFont) {
+		els.textFont.addEventListener('change', function () {
+			var l = selectedLayer('text');
+			if (!l) { return; }
+			l.fontFamily = sanitizeFontFamily(this.value);
+			this.value = l.fontFamily;
+			edDraw();
+			var item = ed.item;
+			ensureGoogleFont(l.fontFamily, function () {
+				if (ed.item === item) { edDraw(); }
+				if (item) { renderCard(item); }
+			});
+			pushHistory();
+		});
 	}
 	if (els.textSpacing) {
 		els.textSpacing.addEventListener('input', function () {
@@ -2128,7 +2275,7 @@
 	function drawLayerHandles() {
 		var type = ed.activeTool === 'elements' ? 'shape' : 'text';
 		var sel = selectedLayer(type);
-		if (!sel) { return; }
+		if (!sel) { hideLayerToolbar(); return; }
 		var box = layerBoundingBox(ctx, sel, ed.frame);
 		ctx.save();
 		ctx.strokeStyle = '#4f46e5';
@@ -2136,6 +2283,7 @@
 		ctx.setLineDash([4, 3]);
 		ctx.strokeRect(box.x - 4, box.y - 4, box.w + 8, box.h + 8);
 		ctx.restore();
+		positionLayerToolbar(box);
 	}
 
 	function hitTestLayer(px, py) {
@@ -2306,6 +2454,12 @@
 
 		syncPanelUI();
 		updateStylePreviewThumbnails();
+
+		ed.design.layers.forEach(function (l) {
+			if (l.type === 'text' && l.fontFamily) {
+				ensureGoogleFont(l.fontFamily, function () { if (ed.item === item) { edDraw(); } });
+			}
+		});
 
 		ed.brushColor = cfg.drawColors[0] || '#000000';
 		ed.brushSize = 4;

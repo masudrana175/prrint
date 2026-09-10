@@ -497,9 +497,15 @@ class Prrint_Frontend {
 
 									<p class="prrint-field-label"><?php esc_html_e( 'Font Family', 'prrint' ); ?></p>
 									<div class="prrint-font-family-row">
-										<span class="prrint-font-family-name"><?php esc_html_e( 'Liberation Sans', 'prrint' ); ?></span>
+										<input type="text" id="prrint-text-font" class="prrint-font-family-input" list="prrint-gfont-list" autocomplete="off" placeholder="<?php esc_attr_e( 'Default (Liberation Sans)', 'prrint' ); ?>" />
 										<button type="button" class="prrint-tool" id="prrint-text-bold" title="<?php esc_attr_e( 'Bold', 'prrint' ); ?>"><strong>B</strong></button>
 									</div>
+									<datalist id="prrint-gfont-list">
+										<?php foreach ( Prrint_Fonts::popular_families() as $gfont ) : ?>
+											<option value="<?php echo esc_attr( $gfont ); ?>"></option>
+										<?php endforeach; ?>
+									</datalist>
+									<p class="prrint-editor-hint"><?php esc_html_e( 'Type any Google Fonts name — start typing for suggestions.', 'prrint' ); ?></p>
 
 									<div class="prrint-two-col">
 										<div>
@@ -581,6 +587,13 @@ class Prrint_Frontend {
 						<div class="prrint-editor-canvas-wrap">
 							<canvas id="prrint-canvas"></canvas>
 							<span class="prrint-dpi" id="prrint-dpi" hidden></span>
+						</div>
+
+						<div class="prrint-layer-toolbar" id="prrint-layer-toolbar" hidden>
+							<button type="button" id="prrint-layer-edit"><?php esc_html_e( 'Edit', 'prrint' ); ?></button>
+							<button type="button" id="prrint-layer-front"><?php esc_html_e( 'Move To Front', 'prrint' ); ?></button>
+							<button type="button" id="prrint-layer-duplicate"><?php esc_html_e( 'Duplicate', 'prrint' ); ?></button>
+							<button type="button" id="prrint-layer-delete"><?php esc_html_e( 'Delete', 'prrint' ); ?></button>
 						</div>
 					</div>
 				</div>

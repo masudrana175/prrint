@@ -332,6 +332,7 @@ class Prrint_Ajax {
 						'type'        => 'text',
 						'text'        => $text,
 						'fontSize'    => isset( $layer_raw['fontSize'] ) ? max( 0.01, min( 0.5, (float) $layer_raw['fontSize'] ) ) : 0.06,
+						'fontFamily'  => Prrint_Fonts::sanitize_family( isset( $layer_raw['fontFamily'] ) ? $layer_raw['fontFamily'] : '' ),
 						'bold'        => ! empty( $layer_raw['bold'] ),
 						'align'       => in_array( $align, array( 'left', 'center', 'right' ), true ) ? $align : 'center',
 						'color'       => self::sanitize_hex_color( isset( $layer_raw['color'] ) ? $layer_raw['color'] : '#ffffff' ),
