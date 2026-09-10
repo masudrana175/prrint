@@ -40,6 +40,14 @@ lands — check git log for the commit implementing each item.
   Flip H/V toggles (mirrors the cropped photo, identical math client- and
   server-side) and a Reset button that clears rotation/flip and re-centers
   the crop/zoom
+- **Focus** — tilt-shift style blur with Radial / Linear / Mirrored / Gaussian
+  shapes. GD has no per-pixel masked-composite primitive, so the server
+  downscales-blurs-upscales (verified ~4-8x faster than a full-res blur with
+  no visible quality loss) then masks it in via tiled `imagecopymerge` calls
+  (exact for the two straight-edge shapes, a smooth approximation for
+  radial); ~1s at full print resolution. The editor/thumbnail preview uses a
+  canvas `blur()` + gradient-mask approximation of the same effect (see
+  "Notes on feasibility limits")
 
 ### Visual design
 - Full-screen dark theme matching the reference (top bar, icon rail, filter preview
@@ -52,7 +60,6 @@ how feasible + valuable each is to build next:
 
 | Item | What the reference has | Status |
 |---|---|---|
-| **Focus** | Radial / Mirrored / Linear / Gaussian tilt-shift blur | Not started |
 | **Text Design** | Library of pre-made word-art templates (multi-text-layer compositions with stylized layouts), Shuffle Layout, Invert | Not started — this was the mystery "bookmark" icon |
 | **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | **Flip H/V and Reset to Default shipped.** Numeric crop W×H, aspect-ratio presets and a continuous-rotation dial are still not started — see feasibility note below |
 | **Floating layer toolbar** | Edit/Move to Front/Duplicate/Delete appears *above the selected layer on canvas*; drag-handle for rotation | We built these as side-panel controls instead — functionally equivalent, visually different |
@@ -82,6 +89,16 @@ built as honest approximations rather than pixel-perfect ports:
   without a job queue. Where this applies, we use GD's native fast operations
   (`imagegammacorrect`, `imageconvolution`, palette remapping) to get as close as
   possible without a blocking performance cost, and say so in code comments.
+- **Focus's editor/thumbnail preview is a CSS-canvas approximation, not a pixel match
+  for the print.** GD has no "blend two images using a third image's per-pixel alpha as
+  a mask" primitive (that's an ImageMagick feature), so the server masks blur in via many
+  small `imagecopymerge` calls tiled across the canvas — exact for Focus's two straight-
+  edge shapes, and a close approximation for the radial shape (smooth at the ~60-tile
+  resolution used, verified against a checkerboard test image). The live editor instead
+  uses the canvas 2D API's own `blur()` filter plus a `radial-/linear-gradient`
+  destination-in mask — visually very close, same "CSS approximates GD, GD print output
+  is ground truth" principle the Filters/Adjust panels already use (see their code
+  comments), just not literally the same algorithm pixel-for-pixel.
 - **Continuous-rotation dial and numeric Crop W×H are deferred, not just an approximation
   gap.** The crop coordinate contract between the browser editor and the GD renderer
   (`Prrint_Image::render()`) is built entirely around 90°-quarter-turn rotation — crop

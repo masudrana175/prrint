@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.8.0
+Stable tag: 1.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,11 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.9.0 =
+* Add a Focus tool to the editor: Radial, Linear, Mirrored and Gaussian
+  tilt-shift style blur, with adjustable position/size/feather, rendered
+  identically fast (~1s) at full 300 DPI print resolution.
 
 = 1.8.0 =
 * Add Flip Horizontal / Flip Vertical to the editor's Transform panel

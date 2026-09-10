@@ -38,6 +38,10 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
   server-side so what you place is exactly what prints.
 - **Draw** — a freehand doodle brush right on the photo, for a quick note,
   circle or arrow.
+- **Focus** — tilt-shift style depth-of-field blur: Radial (a soft circular
+  sharp zone), Linear (a single graduated edge), Mirrored (a sharp band with
+  blur fading symmetrically on both sides), or Gaussian (blur the whole
+  photo evenly), with adjustable position, size and feather.
 - **Overlays** — texture composites (Vignette, Glow, Light Leak, Grain,
   Bokeh, Scratches), confined to the photo area, not the border.
 - **Custom border** — any color and width, not just the classic white mat.

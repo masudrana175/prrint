@@ -89,7 +89,25 @@
 		textSpacingOut: document.getElementById('prrint-text-spacing-out'),
 		flipH: document.getElementById('prrint-flip-h'),
 		flipV: document.getElementById('prrint-flip-v'),
-		transformReset: document.getElementById('prrint-transform-reset')
+		transformReset: document.getElementById('prrint-transform-reset'),
+		focusShapes: document.getElementById('prrint-focus-shapes'),
+		focusFields: document.getElementById('prrint-focus-fields'),
+		focusPositionFields: document.getElementById('prrint-focus-position-fields'),
+		focusAmount: document.getElementById('prrint-focus-amount'),
+		focusX: document.getElementById('prrint-focus-x'),
+		focusY: document.getElementById('prrint-focus-y'),
+		focusPos: document.getElementById('prrint-focus-pos'),
+		focusOrient: document.getElementById('prrint-focus-orient'),
+		focusRadius: document.getElementById('prrint-focus-radius'),
+		focusWidth: document.getElementById('prrint-focus-width'),
+		focusFeather: document.getElementById('prrint-focus-feather'),
+		focusXRow: document.getElementById('prrint-focus-x-row'),
+		focusYRow: document.getElementById('prrint-focus-y-row'),
+		focusPosRow: document.getElementById('prrint-focus-pos-row'),
+		focusOrientRow: document.getElementById('prrint-focus-orient-row'),
+		focusRadiusRow: document.getElementById('prrint-focus-radius-row'),
+		focusWidthRow: document.getElementById('prrint-focus-width-row'),
+		focusFeatherRow: document.getElementById('prrint-focus-feather-row')
 	};
 	var ctx = els.canvas.getContext('2d');
 
@@ -121,7 +139,8 @@
 			drawing: null, // { dataUrl } once the customer has drawn something
 			overlay: '',   // bundled texture id, e.g. 'vignette'
 			flipH: false,  // mirror the cropped photo horizontally
-			flipV: false   // mirror the cropped photo vertically
+			flipV: false,  // mirror the cropped photo vertically
+			focus: { shape: '', amount: 0, x: 0.5, y: 0.5, radius: 0.3, pos: 0.5, width: 0.15, feather: 0.25, orientation: 'horizontal' }
 		};
 	}
 
@@ -417,6 +436,100 @@
 	 *        always ready) or item._drawingImg (card thumbnail, may still
 	 *        be loading — check .complete before passing it in).
 	 */
+	function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+
+	/**
+	 * Canvas-native approximation of the server's Focus effect (blur + a
+	 * gradient mask), for the live editor and card thumbnails. Like the
+	 * filter/adjust CSS approximations above, this is a preview only — the
+	 * GD-rendered print/cart-line preview is ground truth.
+	 *
+	 * @param drawCtx  Context to composite the result onto.
+	 * @param design   The item's design object.
+	 * @param frame    {x,y,w,h} crop frame in drawCtx's canvas px.
+	 * @param bx,by    Border inset within that frame.
+	 * @param canvasW,canvasH  Full backing-canvas size (drawCtx's own size).
+	 * @param drawPhoto(offCtx) Replays the exact same photo transform/draw
+	 *   used for the sharp pass, onto an offscreen context of the same size
+	 *   and coordinate space as drawCtx's canvas.
+	 */
+	function applyFocusBlur(drawCtx, design, frame, bx, by, canvasW, canvasH, drawPhoto) {
+		var focus = design && design.focus;
+		if (!focus || !focus.shape || !focus.amount) { return; }
+		var fw = frame.w - 2 * bx, fh = frame.h - 2 * by;
+		if (fw <= 0 || fh <= 0) { return; }
+
+		var off = document.createElement('canvas');
+		off.width = canvasW;
+		off.height = canvasH;
+		var octx = off.getContext('2d');
+		octx.filter = 'blur(' + Math.max(1, focus.amount / 100 * 16) + 'px)';
+		drawPhoto(octx);
+		octx.filter = 'none';
+
+		if (focus.shape !== 'gaussian') {
+			octx.save();
+			octx.globalCompositeOperation = 'destination-in';
+			octx.translate(frame.x + bx, frame.y + by);
+			octx.fillStyle = buildFocusMaskGradient(octx, focus, fw, fh);
+			octx.fillRect(0, 0, fw, fh);
+			octx.restore();
+		}
+
+		drawCtx.save();
+		drawCtx.beginPath();
+		drawCtx.rect(frame.x + bx, frame.y + by, fw, fh);
+		drawCtx.clip();
+		drawCtx.drawImage(off, 0, 0);
+		drawCtx.restore();
+	}
+
+	/**
+	 * A black-alpha gradient (opaque = blurred, transparent = sharp) used as
+	 * a destination-in mask, in frame-local px (0..fw, 0..fh).
+	 */
+	function buildFocusMaskGradient(ctx, focus, fw, fh) {
+		if (focus.shape === 'radial') {
+			var cx = (typeof focus.x === 'number' ? focus.x : 0.5) * fw;
+			var cy = (typeof focus.y === 'number' ? focus.y : 0.5) * fh;
+			var half = Math.min(fw, fh) / 2;
+			var r0 = Math.max(1, (typeof focus.radius === 'number' ? focus.radius : 0.3) * half);
+			var r1 = r0 + Math.max(4, (typeof focus.feather === 'number' ? focus.feather : 0.25) * half);
+			var rg = ctx.createRadialGradient(cx, cy, r0, cx, cy, r1);
+			rg.addColorStop(0, 'rgba(0,0,0,0)');
+			rg.addColorStop(1, 'rgba(0,0,0,1)');
+			return rg;
+		}
+
+		var vertical = focus.orientation === 'vertical';
+		var span = vertical ? fw : fh;
+		var pos = (typeof focus.pos === 'number' ? focus.pos : 0.5) * span;
+		var feather = Math.max(4, (typeof focus.feather === 'number' ? focus.feather : 0.25) * span);
+		var lg = vertical ? ctx.createLinearGradient(0, 0, fw, 0) : ctx.createLinearGradient(0, 0, 0, fh);
+
+		if (focus.shape === 'linear') {
+			lg.addColorStop(clamp01(pos / span), 'rgba(0,0,0,0)');
+			lg.addColorStop(clamp01((pos + feather) / span), 'rgba(0,0,0,1)');
+			return lg;
+		}
+
+		// Mirrored: a sharp band, symmetric falloff on both sides.
+		var width = Math.max(2, (typeof focus.width === 'number' ? focus.width : 0.15) * span);
+		var stops = [
+			[pos - width - feather, 1],
+			[pos - width, 0],
+			[pos + width, 0],
+			[pos + width + feather, 1]
+		];
+		var last = 0;
+		stops.forEach(function (s) {
+			var off = Math.max(clamp01(s[0] / span), last);
+			last = off;
+			lg.addColorStop(off, 'rgba(0,0,0,' + s[1] + ')');
+		});
+		return lg;
+	}
+
 	function drawDesignOverlay(drawCtx, design, frame, drawingSource) {
 		if (drawingSource) {
 			drawCtx.drawImage(drawingSource, frame.x, frame.y, frame.w, frame.h);
@@ -646,6 +759,18 @@
 		c.restore();
 
 		c.filter = 'none';
+
+		applyFocusBlur(c, item.design, frame, bx, by, TW, TH, function (octx) {
+			octx.save();
+			octx.translate(bx, by);
+			octx.scale(s, s);
+			octx.translate(-item.crop.x, -item.crop.y);
+			octx.translate(d.w / 2, d.h / 2);
+			octx.rotate(item.rot * Math.PI / 2);
+			octx.scale(item.design.flipH ? -1 : 1, item.design.flipV ? -1 : 1);
+			octx.drawImage(item.img, -item.natW / 2, -item.natH / 2);
+			octx.restore();
+		});
 
 		if (item.design.overlay) {
 			var cardOverlayImg = OVERLAY_IMAGES[item.design.overlay];
@@ -982,6 +1107,16 @@
 		ctx.drawImage(it.img, -it.natW / 2, -it.natH / 2);
 		ctx.restore();
 		ctx.filter = 'none';
+
+		applyFocusBlur(ctx, ed.design, f, bx, by, ed.cssW, ed.cssH, function (octx) {
+			octx.save();
+			octx.translate(cx, cy);
+			octx.rotate(ed.rot * Math.PI / 2);
+			octx.scale(ed.design.flipH ? -1 : 1, ed.design.flipV ? -1 : 1);
+			octx.scale(innerScale, innerScale);
+			octx.drawImage(it.img, -it.natW / 2, -it.natH / 2);
+			octx.restore();
+		});
 
 		if (ed.design.overlay) {
 			var edOverlayImg = OVERLAY_IMAGES[ed.design.overlay];
@@ -1582,12 +1717,54 @@
 	if (els.redoBtn) { els.redoBtn.addEventListener('click', redoEdit); }
 
 	/**
+	 * Refresh the Focus panel's shape buttons, sliders and which rows are
+	 * visible (each shape only uses a subset of x/y/radius/pos/width) to
+	 * reflect ed.design.focus.
+	 */
+	function syncFocusPanelUI() {
+		var focus = ed.design.focus;
+		if (!focus) { return; }
+
+		if (els.focusShapes) {
+			els.focusShapes.querySelectorAll('[data-shape]').forEach(function (b) {
+				b.classList.toggle('is-active', b.dataset.shape === focus.shape);
+			});
+		}
+		if (els.focusFields) { els.focusFields.hidden = !focus.shape; }
+		if (!focus.shape) { return; }
+
+		if (els.focusAmount) { els.focusAmount.value = String(focus.amount); }
+		var amtOut = document.getElementById('prrint-focus-amount-out');
+		if (amtOut) { amtOut.textContent = String(focus.amount); }
+		if (els.focusX) { els.focusX.value = String(Math.round(focus.x * 100)); }
+		if (els.focusY) { els.focusY.value = String(Math.round(focus.y * 100)); }
+		if (els.focusPos) { els.focusPos.value = String(Math.round(focus.pos * 100)); }
+		if (els.focusRadius) { els.focusRadius.value = String(Math.round(focus.radius * 100)); }
+		if (els.focusWidth) { els.focusWidth.value = String(Math.round(focus.width * 100)); }
+		if (els.focusFeather) { els.focusFeather.value = String(Math.round(focus.feather * 100)); }
+		if (els.focusOrient) {
+			els.focusOrient.textContent = focus.orientation === 'vertical' ? '⇅ Vertical' : '⇄ Horizontal';
+		}
+
+		var shape = focus.shape;
+		function show(el, on) { if (el) { el.hidden = !on; } }
+		show(els.focusXRow, shape === 'radial');
+		show(els.focusYRow, shape === 'radial');
+		show(els.focusRadiusRow, shape === 'radial');
+		show(els.focusPosRow, shape === 'linear' || shape === 'mirrored');
+		show(els.focusOrientRow, shape === 'linear' || shape === 'mirrored');
+		show(els.focusWidthRow, shape === 'mirrored');
+		show(els.focusFeatherRow, shape !== 'gaussian');
+	}
+
+	/**
 	 * Refresh every panel control to reflect ed.design — used on open and
 	 * after Undo/Redo restores a different snapshot.
 	 */
 	function syncPanelUI() {
 		if (els.flipH) { els.flipH.classList.toggle('is-active', !!ed.design.flipH); }
 		if (els.flipV) { els.flipV.classList.toggle('is-active', !!ed.design.flipV); }
+		syncFocusPanelUI();
 		els.borderEnable.checked = !!ed.design.border.enabled;
 		els.borderFields.hidden = !ed.design.border.enabled;
 		els.borderWidth.value = String(Math.round(ed.design.border.width_in * 100));
@@ -1886,6 +2063,53 @@
 			edFit();
 			edDraw();
 			edUpdateDpi();
+			pushHistory();
+		});
+	}
+
+	if (els.focusShapes) {
+		els.focusShapes.querySelectorAll('[data-shape]').forEach(function (b) {
+			b.addEventListener('click', function () {
+				if (!ed.item) { return; }
+				var shape = b.dataset.shape;
+				ed.design.focus.shape = ed.design.focus.shape === shape ? '' : shape;
+				if (ed.design.focus.shape && !ed.design.focus.amount) { ed.design.focus.amount = 60; }
+				syncFocusPanelUI();
+				edDraw();
+				pushHistory();
+			});
+		});
+	}
+
+	[
+		[els.focusAmount, 'amount', 1],
+		[els.focusX, 'x', 100],
+		[els.focusY, 'y', 100],
+		[els.focusPos, 'pos', 100],
+		[els.focusRadius, 'radius', 100],
+		[els.focusWidth, 'width', 100],
+		[els.focusFeather, 'feather', 100]
+	].forEach(function (row) {
+		var input = row[0], key = row[1], divisor = row[2];
+		if (!input) { return; }
+		input.addEventListener('input', function () {
+			if (!ed.item) { return; }
+			ed.design.focus[key] = Number(input.value) / divisor;
+			if ('amount' === key) {
+				var amtOut = document.getElementById('prrint-focus-amount-out');
+				if (amtOut) { amtOut.textContent = input.value; }
+			}
+			edDraw();
+		});
+		input.addEventListener('change', function () { if (ed.item) { pushHistory(); } });
+	});
+
+	if (els.focusOrient) {
+		els.focusOrient.addEventListener('click', function () {
+			if (!ed.item) { return; }
+			ed.design.focus.orientation = ed.design.focus.orientation === 'vertical' ? 'horizontal' : 'vertical';
+			syncFocusPanelUI();
+			edDraw();
 			pushHistory();
 		});
 	}

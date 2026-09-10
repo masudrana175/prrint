@@ -364,7 +364,28 @@ class Prrint_Ajax {
 		$flip_h           = ! empty( $raw['flipH'] );
 		$flip_v           = ! empty( $raw['flipV'] );
 
-		if ( ! $filter && ! $has_adjust && ! $border['enabled'] && empty( $layers ) && ! $drawing && ! $overlay && ! $flip_h && ! $flip_v ) {
+		$allowed_focus_shapes = array( 'radial', 'linear', 'mirrored', 'gaussian' );
+		$focus                = null;
+		if ( isset( $raw['focus'] ) && is_array( $raw['focus'] )
+			&& isset( $raw['focus']['shape'] ) && in_array( $raw['focus']['shape'], $allowed_focus_shapes, true ) ) {
+			$focus_raw   = $raw['focus'];
+			$focus_amount = isset( $focus_raw['amount'] ) ? max( 0, min( 100, (float) $focus_raw['amount'] ) ) : 0;
+			if ( $focus_amount > 0 ) {
+				$focus = array(
+					'shape'       => $focus_raw['shape'],
+					'amount'      => $focus_amount,
+					'x'           => isset( $focus_raw['x'] ) ? max( 0, min( 1, (float) $focus_raw['x'] ) ) : 0.5,
+					'y'           => isset( $focus_raw['y'] ) ? max( 0, min( 1, (float) $focus_raw['y'] ) ) : 0.5,
+					'radius'      => isset( $focus_raw['radius'] ) ? max( 0.02, min( 1, (float) $focus_raw['radius'] ) ) : 0.3,
+					'pos'         => isset( $focus_raw['pos'] ) ? max( 0, min( 1, (float) $focus_raw['pos'] ) ) : 0.5,
+					'width'       => isset( $focus_raw['width'] ) ? max( 0.02, min( 1, (float) $focus_raw['width'] ) ) : 0.15,
+					'feather'     => isset( $focus_raw['feather'] ) ? max( 0.02, min( 1, (float) $focus_raw['feather'] ) ) : 0.25,
+					'orientation' => isset( $focus_raw['orientation'] ) && 'vertical' === $focus_raw['orientation'] ? 'vertical' : 'horizontal',
+				);
+			}
+		}
+
+		if ( ! $filter && ! $has_adjust && ! $border['enabled'] && empty( $layers ) && ! $drawing && ! $overlay && ! $flip_h && ! $flip_v && ! $focus ) {
 			return null;
 		}
 
@@ -377,6 +398,9 @@ class Prrint_Ajax {
 			'flipH'   => $flip_h,
 			'flipV'   => $flip_v,
 		);
+		if ( $focus ) {
+			$design['focus'] = $focus;
+		}
 		if ( $drawing ) {
 			$design['drawing'] = $drawing;
 		}

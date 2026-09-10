@@ -211,6 +211,7 @@ class Prrint_Frontend {
 							<button type="button" class="prrint-tool-btn is-active" data-tool="transform" title="<?php esc_attr_e( 'Crop & rotate', 'prrint' ); ?>">⤢</button>
 							<button type="button" class="prrint-tool-btn" data-tool="filters" title="<?php esc_attr_e( 'Filters', 'prrint' ); ?>">◐</button>
 							<button type="button" class="prrint-tool-btn" data-tool="adjust" title="<?php esc_attr_e( 'Adjust', 'prrint' ); ?>">☼</button>
+							<button type="button" class="prrint-tool-btn" data-tool="focus" title="<?php esc_attr_e( 'Focus', 'prrint' ); ?>">◎</button>
 							<button type="button" class="prrint-tool-btn" data-tool="text" title="<?php esc_attr_e( 'Text', 'prrint' ); ?>">A</button>
 							<button type="button" class="prrint-tool-btn" data-tool="elements" title="<?php esc_attr_e( 'Elements', 'prrint' ); ?>">★</button>
 							<button type="button" class="prrint-tool-btn" data-tool="draw" title="<?php esc_attr_e( 'Draw', 'prrint' ); ?>">✎</button>
@@ -258,6 +259,46 @@ class Prrint_Frontend {
 									<input type="range" id="prrint-adj-exposure" min="-100" max="100" value="0" /></label>
 
 								<button type="button" class="prrint-btn-secondary prrint-adj-reset" id="prrint-adj-reset"><?php esc_html_e( 'Reset', 'prrint' ); ?></button>
+							</div>
+
+							<div class="prrint-tool-panel" data-panel="focus" hidden>
+								<p class="prrint-field-label"><?php esc_html_e( 'Shape', 'prrint' ); ?></p>
+								<div id="prrint-focus-shapes">
+									<div class="prrint-panel-row">
+										<button type="button" class="prrint-tool" data-shape="radial" title="<?php esc_attr_e( 'Radial', 'prrint' ); ?>">◎ <?php esc_html_e( 'Radial', 'prrint' ); ?></button>
+										<button type="button" class="prrint-tool" data-shape="linear" title="<?php esc_attr_e( 'Linear', 'prrint' ); ?>">▤ <?php esc_html_e( 'Linear', 'prrint' ); ?></button>
+									</div>
+									<div class="prrint-panel-row">
+										<button type="button" class="prrint-tool" data-shape="mirrored" title="<?php esc_attr_e( 'Mirrored', 'prrint' ); ?>">▥ <?php esc_html_e( 'Mirrored', 'prrint' ); ?></button>
+										<button type="button" class="prrint-tool" data-shape="gaussian" title="<?php esc_attr_e( 'Gaussian', 'prrint' ); ?>">◍ <?php esc_html_e( 'Gaussian', 'prrint' ); ?></button>
+									</div>
+								</div>
+
+								<div id="prrint-focus-fields" hidden>
+									<label class="prrint-slider-row"><span><?php esc_html_e( 'Blur amount', 'prrint' ); ?> <output id="prrint-focus-amount-out">0</output></span>
+										<input type="range" id="prrint-focus-amount" min="0" max="100" value="60" /></label>
+
+									<div id="prrint-focus-position-fields">
+										<label class="prrint-slider-row" id="prrint-focus-x-row"><span><?php esc_html_e( 'Center X', 'prrint' ); ?></span>
+											<input type="range" id="prrint-focus-x" min="0" max="100" value="50" /></label>
+										<label class="prrint-slider-row" id="prrint-focus-y-row"><span><?php esc_html_e( 'Center Y', 'prrint' ); ?></span>
+											<input type="range" id="prrint-focus-y" min="0" max="100" value="50" /></label>
+										<label class="prrint-slider-row" id="prrint-focus-pos-row"><span><?php esc_html_e( 'Position', 'prrint' ); ?></span>
+											<input type="range" id="prrint-focus-pos" min="0" max="100" value="50" /></label>
+										<label class="prrint-slider-row" id="prrint-focus-orient-row">
+											<span><?php esc_html_e( 'Band direction', 'prrint' ); ?></span>
+											<span class="prrint-panel-row">
+												<button type="button" class="prrint-tool" id="prrint-focus-orient" title="<?php esc_attr_e( 'Toggle horizontal / vertical', 'prrint' ); ?>">⇄ <?php esc_html_e( 'Horizontal', 'prrint' ); ?></button>
+											</span>
+										</label>
+										<label class="prrint-slider-row" id="prrint-focus-radius-row"><span><?php esc_html_e( 'Sharp area size', 'prrint' ); ?></span>
+											<input type="range" id="prrint-focus-radius" min="2" max="100" value="30" /></label>
+										<label class="prrint-slider-row" id="prrint-focus-width-row"><span><?php esc_html_e( 'Band width', 'prrint' ); ?></span>
+											<input type="range" id="prrint-focus-width" min="2" max="100" value="15" /></label>
+										<label class="prrint-slider-row" id="prrint-focus-feather-row"><span><?php esc_html_e( 'Feather', 'prrint' ); ?></span>
+											<input type="range" id="prrint-focus-feather" min="2" max="100" value="25" /></label>
+									</div>
+								</div>
 							</div>
 
 							<div class="prrint-tool-panel" data-panel="text" hidden>
