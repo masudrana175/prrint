@@ -23,6 +23,11 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
 - **Text layers** — add captions on top of the photo: font size, bold,
   alignment, text color, background color, line spacing and rotation, with
   move-by-drag, duplicate and delete. Great for cards, gifts and greetings.
+- **Elements** — colored sticker shapes (circle, square, star, heart, arrow,
+  line), resizable and rotatable, drawn from the same geometry client- and
+  server-side so what you place is exactly what prints.
+- **Draw** — a freehand doodle brush right on the photo, for a quick note,
+  circle or arrow.
 - **Custom border** — any color and width, not just the classic white mat.
 - **Per-photo options** — print size, paper/finish, quantity stepper, and an
   optional white border, each photo independently.

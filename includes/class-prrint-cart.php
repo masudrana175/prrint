@@ -99,7 +99,21 @@ class Prrint_Cart {
 		$target_h  = (int) round( $v['h_in'] * $dpi );
 		$print_rel = 'orders/' . wp_generate_password( 24, false, false ) . '.jpg';
 
-		$design      = ! empty( $v['design'] ) ? $v['design'] : null;
+		$design = ! empty( $v['design'] ) ? $v['design'] : null;
+
+		// The doodle layer (if any) lives in tmp/ like the source photo —
+		// copy it into permanent storage too, and point the design at the
+		// copy, so it survives the daily tmp cleanup for Reorder later.
+		if ( ! empty( $design['drawing']['file'] ) ) {
+			$draw_src = prrint_file_path( $design['drawing']['file'] );
+			if ( file_exists( $draw_src ) ) {
+				$draw_rel = 'orders/' . wp_generate_password( 24, false, false ) . '.png';
+				if ( @copy( $draw_src, prrint_file_path( $draw_rel ) ) ) { // phpcs:ignore
+					$design['drawing']['file'] = $draw_rel;
+				}
+			}
+		}
+
 		$has_border  = ! empty( $v['border'] ) || ! empty( $design['border']['enabled'] );
 		$opts        = array();
 		if ( $has_border ) {

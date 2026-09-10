@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,8 @@ pages, the way dedicated print sites work:
 * Multi-photo drag & drop upload with progress bars
 * Full editor per photo: crop/zoom/rotate, one-click filters (B&W, Warm,
   Cold, Vintage, DuoTone, Legacy, Smooth), brightness/contrast/saturation
-  adjustment, text/caption layers, and a custom-color border
+  adjustment, text/caption layers, sticker shapes, a freehand draw brush,
+  and a custom-color border
 * Crop frame locked to the selected print size aspect ratio
 * Configurable print sizes and paper/finish options with surcharges
 * Quantity stepper and live per-item + total pricing
@@ -51,6 +52,13 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.3.0 =
+* Add Elements (sticker shapes: circle, square, star, heart, arrow, line —
+  colored, resizable, rotatable) and Draw (freehand doodle brush) to the
+  Print Studio editor, alongside the existing Filters/Adjust/Text/Border.
+* Sticker shapes are drawn from identical geometry in the browser preview
+  and the GD print render, so what you place is exactly what prints.
 
 = 1.2.0 =
 * Add a full photo editor to the Print Studio: one-click filters, brightness/

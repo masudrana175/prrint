@@ -620,6 +620,44 @@ body.prrint-modal-open {
 	cursor: grabbing;
 }
 
+#prrint-canvas.prrint-cursor-crosshair,
+#prrint-canvas.prrint-cursor-crosshair:active {
+	cursor: crosshair;
+}
+
+#prrint-canvas.prrint-cursor-draw,
+#prrint-canvas.prrint-cursor-draw:active {
+	cursor: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22><circle cx=%2210%22 cy=%2210%22 r=%226%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222%22/><circle cx=%2210%22 cy=%2210%22 r=%226%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221%22/></svg>') 10 10, crosshair;
+}
+
+.prrint-shape-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.prrint-shape-btn {
+	padding: 10px 6px;
+	border: 1px solid var(--prrint-line);
+	border-radius: 8px;
+	background: #fff;
+	color: var(--prrint-ink);
+	font-size: 1.3em;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.prrint-shape-btn:hover {
+	border-color: var(--prrint-accent);
+}
+
+.prrint-shape-btn.is-active {
+	background: var(--prrint-accent);
+	border-color: var(--prrint-accent);
+	color: #fff;
+}
+
 .prrint-dpi {
 	position: absolute;
 	left: 10px;

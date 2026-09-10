@@ -296,45 +296,114 @@ class Prrint_Ajax {
 			$border['width_in'] = isset( $raw['border']['width_in'] ) ? max( 0.05, min( 2, (float) $raw['border']['width_in'] ) ) : 0.25;
 		}
 
+		$allowed_shapes = array( 'circle', 'square', 'star', 'heart', 'arrow', 'line' );
+
 		$layers = array();
 		if ( isset( $raw['layers'] ) && is_array( $raw['layers'] ) ) {
 			foreach ( array_slice( $raw['layers'], 0, 20 ) as $layer_raw ) {
-				if ( ! is_array( $layer_raw ) || 'text' !== ( isset( $layer_raw['type'] ) ? $layer_raw['type'] : '' ) ) {
+				if ( ! is_array( $layer_raw ) ) {
 					continue;
 				}
-				$text = isset( $layer_raw['text'] ) ? wp_strip_all_tags( (string) $layer_raw['text'] ) : '';
-				$text = mb_substr( $text, 0, 500 );
-				if ( '' === trim( $text ) ) {
-					continue;
+				$type = isset( $layer_raw['type'] ) ? $layer_raw['type'] : '';
+
+				if ( 'text' === $type ) {
+					$text = isset( $layer_raw['text'] ) ? wp_strip_all_tags( (string) $layer_raw['text'] ) : '';
+					$text = mb_substr( $text, 0, 500 );
+					if ( '' === trim( $text ) ) {
+						continue;
+					}
+					$align    = isset( $layer_raw['align'] ) ? $layer_raw['align'] : '';
+					$layers[] = array(
+						'type'        => 'text',
+						'text'        => $text,
+						'fontSize'    => isset( $layer_raw['fontSize'] ) ? max( 0.01, min( 0.5, (float) $layer_raw['fontSize'] ) ) : 0.06,
+						'bold'        => ! empty( $layer_raw['bold'] ),
+						'align'       => in_array( $align, array( 'left', 'center', 'right' ), true ) ? $align : 'center',
+						'color'       => self::sanitize_hex_color( isset( $layer_raw['color'] ) ? $layer_raw['color'] : '#ffffff' ),
+						'bgColor'     => empty( $layer_raw['bgColor'] ) ? '' : self::sanitize_hex_color( $layer_raw['bgColor'] ),
+						'lineSpacing' => isset( $layer_raw['lineSpacing'] ) ? max( 0.8, min( 3, (float) $layer_raw['lineSpacing'] ) ) : 1.3,
+						'x'           => isset( $layer_raw['x'] ) ? max( -0.5, min( 1.5, (float) $layer_raw['x'] ) ) : 0.1,
+						'y'           => isset( $layer_raw['y'] ) ? max( -0.5, min( 1.5, (float) $layer_raw['y'] ) ) : 0.1,
+						'w'           => isset( $layer_raw['w'] ) ? max( 0.05, min( 1.5, (float) $layer_raw['w'] ) ) : 0.8,
+						'rotation'    => isset( $layer_raw['rotation'] ) ? max( -180, min( 180, (float) $layer_raw['rotation'] ) ) : 0,
+					);
+				} elseif ( 'shape' === $type ) {
+					$shape = isset( $layer_raw['shape'] ) ? $layer_raw['shape'] : '';
+					if ( ! in_array( $shape, $allowed_shapes, true ) ) {
+						continue;
+					}
+					$layers[] = array(
+						'type'     => 'shape',
+						'shape'    => $shape,
+						'color'    => self::sanitize_hex_color( isset( $layer_raw['color'] ) ? $layer_raw['color'] : '#000000' ),
+						'x'        => isset( $layer_raw['x'] ) ? max( -0.5, min( 1.5, (float) $layer_raw['x'] ) ) : 0.3,
+						'y'        => isset( $layer_raw['y'] ) ? max( -0.5, min( 1.5, (float) $layer_raw['y'] ) ) : 0.3,
+						'w'        => isset( $layer_raw['w'] ) ? max( 0.02, min( 1.5, (float) $layer_raw['w'] ) ) : 0.2,
+						'h'        => isset( $layer_raw['h'] ) ? max( 0.02, min( 1.5, (float) $layer_raw['h'] ) ) : 0.2,
+						'rotation' => isset( $layer_raw['rotation'] ) ? max( -180, min( 180, (float) $layer_raw['rotation'] ) ) : 0,
+					);
 				}
-				$align = isset( $layer_raw['align'] ) ? $layer_raw['align'] : '';
-				$layers[] = array(
-					'type'        => 'text',
-					'text'        => $text,
-					'fontSize'    => isset( $layer_raw['fontSize'] ) ? max( 0.01, min( 0.5, (float) $layer_raw['fontSize'] ) ) : 0.06,
-					'bold'        => ! empty( $layer_raw['bold'] ),
-					'align'       => in_array( $align, array( 'left', 'center', 'right' ), true ) ? $align : 'center',
-					'color'       => self::sanitize_hex_color( isset( $layer_raw['color'] ) ? $layer_raw['color'] : '#ffffff' ),
-					'bgColor'     => empty( $layer_raw['bgColor'] ) ? '' : self::sanitize_hex_color( $layer_raw['bgColor'] ),
-					'lineSpacing' => isset( $layer_raw['lineSpacing'] ) ? max( 0.8, min( 3, (float) $layer_raw['lineSpacing'] ) ) : 1.3,
-					'x'           => isset( $layer_raw['x'] ) ? max( -0.5, min( 1.5, (float) $layer_raw['x'] ) ) : 0.1,
-					'y'           => isset( $layer_raw['y'] ) ? max( -0.5, min( 1.5, (float) $layer_raw['y'] ) ) : 0.1,
-					'w'           => isset( $layer_raw['w'] ) ? max( 0.05, min( 1.5, (float) $layer_raw['w'] ) ) : 0.8,
-					'rotation'    => isset( $layer_raw['rotation'] ) ? max( -180, min( 180, (float) $layer_raw['rotation'] ) ) : 0,
-				);
 			}
 		}
 
-		if ( ! $filter && ! $has_adjust && ! $border['enabled'] && empty( $layers ) ) {
+		$drawing = self::sanitize_drawing( isset( $raw['drawing'] ) ? $raw['drawing'] : null );
+
+		if ( ! $filter && ! $has_adjust && ! $border['enabled'] && empty( $layers ) && ! $drawing ) {
 			return null;
 		}
 
-		return array(
+		$design = array(
 			'filter' => $filter,
 			'adjust' => $adjust,
 			'border' => $border,
 			'layers' => $layers,
 		);
+		if ( $drawing ) {
+			$design['drawing'] = $drawing;
+		}
+
+		return $design;
+	}
+
+	/**
+	 * Decode and store the editor's freehand doodle layer, sent as a
+	 * `data:image/png;base64,...` string embedded in the design payload
+	 * (kept out of the multipart upload endpoint to avoid a second
+	 * request mid-edit). Returns { file: <relative path> } or null.
+	 */
+	protected static function sanitize_drawing( $raw ) {
+		if ( ! is_array( $raw ) || empty( $raw['dataUrl'] ) || ! is_string( $raw['dataUrl'] ) ) {
+			return null;
+		}
+
+		if ( 0 !== strpos( $raw['dataUrl'], 'data:image/png;base64,' ) ) {
+			return null;
+		}
+
+		$b64 = substr( $raw['dataUrl'], strlen( 'data:image/png;base64,' ) );
+		if ( strlen( $b64 ) > 4 * 1024 * 1024 ) { // ~3MB decoded ceiling.
+			return null;
+		}
+
+		$bytes = base64_decode( $b64, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+		if ( ! $bytes ) {
+			return null;
+		}
+
+		$dir      = prrint_upload_dir( 'tmp/drawings' );
+		$filename = wp_generate_password( 24, false, false ) . '.png';
+		$dest     = trailingslashit( $dir['path'] ) . $filename;
+		if ( ! @file_put_contents( $dest, $bytes ) ) { // phpcs:ignore
+			return null;
+		}
+
+		$info = @getimagesize( $dest ); // phpcs:ignore
+		if ( ! $info || 'image/png' !== $info['mime'] ) {
+			@unlink( $dest ); // phpcs:ignore
+			return null;
+		}
+
+		return array( 'file' => 'tmp/drawings/' . $filename );
 	}
 
 	/**

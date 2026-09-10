@@ -64,7 +64,17 @@
 		borderEnable: document.getElementById('prrint-border-enable'),
 		borderFields: document.getElementById('prrint-border-fields'),
 		borderSwatches: document.getElementById('prrint-border-swatches'),
-		borderWidth: document.getElementById('prrint-border-width')
+		borderWidth: document.getElementById('prrint-border-width'),
+		shapeGrid: document.getElementById('prrint-shape-grid'),
+		shapeFields: document.getElementById('prrint-shape-fields'),
+		shapeSize: document.getElementById('prrint-shape-size'),
+		shapeRotation: document.getElementById('prrint-shape-rotation'),
+		shapeColorSwatches: document.getElementById('prrint-shape-color-swatches'),
+		shapeDuplicate: document.getElementById('prrint-shape-duplicate'),
+		shapeDelete: document.getElementById('prrint-shape-delete'),
+		drawColorSwatches: document.getElementById('prrint-draw-color-swatches'),
+		drawSize: document.getElementById('prrint-draw-size'),
+		drawClear: document.getElementById('prrint-draw-clear')
 	};
 	var ctx = els.canvas.getContext('2d');
 
@@ -92,7 +102,8 @@
 			filter: '',
 			adjust: { brightness: 0, contrast: 0, saturation: 100 },
 			border: { enabled: false, color: '#ffffff', width_in: cfg.borderIn || 0.25 },
-			layers: []
+			layers: [],
+			drawing: null // { dataUrl } once the customer has drawn something
 		};
 	}
 
@@ -239,7 +250,7 @@
 	 * for hit-testing and for the background-box fill. Frame is the crop
 	 * frame rect the layer's x/y/w fractions are relative to.
 	 */
-	function layerBox(drawCtx, layer, frame) {
+	function textLayerBox(drawCtx, layer, frame) {
 		var fontPx = Math.max(6, Math.round(layer.fontSize * frame.h));
 		drawCtx.font = (layer.bold ? 'bold ' : '') + fontPx + 'px "Prrint Liberation Sans", Arial, sans-serif';
 		var x = frame.x + layer.x * frame.w;
@@ -254,40 +265,139 @@
 		return { x: x, y: y, w: w, h: h, fontPx: fontPx, lineH: lineH, lines: lines };
 	}
 
+	function drawOneTextLayer(drawCtx, layer, frame) {
+		if (!layer.text) { return; }
+		var box = textLayerBox(drawCtx, layer, frame);
+		var angleRad = (layer.rotation || 0) * Math.PI / 180;
+
+		if (layer.bgColor) {
+			var pad = box.fontPx * 0.4;
+			drawCtx.save();
+			drawCtx.fillStyle = layer.bgColor;
+			drawCtx.fillRect(box.x - pad, box.y - pad, box.w + pad * 2, box.h + pad * 2);
+			drawCtx.restore();
+		}
+
+		drawCtx.fillStyle = layer.color || '#ffffff';
+		drawCtx.textBaseline = 'alphabetic';
+		box.lines.forEach(function (line, i) {
+			if (!line) { return; }
+			var lineW = drawCtx.measureText(line).width;
+			var lx = box.x;
+			if (layer.align === 'center') { lx = box.x + (box.w - lineW) / 2; }
+			else if (layer.align === 'right') { lx = box.x + box.w - lineW; }
+			var ly = box.y + box.fontPx + i * box.lineH;
+			drawCtx.save();
+			drawCtx.translate(lx, ly);
+			drawCtx.rotate(angleRad);
+			drawCtx.fillText(line, 0, 0);
+			drawCtx.restore();
+		});
+	}
+
 	/**
-	 * Draw every text layer of a design onto drawCtx, relative to frame.
-	 * Mirrors Prrint_Image::draw_text_layer() line for line.
+	 * Normalized (-0.5..0.5) point sets for sticker shapes. Kept in exact
+	 * lockstep with Prrint_Image::shape_points() so the browser preview and
+	 * the GD print render draw the identical silhouette.
 	 */
-	function drawTextLayers(drawCtx, design, frame) {
-		if (!design || !design.layers || !design.layers.length) { return; }
-		design.layers.forEach(function (layer) {
-			if (!layer.text) { return; }
-			var box = layerBox(drawCtx, layer, frame);
-			var angleRad = (layer.rotation || 0) * Math.PI / 180;
-
-			if (layer.bgColor) {
-				var pad = box.fontPx * 0.4;
-				drawCtx.save();
-				drawCtx.fillStyle = layer.bgColor;
-				drawCtx.fillRect(box.x - pad, box.y - pad, box.w + pad * 2, box.h + pad * 2);
-				drawCtx.restore();
+	var SHAPE_POINTS = {
+		square: function () {
+			return [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]];
+		},
+		circle: function () {
+			var pts = [];
+			for (var i = 0; i < 40; i++) {
+				var t = (i / 40) * Math.PI * 2;
+				pts.push([0.5 * Math.cos(t), 0.5 * Math.sin(t)]);
 			}
+			return pts;
+		},
+		star: function () {
+			var pts = [];
+			var outer = 0.5, inner = 0.5 * 0.382;
+			for (var i = 0; i < 10; i++) {
+				var r = (i % 2 === 0) ? outer : inner;
+				var t = (i / 10) * Math.PI * 2 - Math.PI / 2;
+				pts.push([r * Math.cos(t), r * Math.sin(t)]);
+			}
+			return pts;
+		},
+		heart: function () {
+			var raw = [], n = 40;
+			var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+			for (var i = 0; i <= n; i++) {
+				var t = (i / n) * Math.PI * 2;
+				var x = 16 * Math.pow(Math.sin(t), 3);
+				var y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+				raw.push([x, y]);
+				if (x < minX) { minX = x; } if (x > maxX) { maxX = x; }
+				if (y < minY) { minY = y; } if (y > maxY) { maxY = y; }
+			}
+			var sx = maxX - minX, sy = maxY - minY;
+			return raw.map(function (p) { return [(p[0] - minX) / sx - 0.5, (p[1] - minY) / sy - 0.5]; });
+		},
+		arrow: function () {
+			return [[-0.5, -0.15], [0.15, -0.15], [0.15, -0.35], [0.5, 0], [0.15, 0.35], [0.15, 0.15], [-0.5, 0.15]];
+		},
+		line: function () {
+			return [[-0.5, -0.06], [0.5, -0.06], [0.5, 0.06], [-0.5, 0.06]];
+		}
+	};
 
-			drawCtx.fillStyle = layer.color || '#ffffff';
-			drawCtx.textBaseline = 'alphabetic';
-			box.lines.forEach(function (line, i) {
-				if (!line) { return; }
-				var lineW = drawCtx.measureText(line).width;
-				var lx = box.x;
-				if (layer.align === 'center') { lx = box.x + (box.w - lineW) / 2; }
-				else if (layer.align === 'right') { lx = box.x + box.w - lineW; }
-				var ly = box.y + box.fontPx + i * box.lineH;
-				drawCtx.save();
-				drawCtx.translate(lx, ly);
-				drawCtx.rotate(angleRad);
-				drawCtx.fillText(line, 0, 0);
-				drawCtx.restore();
-			});
+	function shapeLayerBox(layer, frame) {
+		return {
+			x: frame.x + layer.x * frame.w,
+			y: frame.y + layer.y * frame.h,
+			w: layer.w * frame.w,
+			h: layer.h * frame.h
+		};
+	}
+
+	function drawOneShapeLayer(drawCtx, layer, frame) {
+		var gen = SHAPE_POINTS[layer.shape];
+		if (!gen) { return; }
+		var box = shapeLayerBox(layer, frame);
+		var cx = box.x + box.w / 2;
+		var cy = box.y + box.h / 2;
+		var angle = (layer.rotation || 0) * Math.PI / 180;
+
+		drawCtx.save();
+		drawCtx.translate(cx, cy);
+		drawCtx.rotate(angle);
+		drawCtx.fillStyle = layer.color || '#000000';
+		drawCtx.beginPath();
+		gen().forEach(function (p, i) {
+			var px = p[0] * box.w, py = p[1] * box.h;
+			if (i === 0) { drawCtx.moveTo(px, py); } else { drawCtx.lineTo(px, py); }
+		});
+		drawCtx.closePath();
+		drawCtx.fill();
+		drawCtx.restore();
+	}
+
+	/**
+	 * Bounding box of any layer type, canvas px, ignoring rotation.
+	 */
+	function layerBoundingBox(drawCtx, layer, frame) {
+		return layer.type === 'shape' ? shapeLayerBox(layer, frame) : textLayerBox(drawCtx, layer, frame);
+	}
+
+	/**
+	 * Full "on top of the photo" pass: doodle, then text/shape layers in
+	 * array order — mirrors Prrint_Image::render()'s design stage exactly.
+	 *
+	 * @param drawingSource CanvasImageSource|null — ed.drawCanvas (editor,
+	 *        always ready) or item._drawingImg (card thumbnail, may still
+	 *        be loading — check .complete before passing it in).
+	 */
+	function drawDesignOverlay(drawCtx, design, frame, drawingSource) {
+		if (drawingSource) {
+			drawCtx.drawImage(drawingSource, frame.x, frame.y, frame.w, frame.h);
+		}
+		if (!design || !design.layers) { return; }
+		design.layers.forEach(function (layer) {
+			if (layer.type === 'text') { drawOneTextLayer(drawCtx, layer, frame); }
+			else if (layer.type === 'shape') { drawOneShapeLayer(drawCtx, layer, frame); }
 		});
 	}
 
@@ -464,7 +574,8 @@
 		c.restore();
 
 		c.filter = 'none';
-		drawTextLayers(c, item.design, frame);
+		var drawingSource = (item._drawingImg && item._drawingImg.complete) ? item._drawingImg : null;
+		drawDesignOverlay(c, item.design, frame, drawingSource);
 
 		// Price line.
 		var unit = unitPrice(item);
@@ -644,7 +755,12 @@
 		off: { x: 0, y: 0 },
 		cssW: 0,
 		cssH: 0,
-		frame: { x: 0, y: 0, w: 0, h: 0 }
+		frame: { x: 0, y: 0, w: 0, h: 0 },
+		drawCanvas: null,       // offscreen canvas the "Draw" tool paints on
+		drawCtx: null,
+		hasDrawing: false,
+		brushColor: '#000000',
+		brushSize: 4
 	};
 
 	function edRotatedDims() {
@@ -772,8 +888,8 @@
 		ctx.restore();
 		ctx.filter = 'none';
 
-		drawTextLayers(ctx, ed.design, f);
-		if (ed.activeTool === 'text') {
+		drawDesignOverlay(ctx, ed.design, f, ed.drawCanvas);
+		if (ed.activeTool === 'text' || ed.activeTool === 'elements') {
 			drawLayerHandles();
 		}
 
@@ -833,6 +949,8 @@
 		els.toolPanels.forEach(function (panel) {
 			panel.hidden = panel.dataset.panel !== tool;
 		});
+		els.canvas.classList.toggle('prrint-cursor-draw', tool === 'draw');
+		els.canvas.classList.toggle('prrint-cursor-crosshair', tool === 'text' || tool === 'elements');
 		edDraw();
 	}
 
@@ -927,9 +1045,11 @@
 	}
 
 	/* text panel */
-	function selectedLayer() {
+	function selectedLayer(type) {
 		if (!ed.selectedLayerId) { return null; }
-		return ed.design.layers.filter(function (l) { return l.id === ed.selectedLayerId; })[0] || null;
+		var l = ed.design.layers.filter(function (x) { return x.id === ed.selectedLayerId; })[0] || null;
+		if (l && type && l.type !== type) { return null; }
+		return l;
 	}
 
 	function showLayerFields(layer) {
@@ -957,7 +1077,14 @@
 
 	function selectLayer(id) {
 		ed.selectedLayerId = id;
-		showLayerFields(selectedLayer());
+		var layer = ed.design.layers.filter(function (l) { return l.id === id; })[0] || null;
+		if (layer && layer.type === 'shape') {
+			showShapeFields(layer);
+			showLayerFields(null);
+		} else {
+			showLayerFields(layer);
+			showShapeFields(null);
+		}
 		edDraw();
 	}
 
@@ -986,37 +1113,37 @@
 	}
 	if (els.textContent) {
 		els.textContent.addEventListener('input', function () {
-			var l = selectedLayer();
+			var l = selectedLayer('text');
 			if (l) { l.text = this.value; edDraw(); }
 		});
 	}
 	if (els.textSize) {
 		els.textSize.addEventListener('input', function () {
-			var l = selectedLayer();
+			var l = selectedLayer('text');
 			if (l) { l.fontSize = Number(this.value) / 100; edDraw(); }
 		});
 	}
 	if (els.textSpacing) {
 		els.textSpacing.addEventListener('input', function () {
-			var l = selectedLayer();
+			var l = selectedLayer('text');
 			if (l) { l.lineSpacing = Number(this.value) / 10; edDraw(); }
 		});
 	}
 	if (els.textWidth) {
 		els.textWidth.addEventListener('input', function () {
-			var l = selectedLayer();
+			var l = selectedLayer('text');
 			if (l) { l.w = Number(this.value) / 100; edDraw(); }
 		});
 	}
 	if (els.textRotation) {
 		els.textRotation.addEventListener('input', function () {
-			var l = selectedLayer();
+			var l = selectedLayer('text');
 			if (l) { l.rotation = Number(this.value); edDraw(); }
 		});
 	}
 	if (els.textBold) {
 		els.textBold.addEventListener('click', function () {
-			var l = selectedLayer();
+			var l = selectedLayer('text');
 			if (!l) { return; }
 			l.bold = !l.bold;
 			els.textBold.classList.toggle('is-active', l.bold);
@@ -1026,7 +1153,7 @@
 	if (els.textFields) {
 		els.textFields.querySelectorAll('[data-align]').forEach(function (btn) {
 			btn.addEventListener('click', function () {
-				var l = selectedLayer();
+				var l = selectedLayer('text');
 				if (!l) { return; }
 				l.align = btn.dataset.align;
 				els.textFields.querySelectorAll('[data-align]').forEach(function (b) {
@@ -1037,16 +1164,16 @@
 		});
 	}
 	buildSwatchRow(els.textColorSwatches, cfg.textColors, function (color) {
-		var l = selectedLayer();
+		var l = selectedLayer('text');
 		if (l) { l.color = color; edDraw(); }
 	});
 	buildSwatchRow(els.textBgSwatches, cfg.textBgColors, function (color) {
-		var l = selectedLayer();
+		var l = selectedLayer('text');
 		if (l) { l.bgColor = color; edDraw(); }
 	});
 	if (els.textDuplicate) {
 		els.textDuplicate.addEventListener('click', function () {
-			var l = selectedLayer();
+			var l = selectedLayer('text');
 			if (!l) { toast(cfg.i18n.noTextLayer, true); return; }
 			var copy = JSON.parse(JSON.stringify(l));
 			copy.id = 'l' + (nextLayerId++);
@@ -1058,19 +1185,149 @@
 	}
 	if (els.textDelete) {
 		els.textDelete.addEventListener('click', function () {
-			if (!ed.selectedLayerId) { toast(cfg.i18n.noTextLayer, true); return; }
-			ed.design.layers = ed.design.layers.filter(function (l) { return l.id !== ed.selectedLayerId; });
+			var l = selectedLayer('text');
+			if (!l) { toast(cfg.i18n.noTextLayer, true); return; }
+			ed.design.layers = ed.design.layers.filter(function (x) { return x.id !== l.id; });
 			ed.selectedLayerId = null;
 			showLayerFields(null);
 			edDraw();
 		});
 	}
 
-	/* layer selection handles (drawn only while the Text tool is active) */
+	/* elements (shape sticker) panel */
+	function showShapeFields(layer) {
+		if (!layer) {
+			els.shapeFields.hidden = true;
+			return;
+		}
+		els.shapeFields.hidden = false;
+		els.shapeSize.value = String(Math.round(layer.w * 100));
+		els.shapeRotation.value = String(Math.round(layer.rotation));
+		els.shapeColorSwatches.querySelectorAll('.prrint-swatch').forEach(function (b) {
+			b.classList.toggle('is-active', b.dataset.color === layer.color);
+		});
+		if (els.shapeGrid) {
+			els.shapeGrid.querySelectorAll('.prrint-shape-btn').forEach(function (b) {
+				b.classList.toggle('is-active', b.dataset.shape === layer.shape);
+			});
+		}
+	}
+
+	function addShapeLayer(shapeId) {
+		var layer = {
+			id: 'l' + (nextLayerId++),
+			type: 'shape',
+			shape: shapeId,
+			color: '#f43f5e',
+			x: 0.4,
+			y: 0.4,
+			w: 0.2,
+			h: 0.2,
+			rotation: 0
+		};
+		ed.design.layers.push(layer);
+		selectLayer(layer.id);
+	}
+
+	if (els.shapeGrid) {
+		cfg.shapes.forEach(function (s) {
+			var btn = document.createElement('button');
+			btn.type = 'button';
+			btn.className = 'prrint-shape-btn';
+			btn.dataset.shape = s.id;
+			btn.textContent = s.label;
+			btn.title = s.id;
+			btn.addEventListener('click', function () { addShapeLayer(s.id); });
+			els.shapeGrid.appendChild(btn);
+		});
+	}
+	if (els.shapeSize) {
+		els.shapeSize.addEventListener('input', function () {
+			var l = selectedLayer('shape');
+			if (l) { l.w = l.h = Number(this.value) / 100; edDraw(); }
+		});
+	}
+	if (els.shapeRotation) {
+		els.shapeRotation.addEventListener('input', function () {
+			var l = selectedLayer('shape');
+			if (l) { l.rotation = Number(this.value); edDraw(); }
+		});
+	}
+	buildSwatchRow(els.shapeColorSwatches, cfg.shapeColors, function (color) {
+		var l = selectedLayer('shape');
+		if (l) { l.color = color; edDraw(); }
+	});
+	if (els.shapeDuplicate) {
+		els.shapeDuplicate.addEventListener('click', function () {
+			var l = selectedLayer('shape');
+			if (!l) { toast(cfg.i18n.noShapeLayer, true); return; }
+			var copy = JSON.parse(JSON.stringify(l));
+			copy.id = 'l' + (nextLayerId++);
+			copy.x = Math.min(0.9, l.x + 0.04);
+			copy.y = Math.min(0.9, l.y + 0.04);
+			ed.design.layers.push(copy);
+			selectLayer(copy.id);
+		});
+	}
+	if (els.shapeDelete) {
+		els.shapeDelete.addEventListener('click', function () {
+			var l = selectedLayer('shape');
+			if (!l) { toast(cfg.i18n.noShapeLayer, true); return; }
+			ed.design.layers = ed.design.layers.filter(function (x) { return x.id !== l.id; });
+			ed.selectedLayerId = null;
+			showShapeFields(null);
+			edDraw();
+		});
+	}
+
+	/* draw (freehand doodle) panel */
+	buildSwatchRow(els.drawColorSwatches, cfg.drawColors, function (color) {
+		ed.brushColor = color;
+	});
+	if (els.drawSize) {
+		els.drawSize.addEventListener('input', function () {
+			ed.brushSize = Number(this.value);
+		});
+	}
+	if (els.drawClear) {
+		els.drawClear.addEventListener('click', function () {
+			if (!ed.drawCanvas) { return; }
+			ed.drawCtx.clearRect(0, 0, ed.drawCanvas.width, ed.drawCanvas.height);
+			ed.hasDrawing = false;
+			edDraw();
+		});
+	}
+
+	function createDrawCanvas() {
+		var p = edPrintDims();
+		var maxDim = 900;
+		var w, h;
+		if (p.w >= p.h) { w = maxDim; h = Math.round(maxDim * p.h / p.w); }
+		else { h = maxDim; w = Math.round(maxDim * p.w / p.h); }
+		var c = document.createElement('canvas');
+		c.width = w;
+		c.height = h;
+		return c;
+	}
+
+	function canvasToDrawCoords(pt) {
+		var f = ed.frame;
+		return {
+			x: ((pt.x - f.x) / f.w) * ed.drawCanvas.width,
+			y: ((pt.y - f.y) / f.h) * ed.drawCanvas.height
+		};
+	}
+
+	function brushPx() {
+		return Math.max(1, ed.brushSize * (ed.drawCanvas.width / 300));
+	}
+
+	/* layer selection handles (drawn while the Text/Elements tool is active) */
 	function drawLayerHandles() {
-		var sel = selectedLayer();
+		var type = ed.activeTool === 'elements' ? 'shape' : 'text';
+		var sel = selectedLayer(type);
 		if (!sel) { return; }
-		var box = layerBox(ctx, sel, ed.frame);
+		var box = layerBoundingBox(ctx, sel, ed.frame);
 		ctx.save();
 		ctx.strokeStyle = '#4f46e5';
 		ctx.lineWidth = 1.5;
@@ -1080,9 +1337,12 @@
 	}
 
 	function hitTestLayer(px, py) {
+		var type = ed.activeTool === 'elements' ? 'shape' : (ed.activeTool === 'text' ? 'text' : null);
+		if (!type) { return null; }
 		var layers = ed.design.layers;
 		for (var i = layers.length - 1; i >= 0; i--) {
-			var box = layerBox(ctx, layers[i], ed.frame);
+			if (layers[i].type !== type) { continue; }
+			var box = layerBoundingBox(ctx, layers[i], ed.frame);
 			if (px >= box.x - 4 && px <= box.x + box.w + 4 && py >= box.y - 4 && py <= box.y + box.h + 4) {
 				return layers[i];
 			}
@@ -1117,6 +1377,25 @@
 			b.classList.toggle('is-active', b.dataset.color === ed.design.border.color);
 		});
 		showLayerFields(null);
+		showShapeFields(null);
+
+		ed.brushColor = cfg.drawColors[0] || '#000000';
+		ed.brushSize = 4;
+		if (els.drawSize) { els.drawSize.value = '4'; }
+
+		ed.drawCanvas = createDrawCanvas();
+		ed.drawCtx = ed.drawCanvas.getContext('2d');
+		ed.hasDrawing = false;
+		if (ed.design.drawing && ed.design.drawing.dataUrl) {
+			var seedImg = new Image();
+			seedImg.onload = function () {
+				if (ed.item !== item || !ed.drawCanvas) { return; } // editor closed/reopened meanwhile
+				ed.drawCtx.drawImage(seedImg, 0, 0, ed.drawCanvas.width, ed.drawCanvas.height);
+				ed.hasDrawing = true;
+				edDraw();
+			};
+			seedImg.src = ed.design.drawing.dataUrl;
+		}
 
 		setActiveTool('transform');
 
@@ -1149,7 +1428,18 @@
 		item.rot = ed.rot;
 		item.orientation = ed.orientation;
 		item.crop = edExportCrop();
+		ed.design.drawing = ed.hasDrawing ? { dataUrl: ed.drawCanvas.toDataURL('image/png') } : null;
 		item.design = cloneDesign(ed.design);
+
+		if (item.design.drawing) {
+			var img = new Image();
+			img.onload = function () { renderCard(item); };
+			img.src = item.design.drawing.dataUrl;
+			item._drawingImg = img;
+		} else {
+			item._drawingImg = null;
+		}
+
 		closeEditor();
 		renderCard(item);
 		updateSummary();
@@ -1157,7 +1447,7 @@
 
 	/* editor interactions */
 	var dragging = false;
-	var dragMode = null; // 'photo' | 'layer'
+	var dragMode = null; // 'photo' | 'layer' | 'draw'
 	var dragLayer = null;
 	var last = { x: 0, y: 0 };
 
@@ -1172,7 +1462,7 @@
 		last.x = e.clientX;
 		last.y = e.clientY;
 
-		if (ed.activeTool === 'text') {
+		if (ed.activeTool === 'text' || ed.activeTool === 'elements') {
 			var pt = canvasPoint(e);
 			var hit = hitTestLayer(pt.x, pt.y);
 			if (hit) {
@@ -1183,6 +1473,20 @@
 				dragMode = null;
 				dragLayer = null;
 			}
+		} else if (ed.activeTool === 'draw') {
+			dragMode = 'draw';
+			var dp = canvasToDrawCoords(canvasPoint(e));
+			ed.drawCtx.lineJoin = 'round';
+			ed.drawCtx.lineCap = 'round';
+			ed.drawCtx.strokeStyle = ed.brushColor;
+			ed.drawCtx.lineWidth = brushPx();
+			ed.drawCtx.beginPath();
+			ed.drawCtx.moveTo(dp.x, dp.y);
+			ed.drawCtx.lineTo(dp.x + 0.01, dp.y + 0.01); // draw a dot for a simple tap
+			ed.drawCtx.stroke();
+			ed.drawLast = dp;
+			ed.hasDrawing = true;
+			edDraw();
 		} else {
 			dragMode = 'photo';
 		}
@@ -1207,6 +1511,14 @@
 			edClamp();
 			edDraw();
 			edUpdateDpi();
+		} else if (dragMode === 'draw') {
+			var dp = canvasToDrawCoords(canvasPoint(e));
+			ed.drawCtx.beginPath();
+			ed.drawCtx.moveTo(ed.drawLast.x, ed.drawLast.y);
+			ed.drawCtx.lineTo(dp.x, dp.y);
+			ed.drawCtx.stroke();
+			ed.drawLast = dp;
+			edDraw();
 		}
 	});
 	els.canvas.addEventListener('pointerup', function () { dragging = false; dragMode = null; dragLayer = null; });

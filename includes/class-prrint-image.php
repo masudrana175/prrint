@@ -193,10 +193,20 @@ class Prrint_Image {
 		imagecopyresampled( $out, $cropped, $bx, $by, 0, 0, $tw - 2 * $bx, $th - 2 * $by, $w, $h );
 		imagedestroy( $cropped );
 
+		// Freehand doodle: a single full-canvas overlay, under text/shapes.
+		if ( ! empty( $design['drawing']['file'] ) ) {
+			self::draw_image_overlay( $out, prrint_file_path( $design['drawing']['file'] ), $tw, $th );
+		}
+
 		if ( ! empty( $design['layers'] ) && is_array( $design['layers'] ) ) {
 			foreach ( $design['layers'] as $layer ) {
-				if ( is_array( $layer ) && 'text' === ( $layer['type'] ?? '' ) ) {
+				if ( ! is_array( $layer ) ) {
+					continue;
+				}
+				if ( 'text' === ( $layer['type'] ?? '' ) ) {
 					self::draw_text_layer( $out, $layer, $tw, $th );
+				} elseif ( 'shape' === ( $layer['type'] ?? '' ) ) {
+					self::draw_shape_layer( $out, $layer, $tw, $th );
 				}
 			}
 		}
@@ -360,6 +370,155 @@ class Prrint_Image {
 			$ly = $y + $font_px + $i * $line_h; // imagettftext y is the text baseline.
 			imagettftext( $im, $font_px, $angle, (int) round( $lx ), (int) round( $ly ), $color, $font, $line );
 		}
+	}
+
+	/**
+	 * Normalized (-0.5..0.5 on each axis) point set for one sticker shape.
+	 * The exact same math lives in frontend.js's SHAPE_POINTS so the
+	 * editor preview and the print render draw the identical silhouette.
+	 *
+	 * @return float[][] [[x,y], ...]
+	 */
+	protected static function shape_points( $shape ) {
+		switch ( $shape ) {
+			case 'square':
+				return array( array( -0.5, -0.5 ), array( 0.5, -0.5 ), array( 0.5, 0.5 ), array( -0.5, 0.5 ) );
+
+			case 'circle':
+				$pts = array();
+				for ( $i = 0; $i < 40; $i++ ) {
+					$t     = ( $i / 40 ) * 2 * M_PI;
+					$pts[] = array( 0.5 * cos( $t ), 0.5 * sin( $t ) );
+				}
+				return $pts;
+
+			case 'star':
+				$pts   = array();
+				$outer = 0.5;
+				$inner = 0.5 * 0.382;
+				for ( $i = 0; $i < 10; $i++ ) {
+					$r     = ( 0 === $i % 2 ) ? $outer : $inner;
+					$t     = ( $i / 10 ) * 2 * M_PI - M_PI / 2;
+					$pts[] = array( $r * cos( $t ), $r * sin( $t ) );
+				}
+				return $pts;
+
+			case 'heart':
+				$raw   = array();
+				$n     = 40;
+				$min_x = PHP_INT_MAX;
+				$max_x = -PHP_INT_MAX;
+				$min_y = PHP_INT_MAX;
+				$max_y = -PHP_INT_MAX;
+				for ( $i = 0; $i <= $n; $i++ ) {
+					$t     = ( $i / $n ) * 2 * M_PI;
+					$x     = 16 * pow( sin( $t ), 3 );
+					$y     = -( 13 * cos( $t ) - 5 * cos( 2 * $t ) - 2 * cos( 3 * $t ) - cos( 4 * $t ) );
+					$raw[] = array( $x, $y );
+					$min_x = min( $min_x, $x );
+					$max_x = max( $max_x, $x );
+					$min_y = min( $min_y, $y );
+					$max_y = max( $max_y, $y );
+				}
+				$sx  = $max_x - $min_x;
+				$sy  = $max_y - $min_y;
+				$pts = array();
+				foreach ( $raw as $p ) {
+					$pts[] = array( ( $p[0] - $min_x ) / $sx - 0.5, ( $p[1] - $min_y ) / $sy - 0.5 );
+				}
+				return $pts;
+
+			case 'arrow':
+				return array(
+					array( -0.5, -0.15 ),
+					array( 0.15, -0.15 ),
+					array( 0.15, -0.35 ),
+					array( 0.5, 0 ),
+					array( 0.15, 0.35 ),
+					array( 0.15, 0.15 ),
+					array( -0.5, 0.15 ),
+				);
+
+			case 'line':
+				return array( array( -0.5, -0.06 ), array( 0.5, -0.06 ), array( 0.5, 0.06 ), array( -0.5, 0.06 ) );
+		}
+
+		return array();
+	}
+
+	/**
+	 * Draw one filled, rotated sticker shape onto the output canvas.
+	 *
+	 * @param resource|GdImage $im       Output GD image, modified in place.
+	 * @param array            $layer    { shape, color, x, y, w, h, rotation }. x/y/w/h are
+	 *                                   fractions of the canvas (x,y = bounding-box top-left).
+	 * @param int              $canvas_w Output canvas width in px.
+	 * @param int              $canvas_h Output canvas height in px.
+	 */
+	public static function draw_shape_layer( $im, $layer, $canvas_w, $canvas_h ) {
+		$points = self::shape_points( isset( $layer['shape'] ) ? $layer['shape'] : '' );
+		if ( empty( $points ) ) {
+			return;
+		}
+
+		$lx    = isset( $layer['x'] ) ? (float) $layer['x'] : 0.3;
+		$ly    = isset( $layer['y'] ) ? (float) $layer['y'] : 0.3;
+		$lw    = isset( $layer['w'] ) ? (float) $layer['w'] : 0.2;
+		$lh    = isset( $layer['h'] ) ? (float) $layer['h'] : 0.2;
+		$w     = $lw * $canvas_w;
+		$h     = $lh * $canvas_h;
+		$cx    = ( $lx + $lw / 2 ) * $canvas_w;
+		$cy    = ( $ly + $lh / 2 ) * $canvas_h;
+		$angle = isset( $layer['rotation'] ) ? deg2rad( (float) $layer['rotation'] ) : 0.0;
+		$color = self::hex_to_gd_color( $im, isset( $layer['color'] ) ? $layer['color'] : '#000000' );
+
+		$poly = array();
+		foreach ( $points as $p ) {
+			$px = $p[0] * $w;
+			$py = $p[1] * $h;
+			// Rotation matrix in the same y-down pixel space the JS canvas
+			// preview uses, so positive angles turn clockwise on both ends.
+			$rx     = $px * cos( $angle ) - $py * sin( $angle );
+			$ry     = $px * sin( $angle ) + $py * cos( $angle );
+			$poly[] = $cx + $rx;
+			$poly[] = $cy + $ry;
+		}
+
+		imagefilledpolygon( $im, $poly, count( $points ), $color );
+	}
+
+	/**
+	 * Composite a transparent PNG (the freehand doodle layer) to fill the
+	 * whole output canvas.
+	 *
+	 * @param resource|GdImage $im       Output GD image, modified in place.
+	 * @param string           $abs_path Absolute path to the overlay PNG.
+	 * @param int              $canvas_w Output canvas width in px.
+	 * @param int              $canvas_h Output canvas height in px.
+	 */
+	public static function draw_image_overlay( $im, $abs_path, $canvas_w, $canvas_h ) {
+		if ( ! file_exists( $abs_path ) ) {
+			return;
+		}
+		$overlay = @imagecreatefrompng( $abs_path ); // phpcs:ignore
+		if ( ! $overlay ) {
+			return;
+		}
+
+		imagealphablending( $overlay, false );
+		imagesavealpha( $overlay, true );
+
+		$resized = imagecreatetruecolor( $canvas_w, $canvas_h );
+		imagealphablending( $resized, false );
+		imagesavealpha( $resized, true );
+		$transparent = imagecolorallocatealpha( $resized, 0, 0, 0, 127 );
+		imagefill( $resized, 0, 0, $transparent );
+		imagecopyresampled( $resized, $overlay, 0, 0, 0, 0, $canvas_w, $canvas_h, imagesx( $overlay ), imagesy( $overlay ) );
+		imagedestroy( $overlay );
+
+		imagealphablending( $im, true );
+		imagecopy( $im, $resized, 0, 0, 0, 0, $canvas_w, $canvas_h );
+		imagedestroy( $resized );
 	}
 
 	/**

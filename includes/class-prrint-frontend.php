@@ -75,6 +75,16 @@ class Prrint_Frontend {
 			'textColors'     => array( '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
 			'textBgColors'   => array( '', '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
 			'borderColors'   => array( '#ffffff', '#000000', '#9ca3af', '#f43f5e', '#f59e0b', '#3b82f6' ),
+			'shapes'         => array(
+				array( 'id' => 'circle', 'label' => '●' ),
+				array( 'id' => 'square', 'label' => '■' ),
+				array( 'id' => 'star',   'label' => '★' ),
+				array( 'id' => 'heart',  'label' => '♥' ),
+				array( 'id' => 'arrow',  'label' => '➤' ),
+				array( 'id' => 'line',   'label' => '—' ),
+			),
+			'shapeColors'    => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#eab308' ),
+			'drawColors'     => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6' ),
 			'currency'       => array(
 				'symbol'      => html_entity_decode( get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8' ),
 				'decimals'    => wc_get_price_decimals(),
@@ -117,6 +127,9 @@ class Prrint_Frontend {
 				'newTextDefault' => __( 'Your text here', 'prrint' ),
 				'noTextLayer'   => __( 'Add a text layer first.', 'prrint' ),
 				'transparent'   => __( 'None', 'prrint' ),
+				'toolElements'  => __( 'Elements', 'prrint' ),
+				'toolDraw'      => __( 'Draw', 'prrint' ),
+				'noShapeLayer'  => __( 'Add a shape first.', 'prrint' ),
 			),
 		) );
 	}
@@ -176,6 +189,8 @@ class Prrint_Frontend {
 							<button type="button" class="prrint-tool-btn" data-tool="filters" title="<?php esc_attr_e( 'Filters', 'prrint' ); ?>">◐</button>
 							<button type="button" class="prrint-tool-btn" data-tool="adjust" title="<?php esc_attr_e( 'Adjust', 'prrint' ); ?>">☼</button>
 							<button type="button" class="prrint-tool-btn" data-tool="text" title="<?php esc_attr_e( 'Text', 'prrint' ); ?>">A</button>
+							<button type="button" class="prrint-tool-btn" data-tool="elements" title="<?php esc_attr_e( 'Elements', 'prrint' ); ?>">★</button>
+							<button type="button" class="prrint-tool-btn" data-tool="draw" title="<?php esc_attr_e( 'Draw', 'prrint' ); ?>">✎</button>
 							<button type="button" class="prrint-tool-btn" data-tool="border" title="<?php esc_attr_e( 'Border', 'prrint' ); ?>">▢</button>
 						</div>
 
@@ -239,6 +254,31 @@ class Prrint_Frontend {
 									<label class="prrint-slider-row"><span><?php esc_html_e( 'Width', 'prrint' ); ?></span>
 										<input type="range" id="prrint-border-width" min="5" max="100" value="25" /></label>
 								</div>
+							</div>
+
+							<div class="prrint-tool-panel" data-panel="elements" hidden>
+								<div class="prrint-shape-grid" id="prrint-shape-grid"></div>
+								<div id="prrint-shape-fields" hidden>
+									<p class="prrint-swatch-label"><?php esc_html_e( 'Color', 'prrint' ); ?></p>
+									<div class="prrint-swatch-row" id="prrint-shape-color-swatches"></div>
+									<label class="prrint-slider-row"><span><?php esc_html_e( 'Size', 'prrint' ); ?></span>
+										<input type="range" id="prrint-shape-size" min="5" max="100" value="20" /></label>
+									<label class="prrint-slider-row"><span><?php esc_html_e( 'Rotation', 'prrint' ); ?></span>
+										<input type="range" id="prrint-shape-rotation" min="-180" max="180" value="0" /></label>
+									<div class="prrint-panel-row">
+										<button type="button" class="prrint-btn-secondary" id="prrint-shape-duplicate"><?php esc_html_e( 'Duplicate', 'prrint' ); ?></button>
+										<button type="button" class="prrint-btn-secondary" id="prrint-shape-delete"><?php esc_html_e( 'Delete', 'prrint' ); ?></button>
+									</div>
+								</div>
+							</div>
+
+							<div class="prrint-tool-panel" data-panel="draw" hidden>
+								<p class="prrint-swatch-label"><?php esc_html_e( 'Brush color', 'prrint' ); ?></p>
+								<div class="prrint-swatch-row" id="prrint-draw-color-swatches"></div>
+								<label class="prrint-slider-row"><span><?php esc_html_e( 'Brush size', 'prrint' ); ?></span>
+									<input type="range" id="prrint-draw-size" min="1" max="10" value="4" /></label>
+								<button type="button" class="prrint-btn-secondary" id="prrint-draw-clear"><?php esc_html_e( 'Clear drawing', 'prrint' ); ?></button>
+								<p class="prrint-editor-hint"><?php esc_html_e( 'Draw directly on the photo above.', 'prrint' ); ?></p>
 							</div>
 						</div>
 
