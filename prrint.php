@@ -3,7 +3,7 @@
  * Plugin Name: Prrint — Photo Print Studio for WooCommerce
  * Plugin URI:  https://github.com/masudrana175/prrint
  * Description: Turn WooCommerce products into a full photo print shop: multi-photo upload, crop/zoom/rotate editor, print sizes, paper finishes, white borders, live pricing, print-quality checks, and 300 DPI print-ready files on every order.
- * Version:     1.20.0
+ * Version:     1.21.0
  * Author:      Masud Rana
  * Author URI:  https://github.com/masudrana175
  * Text Domain: prrint
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PRRINT_VERSION', '1.20.0' );
+define( 'PRRINT_VERSION', '1.21.0' );
 define( 'PRRINT_FILE', __FILE__ );
 define( 'PRRINT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PRRINT_URL', plugin_dir_url( __FILE__ ) );
@@ -163,6 +163,7 @@ add_action( 'admin_notices', function () {
  * Daily cleanup of expired temporary uploads.
  * ---------------------------------------------------------------------- */
 add_action( 'prrint_daily_cleanup', 'prrint_cleanup_tmp' );
+add_action( 'prrint_daily_cleanup', 'prrint_cleanup_guest_library' );
 
 function prrint_cleanup_tmp() {
 	$dir = prrint_upload_dir( 'tmp' );
@@ -178,6 +179,46 @@ function prrint_cleanup_tmp() {
 	foreach ( $iterator as $file ) {
 		if ( $file->isFile() && 'index.html' !== $file->getFilename() && $file->getMTime() < $cutoff ) {
 			@unlink( $file->getPathname() ); // phpcs:ignore
+		}
+	}
+}
+
+/**
+ * Purge guest (non-logged-in) photo libraries whose retention window has
+ * elapsed. Unlike a logged-in customer's library (permanent — tied to a
+ * real account), a guest's is only identified by an unguessable cookie
+ * anyone can regenerate at will by clearing cookies, so it's kept for a
+ * bounded, admin-configurable window instead of forever. Their transient
+ * index (`prrint_guest_lib_*`) expires the same way any other transient
+ * does, but the files themselves need this explicit sweep — mirrors
+ * prrint_cleanup_tmp()'s mtime-cutoff approach, scoped to `library/guest-*`
+ * only so logged-in customers' permanent `library/<user_id>/` folders are
+ * never touched.
+ */
+function prrint_cleanup_guest_library() {
+	$base = prrint_upload_dir( 'library' );
+	if ( ! is_dir( $base['path'] ) ) {
+		return;
+	}
+	$days   = max( 1, (int) prrint_settings()['guest_library_retention_days'] );
+	$cutoff = time() - ( $days * DAY_IN_SECONDS );
+
+	foreach ( glob( trailingslashit( $base['path'] ) . 'guest-*', GLOB_ONLYDIR ) as $guest_dir ) {
+		$newest = 0;
+		foreach ( glob( trailingslashit( $guest_dir ) . '*' ) as $file ) {
+			if ( is_file( $file ) ) {
+				$newest = max( $newest, filemtime( $file ) );
+			}
+		}
+		// An untouched-since-cutoff folder (or an empty one) gets removed
+		// entirely; the matching transient is left to expire on its own.
+		if ( 0 === $newest || $newest < $cutoff ) {
+			foreach ( glob( trailingslashit( $guest_dir ) . '*' ) as $file ) {
+				if ( is_file( $file ) ) {
+					@unlink( $file ); // phpcs:ignore
+				}
+			}
+			@rmdir( $guest_dir ); // phpcs:ignore
 		}
 	}
 }
@@ -249,26 +290,27 @@ function prrint_toggleable_shapes() {
 
 function prrint_default_settings() {
 	return array(
-		'sizes'                  => prrint_default_sizes(),
-		'papers'                 => prrint_default_papers(),
-		'max_mb'                 => 40,
-		'jpeg_quality'           => 92,
-		'target_dpi'             => 300,
-		'min_dpi'                => 150,
-		'border_in'              => 0.25,
-		'upload_retention_days'  => 14,
-		'scale_unit'             => 'in',
-		'studio_product_id'      => 0, // 0 = use the auto-created sample product.
-		'enabled_tools'          => prrint_toggleable_tools(),
-		'text_templates_enabled' => prrint_text_template_ids(),
-		'enabled_filters'        => prrint_toggleable_filters(),
-		'enabled_overlays'       => prrint_toggleable_overlays(),
-		'enabled_shapes'         => prrint_toggleable_shapes(),
-		'text_colors'            => array( '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
-		'text_bg_colors'         => array( '', '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
-		'border_colors'          => array( '#ffffff', '#000000', '#9ca3af', '#f43f5e', '#f59e0b', '#3b82f6' ),
-		'shape_colors'           => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#eab308' ),
-		'draw_colors'            => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6' ),
+		'sizes'                         => prrint_default_sizes(),
+		'papers'                        => prrint_default_papers(),
+		'max_mb'                        => 40,
+		'jpeg_quality'                  => 92,
+		'target_dpi'                    => 300,
+		'min_dpi'                       => 150,
+		'border_in'                     => 0.25,
+		'upload_retention_days'         => 14,
+		'guest_library_retention_days'  => 90,
+		'scale_unit'                    => 'in',
+		'studio_product_id'             => 0, // 0 = use the auto-created sample product.
+		'enabled_tools'                 => prrint_toggleable_tools(),
+		'text_templates_enabled'        => prrint_text_template_ids(),
+		'enabled_filters'               => prrint_toggleable_filters(),
+		'enabled_overlays'              => prrint_toggleable_overlays(),
+		'enabled_shapes'                => prrint_toggleable_shapes(),
+		'text_colors'                   => array( '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
+		'text_bg_colors'                => array( '', '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
+		'border_colors'                 => array( '#ffffff', '#000000', '#9ca3af', '#f43f5e', '#f59e0b', '#3b82f6' ),
+		'shape_colors'                  => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#eab308' ),
+		'draw_colors'                   => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6' ),
 	);
 }
 

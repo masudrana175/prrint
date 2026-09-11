@@ -11,8 +11,10 @@ defined( 'ABSPATH' ) || exit;
 
 class Prrint_Account {
 
-	const MAX_LIBRARY = 300;
-	const PER_PAGE     = 10;
+	const MAX_LIBRARY       = 300;
+	const MAX_GUEST_LIBRARY = 60;
+	const PER_PAGE          = 10;
+	const GUEST_COOKIE      = 'prrint_guest_id';
 
 	public static function init() {
 		add_filter( 'woocommerce_account_menu_items', array( __CLASS__, 'menu_items' ) );
@@ -20,10 +22,17 @@ class Prrint_Account {
 		add_action( 'woocommerce_account_prrint-photos_endpoint', array( __CLASS__, 'render_photos_tab' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
 
+		// Reorder is account-only (it operates on a real WooCommerce order tied
+		// to a customer id) — no nopriv variant. Delete/get/use operate on
+		// whichever identity resolve_identity() finds (signed in or guest
+		// cookie), so both need the nopriv variant registered too.
 		add_action( 'wp_ajax_prrint_reorder', array( __CLASS__, 'reorder' ) );
 		add_action( 'wp_ajax_prrint_delete_photo', array( __CLASS__, 'delete_photo' ) );
+		add_action( 'wp_ajax_nopriv_prrint_delete_photo', array( __CLASS__, 'delete_photo' ) );
 		add_action( 'wp_ajax_prrint_get_library', array( __CLASS__, 'get_library_json' ) );
+		add_action( 'wp_ajax_nopriv_prrint_get_library', array( __CLASS__, 'get_library_json' ) );
 		add_action( 'wp_ajax_prrint_use_library_photo', array( __CLASS__, 'use_library_photo' ) );
+		add_action( 'wp_ajax_nopriv_prrint_use_library_photo', array( __CLASS__, 'use_library_photo' ) );
 	}
 
 	public static function menu_items( $items ) {
@@ -76,9 +85,117 @@ class Prrint_Account {
 	/* ---------------------------------------------------- photo library */
 
 	/**
-	 * Copy a freshly uploaded photo into the logged-in customer's permanent
-	 * library so it survives past the temp-upload cleanup and can be reused
-	 * on a future order without re-uploading.
+	 * The current guest's library identity — a long-lived, unguessable
+	 * cookie (not tied to any account) so a customer who uploads without
+	 * signing in can still see and reuse their own photos on a later
+	 * visit. Same unguessable-token trust model the plugin already uses
+	 * for tmp upload tokens ({@see Prrint_Ajax::upload()}) — nothing here
+	 * is more sensitive than that, just longer-lived and listable.
+	 *
+	 * @param bool $create Generate + set the cookie if it's missing.
+	 * @return string Empty string if there's no cookie and $create is false.
+	 */
+	public static function guest_id( $create = true ) {
+		if ( isset( $_COOKIE[ self::GUEST_COOKIE ] ) ) {
+			$id = sanitize_text_field( wp_unslash( $_COOKIE[ self::GUEST_COOKIE ] ) );
+			if ( preg_match( '/^[A-Za-z0-9]{20,40}$/', $id ) ) {
+				return $id;
+			}
+		}
+		if ( ! $create ) {
+			return '';
+		}
+
+		$id = wp_generate_password( 32, false, false );
+		if ( ! headers_sent() ) {
+			setcookie( self::GUEST_COOKIE, $id, time() + YEAR_IN_SECONDS, '/', '', is_ssl(), true );
+			$_COOKIE[ self::GUEST_COOKIE ] = $id; // available for the rest of this request too.
+		}
+		return $id;
+	}
+
+	/**
+	 * (type, key) for whichever identity applies to the current request —
+	 * a logged-in user id, or a guest cookie id if one already exists.
+	 * Never creates a new guest cookie (that only happens on upload); a
+	 * visitor who has never uploaded simply has no library yet.
+	 *
+	 * @return array { 0: 'user'|'guest'|'', 1: int|string }
+	 */
+	protected static function resolve_identity() {
+		if ( is_user_logged_in() ) {
+			return array( 'user', get_current_user_id() );
+		}
+		$guest_id = self::guest_id( false );
+		return $guest_id ? array( 'guest', $guest_id ) : array( '', '' );
+	}
+
+	protected static function guest_transient_key( $guest_id ) {
+		return 'prrint_guest_lib_' . $guest_id;
+	}
+
+	protected static function get_guest_library_rows_raw( $guest_id ) {
+		if ( ! $guest_id ) {
+			return array();
+		}
+		$library = get_transient( self::guest_transient_key( $guest_id ) );
+		return is_array( $library ) ? $library : array();
+	}
+
+	/**
+	 * Re-save a guest's library with a fresh retention window — any
+	 * upload/use/delete counts as activity and pushes the expiry back out,
+	 * the same "still active" signal prrint_cleanup_guest_library() uses
+	 * for the files themselves.
+	 */
+	protected static function save_guest_library_rows( $guest_id, $rows ) {
+		$days = max( 1, (int) prrint_settings()['guest_library_retention_days'] );
+		set_transient( self::guest_transient_key( $guest_id ), $rows, $days * DAY_IN_SECONDS );
+	}
+
+	/**
+	 * Raw (insertion-order, not reversed) library rows for either identity
+	 * type — the shape every read/write operation below works with.
+	 */
+	protected static function raw_library_for_identity( $type, $key ) {
+		if ( 'user' === $type ) {
+			$library = get_user_meta( $key, 'prrint_photo_library', true );
+			return is_array( $library ) ? $library : array();
+		}
+		if ( 'guest' === $type ) {
+			return self::get_guest_library_rows_raw( $key );
+		}
+		return array();
+	}
+
+	protected static function save_library_for_identity( $type, $key, $rows ) {
+		if ( 'user' === $type ) {
+			update_user_meta( $key, 'prrint_photo_library', $rows );
+		} elseif ( 'guest' === $type ) {
+			self::save_guest_library_rows( $key, $rows );
+		}
+	}
+
+	/**
+	 * The current visitor's library, newest first, whichever identity
+	 * applies (signed in or guest cookie) — used by the studio page's
+	 * "Your Photos" section for both cases.
+	 *
+	 * @return array[]
+	 */
+	public static function current_library_rows() {
+		list( $type, $key ) = self::resolve_identity();
+		if ( ! $type ) {
+			return array();
+		}
+		return array_reverse( self::raw_library_for_identity( $type, $key ) );
+	}
+
+	/**
+	 * Copy a freshly uploaded photo into the customer's permanent (signed
+	 * in) or retention-windowed (guest) library so it survives past the
+	 * temp-upload cleanup and can be reused on a future order without
+	 * re-uploading.
 	 *
 	 * @param string $relative  Path of the tmp upload, relative to uploads/prrint/.
 	 * @param int    $width     Image width in px.
@@ -86,29 +203,36 @@ class Prrint_Account {
 	 * @param string $orig_name Original client-side filename (display only).
 	 */
 	public static function save_upload_to_library( $relative, $width, $height, $orig_name = '' ) {
-		if ( ! is_user_logged_in() ) {
-			return;
+		if ( is_user_logged_in() ) {
+			$type   = 'user';
+			$key    = get_current_user_id();
+			$dir_id = (string) $key;
+			$max    = self::MAX_LIBRARY;
+		} else {
+			$type   = 'guest';
+			$key    = self::guest_id( true );
+			if ( ! $key ) {
+				return;
+			}
+			$dir_id = 'guest-' . $key;
+			$max    = self::MAX_GUEST_LIBRARY;
 		}
 
-		$user_id = get_current_user_id();
-		$library = get_user_meta( $user_id, 'prrint_photo_library', true );
-		if ( ! is_array( $library ) ) {
-			$library = array();
-		}
-		if ( count( $library ) >= self::MAX_LIBRARY ) {
+		$library = self::raw_library_for_identity( $type, $key );
+		if ( count( $library ) >= $max ) {
 			return;
 		}
 
 		$src_abs = prrint_file_path( $relative );
 		$ext     = strtolower( pathinfo( $relative, PATHINFO_EXTENSION ) );
 
-		prrint_upload_dir( 'library/' . $user_id );
-		$dest_rel = 'library/' . $user_id . '/' . wp_generate_password( 24, false, false ) . '.' . $ext;
+		prrint_upload_dir( 'library/' . $dir_id );
+		$dest_rel = 'library/' . $dir_id . '/' . wp_generate_password( 24, false, false ) . '.' . $ext;
 		if ( ! @copy( $src_abs, prrint_file_path( $dest_rel ) ) ) { // phpcs:ignore
 			return;
 		}
 
-		$preview_rel = 'library/' . $user_id . '/' . wp_generate_password( 20, false, false ) . '-thumb.jpg';
+		$preview_rel = 'library/' . $dir_id . '/' . wp_generate_password( 20, false, false ) . '-thumb.jpg';
 		Prrint_Image::render(
 			$src_abs,
 			array(
@@ -133,22 +257,19 @@ class Prrint_Account {
 			'added'   => time(),
 		);
 
-		update_user_meta( $user_id, 'prrint_photo_library', $library );
+		self::save_library_for_identity( $type, $key, $library );
 	}
 
 	public static function delete_photo() {
 		check_ajax_referer( 'prrint_studio', 'nonce' );
 
-		if ( ! is_user_logged_in() ) {
-			wp_send_json_error( array( 'message' => __( 'Please log in.', 'prrint' ) ) );
+		list( $type, $key ) = self::resolve_identity();
+		if ( ! $type ) {
+			wp_send_json_error( array( 'message' => __( 'Photo not found.', 'prrint' ) ) );
 		}
 
 		$id      = isset( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : '';
-		$user_id = get_current_user_id();
-		$library = get_user_meta( $user_id, 'prrint_photo_library', true );
-		if ( ! is_array( $library ) ) {
-			$library = array();
-		}
+		$library = self::raw_library_for_identity( $type, $key );
 
 		$kept    = array();
 		$deleted = false;
@@ -170,7 +291,7 @@ class Prrint_Account {
 			wp_send_json_error( array( 'message' => __( 'Photo not found.', 'prrint' ) ) );
 		}
 
-		update_user_meta( $user_id, 'prrint_photo_library', $kept );
+		self::save_library_for_identity( $type, $key, $kept );
 		wp_send_json_success();
 	}
 
@@ -195,11 +316,7 @@ class Prrint_Account {
 	public static function get_library_json() {
 		check_ajax_referer( 'prrint_studio', 'nonce' );
 
-		if ( ! is_user_logged_in() ) {
-			wp_send_json_error( array( 'message' => __( 'Please log in.', 'prrint' ) ) );
-		}
-
-		$rows = array_map( array( __CLASS__, 'library_row_for_js' ), self::get_library_rows( get_current_user_id() ) );
+		$rows = array_map( array( __CLASS__, 'library_row_for_js' ), self::current_library_rows() );
 		wp_send_json_success( array( 'photos' => array_values( $rows ) ) );
 	}
 
@@ -221,12 +338,13 @@ class Prrint_Account {
 	public static function use_library_photo() {
 		check_ajax_referer( 'prrint_studio', 'nonce' );
 
-		if ( ! is_user_logged_in() ) {
-			wp_send_json_error( array( 'message' => __( 'Please log in.', 'prrint' ) ) );
+		list( $type, $key ) = self::resolve_identity();
+		if ( ! $type ) {
+			wp_send_json_error( array( 'message' => __( 'Photo not found.', 'prrint' ) ) );
 		}
 
 		$id   = isset( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : '';
-		$rows = self::get_library_rows( get_current_user_id() );
+		$rows = array_reverse( self::raw_library_for_identity( $type, $key ) );
 		$row  = null;
 		foreach ( $rows as $candidate ) {
 			if ( isset( $candidate['id'] ) && $candidate['id'] === $id ) {

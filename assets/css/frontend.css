@@ -226,6 +226,12 @@ body.prrint-modal-open {
 	font-size: 0.9em;
 }
 
+.prrint-library-guest-note {
+	margin-top: 10px;
+	color: var(--prrint-muted);
+	font-size: 0.82em;
+}
+
 /* ---------------------------------------------------------- item cards */
 
 .prrint-items {

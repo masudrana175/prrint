@@ -73,7 +73,11 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
   print (crop, size, paper, border) to the cart.
 - **My Account → My Photos** — every photo a signed-in customer uploads is
   automatically saved to a permanent personal library (separate from the
-  8-day temp-upload cleanup), viewable and deletable from their account.
+  temp-upload cleanup), viewable and deletable from their account.
+- **Photos for guests too** — a customer who uploads without signing in
+  still gets a "Your Photos" section on the studio page (same Use this
+  photo / download / delete controls), remembered via a cookie for an
+  admin-configurable window instead of forever.
 
 ### Store-owner facing (admin)
 - **Global settings page** (WooCommerce → Prrint Studio): editable tables of

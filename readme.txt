@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.20.0
+Stable tag: 1.21.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,12 +46,35 @@ pages, the way dedicated print sites work:
 
 = Where are customer photos stored? =
 In `wp-content/uploads/prrint/` with random unguessable names. Temporary
-uploads are purged after 8 days; files attached to orders are kept.
+uploads are purged after the configured retention window (default 14
+days; WooCommerce → Prrint Studio → Quality & uploads); files attached to
+orders, and a signed-in customer's saved photo library, are kept.
+
+= Do customers need an account to save/reuse their photos? =
+No — uploading without signing in still gets a "Your Photos" section on
+the studio page, remembered via a cookie for an admin-configurable window
+(default 90 days, resets on each new upload) instead of forever. Signing
+in gets a permanent library instead, viewable in My Account.
 
 = Does it work with variable products? =
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.21.0 =
+* Add a "Your Photos" library for customers who upload without signing
+  in, remembered via a cookie (not tied to any account) — same "Use this
+  photo" / download / delete controls a signed-in customer's permanent
+  library already has, on the studio page. A new admin setting ("Keep
+  guest photo libraries for (days)", default 90) controls how long an
+  inactive one is kept before automatic cleanup; any new upload resets
+  the clock. A signed-in customer's library remains permanent, unchanged.
+* Fix: the AJAX endpoints backing the photo library (list/use/delete)
+  were never registered for non-logged-in requests at all (no `nopriv`
+  hook), so this whole feature was unreachable for guests until now.
+* Full review pass across the plugin's PHP: cart/checkout integration,
+  admin order tools, and the product-editor tab all checked for
+  correctness — no other issues found.
 
 = 1.20.0 =
 * Add admin control over exactly which Filters, Overlays and Elements

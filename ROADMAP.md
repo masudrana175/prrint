@@ -42,6 +42,50 @@ lands — check git log for the commit implementing each item.
   matches that same window so it never goes stale before the file itself does
   — previously the token (1 week) and file (8 days) had two different, unrelated
   hardcoded lifetimes.
+- **Guest photo library** — supersedes an earlier "longer retention only, no
+  cookie gallery" decision from the same conversation, made when only asked in
+  the abstract; once explicitly re-requested ("I think we use cookie"), it's
+  buildable safely: a guest (not signed in) who uploads gets an unguessable
+  cookie (`Prrint_Account::guest_id()`, same random-token trust model the tmp
+  upload token itself already relies on — not more sensitive than what was
+  already shipped) identifying a library stored as a transient
+  (`prrint_guest_lib_<id>`) instead of user meta, with matching files under
+  `library/guest-<id>/`. Unlike a signed-in customer's permanent library, it's
+  bounded — an admin-configurable retention window (default 90 days, Quality &
+  uploads → "Keep guest photo libraries for"), sliding: any upload/use/delete
+  activity resets the clock. `prrint_cleanup_guest_library()` (new daily cron
+  job alongside the existing tmp sweep) removes a `library/guest-*` folder once
+  its newest file is older than that window; a logged-in customer's
+  `library/<user_id>/` folder is exempt purely by not matching that glob, so
+  it's never at risk from this sweep regardless of file age. The cookie itself
+  is set lazily — only on an actual upload, not on every page view — since it
+  exists purely for this optional convenience feature, not for anything the
+  page needs to function, and a guest who never uploads shouldn't get a
+  long-lived cookie for no functional reason.
+  - **Found while building this**: `Prrint_Account::init()` never registered
+    `wp_ajax_nopriv_*` variants for the library's list/use/delete AJAX actions
+    — meaning they silently only ever worked for logged-in requests despite
+    `delete_photo()`/`get_library_json()`/`use_library_photo()` themselves
+    looking guest-aware-ready-to-extend at a glance. Fixed alongside this
+    change (all three now have both variants registered; `reorder` correctly
+    stays logged-in-only, since it operates on a real order tied to a
+    customer id).
+  - Verified with a mock harness covering the full guest flow (upload → cookie
+    minted → library lists it → use-photo mints a fresh token → a *different*
+    guest cookie sees an empty library, i.e. no cross-guest leakage → delete
+    removes it) plus the logged-in path as a regression check, and a second
+    harness proving the cleanup sweep removes a stale guest folder, keeps a
+    recently-active one, and never touches a logged-in folder regardless of
+    its file age.
+- **Full-plugin review pass** — read through every PHP class not already
+  covered by a recent targeted change (`class-prrint-cart.php`,
+  `class-prrint-orders.php`, `class-prrint-product.php`) looking for
+  correctness/security issues; none found there. Did turn up two stale docs
+  from before retention became configurable: readme.txt's FAQ still said
+  uploads are "purged after 8 days" (hardcoded number from before that
+  setting existed) and README.md repeated the same "8-day" figure — both
+  fixed to describe the actual (admin-configurable) behavior instead of a
+  number that stopped being true several versions ago.
 
 ### Cart, checkout, order page & emails show the real photo
 - **WooCommerce Cart/Checkout Blocks support** — the React-based Cart/Checkout
