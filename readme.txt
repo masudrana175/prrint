@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.21.0
+Stable tag: 1.22.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,19 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.22.0 =
+* Redesign the WooCommerce → Prrint Studio settings page: a proper header,
+  an icon + consistent hierarchy on every card, the Editor tools/Filters/
+  Overlays/Elements/Text Design checkboxes now read as toggle chips
+  instead of plain checkbox rows, and cleaner tables. Previously it was
+  almost entirely stock WordPress `form-table` styling.
+* Fix a bug caught while building that redesign: an initial "sticky save
+  bar" pinned itself to the viewport bottom for the *entire* scroll of
+  the (long) settings page, since it's the last element in a very tall
+  form — covering later cards' content the whole way down instead of
+  only appearing near the true end. Reverted to a plain, non-sticky
+  save button.
 
 = 1.21.0 =
 * Add a "Your Photos" library for customers who upload without signing

@@ -235,6 +235,23 @@ lands — check git log for the commit implementing each item.
   zero spacing between rows and a faint transparent-outline look; now have proper
   padding, a subtle fill so they read as real buttons, and consistent vertical rhythm
   above/below each row.
+- **Admin settings page redesigned** — the customer-facing studio and My Account had
+  gotten real design attention; WooCommerce → Prrint Studio hadn't — it was almost
+  entirely stock WordPress `form-table`/checkbox-row styling with a plain white-box
+  wrapper. Gave it an actual design pass: a gradient header, a consistent icon +
+  underline treatment on every card title, the five checkbox-grid sections (Editor
+  tools, Filters, Overlays, Elements, Text Design layouts) restyled as toggle chips
+  (`:has(input:checked)` for the checked look — no JS needed) instead of plain
+  checkbox+label rows, bordered/header-shaded tables instead of default `widefat`.
+  - **Caught mid-build, not shipped**: a first pass gave the Save button
+    `position: sticky; bottom: 0` for an always-visible "save bar." Looked right in
+    a full-page screenshot, but a viewport-sized scroll test told a different story —
+    since it's the last element in a *very* tall `<form>`, sticky pinned it to the
+    viewport bottom for the entire scroll of the page, covering every card's content
+    below where it first appeared, not just near the true end. Reverted to a plain,
+    non-sticky button — the lesson being that `fullPage: true` screenshots can hide
+    exactly this class of scroll-position bug; a real, viewport-sized scroll-and-look
+    is what actually caught it.
 - **Numeric Crop Size + Keep Resolution** — a "Crop Size" W × H field pair (in
   source-photo pixels) next to Reset to Default: typing either one recalculates
   zoom to match, and always stays locked to the selected print size's aspect

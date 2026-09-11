@@ -198,31 +198,33 @@ class Prrint_Settings {
 		$currency = get_woocommerce_currency_symbol();
 		?>
 		<div class="wrap prrint-admin-wrap">
-			<h1 class="prrint-admin-title">
-				<span class="prrint-logo" aria-hidden="true">🖼️</span>
-				<?php esc_html_e( 'Prrint — Photo Print Studio', 'prrint' ); ?>
-			</h1>
-			<p class="prrint-admin-sub">
-				<?php esc_html_e( 'Global defaults for every print product. Individual products can override these from the "Print Studio" tab in the product editor.', 'prrint' ); ?>
-			</p>
+			<div class="prrint-admin-header">
+				<h1 class="prrint-admin-title">
+					<span class="prrint-logo" aria-hidden="true">🖼️</span>
+					<?php esc_html_e( 'Prrint — Photo Print Studio', 'prrint' ); ?>
+				</h1>
+				<p class="prrint-admin-sub">
+					<?php esc_html_e( 'Global defaults for every print product. Individual products can override these from the "Print Studio" tab in the product editor.', 'prrint' ); ?>
+				</p>
+			</div>
 
 			<form method="post" action="options.php">
 				<?php settings_fields( 'prrint_settings_group' ); ?>
 
 				<div class="prrint-card">
-					<h2><?php esc_html_e( 'Print sizes', 'prrint' ); ?></h2>
+					<h2><span class="prrint-card-icon" aria-hidden="true">📐</span> <?php esc_html_e( 'Print sizes', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'The sizes customers can order. Dimensions are in inches; the crop editor locks to each size\'s aspect ratio.', 'prrint' ); ?></p>
 					<?php self::render_sizes_table( 'prrint_settings[sizes]', $s['sizes'], $currency ); ?>
 				</div>
 
 				<div class="prrint-card">
-					<h2><?php esc_html_e( 'Paper & finish options', 'prrint' ); ?></h2>
+					<h2><span class="prrint-card-icon" aria-hidden="true">🧻</span> <?php esc_html_e( 'Paper & finish options', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Each paper can add a surcharge on top of the size price.', 'prrint' ); ?></p>
 					<?php self::render_papers_table( 'prrint_settings[papers]', $s['papers'], $currency ); ?>
 				</div>
 
 				<div class="prrint-card">
-					<h2><?php esc_html_e( 'Quality & uploads', 'prrint' ); ?></h2>
+					<h2><span class="prrint-card-icon" aria-hidden="true">⚙️</span> <?php esc_html_e( 'Quality & uploads', 'prrint' ); ?></h2>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row"><label for="prrint_max_mb"><?php esc_html_e( 'Max upload size (MB)', 'prrint' ); ?></label></th>
@@ -277,7 +279,7 @@ class Prrint_Settings {
 				</div>
 
 				<div class="prrint-card">
-					<h2><?php esc_html_e( 'Standalone studio page', 'prrint' ); ?></h2>
+					<h2><span class="prrint-card-icon" aria-hidden="true">🔗</span> <?php esc_html_e( 'Standalone studio page', 'prrint' ); ?></h2>
 					<p class="description">
 						<?php
 						printf(
@@ -303,13 +305,13 @@ class Prrint_Settings {
 				</div>
 
 				<div class="prrint-card">
-					<h2><?php esc_html_e( 'Editor tools', 'prrint' ); ?></h2>
+					<h2><span class="prrint-card-icon" aria-hidden="true">🧰</span> <?php esc_html_e( 'Editor tools', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Turn tools off to simplify the editor for your store. Transform (crop & rotate) is always on.', 'prrint' ); ?></p>
 					<?php self::render_tool_checkboxes( $s['enabled_tools'] ); ?>
 				</div>
 
 				<div class="prrint-card">
-					<h2><?php esc_html_e( 'Filters, Overlays & Shapes', 'prrint' ); ?></h2>
+					<h2><span class="prrint-card-icon" aria-hidden="true">🖌️</span> <?php esc_html_e( 'Filters, Overlays & Shapes', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Pick which presets show inside each tool\'s panel — turn off ones your store doesn\'t want to offer. "None" is always available for Filters and Overlays so a customer can clear one they applied.', 'prrint' ); ?></p>
 					<h3><?php esc_html_e( 'Filters', 'prrint' ); ?></h3>
 					<?php self::render_filter_checkboxes( $s['enabled_filters'] ); ?>
@@ -320,13 +322,13 @@ class Prrint_Settings {
 				</div>
 
 				<div class="prrint-card">
-					<h2><?php esc_html_e( 'Text Design layouts', 'prrint' ); ?></h2>
+					<h2><span class="prrint-card-icon" aria-hidden="true">🔖</span> <?php esc_html_e( 'Text Design layouts', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Which pre-made word-art layouts show in the Text Design panel.', 'prrint' ); ?></p>
 					<?php self::render_text_template_checkboxes( $s['text_templates_enabled'] ); ?>
 				</div>
 
 				<div class="prrint-card">
-					<h2><?php esc_html_e( 'Color palettes', 'prrint' ); ?></h2>
+					<h2><span class="prrint-card-icon" aria-hidden="true">🎨</span> <?php esc_html_e( 'Color palettes', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Comma-separated hex colors offered to customers in each panel. Use "transparent" for a swatch with no fill (only meaningful for backgrounds).', 'prrint' ); ?></p>
 					<table class="form-table" role="presentation">
 						<?php
@@ -339,7 +341,9 @@ class Prrint_Settings {
 					</table>
 				</div>
 
-				<?php submit_button( __( 'Save settings', 'prrint' ) ); ?>
+				<div class="prrint-save-bar">
+					<?php submit_button( __( 'Save settings', 'prrint' ), 'primary', 'submit', false ); ?>
+				</div>
 			</form>
 		</div>
 		<?php

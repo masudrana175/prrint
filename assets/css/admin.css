@@ -1,45 +1,137 @@
 /* Prrint — admin styles */
 
 .prrint-admin-wrap {
-	max-width: 900px;
+	--prrint-a-accent: #2563eb;
+	--prrint-a-accent-dark: #1d4ed8;
+	--prrint-a-accent-soft: #eef3ff;
+	--prrint-a-ink: #1d2327;
+	--prrint-a-muted: #6b7280;
+	--prrint-a-line: #e5e7eb;
+	--prrint-a-radius: 10px;
+	max-width: 960px;
+}
+
+/* --------------------------------------------------------------- header */
+
+.prrint-admin-header {
+	background: linear-gradient(135deg, var(--prrint-a-accent), var(--prrint-a-accent-dark));
+	border-radius: var(--prrint-a-radius);
+	padding: 26px 28px;
+	margin: 20px 0 24px;
+	color: #fff;
+	box-shadow: 0 6px 20px rgba(37, 99, 235, 0.22);
 }
 
 .prrint-admin-title {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: 12px;
+	margin: 0;
+	color: #fff;
+	font-size: 1.5em;
 }
 
 .prrint-logo {
-	font-size: 1.2em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 42px;
+	height: 42px;
+	flex: 0 0 auto;
+	border-radius: 11px;
+	background: rgba(255, 255, 255, 0.18);
+	font-size: 1.15em;
 }
 
 .prrint-admin-sub {
-	color: #646970;
-	margin-top: -4px;
+	margin: 8px 0 0;
+	max-width: 62em;
+	color: rgba(255, 255, 255, 0.88);
 }
+
+/* ----------------------------------------------------------------- cards */
 
 .prrint-card {
 	background: #fff;
-	border: 1px solid #dcdcde;
-	border-radius: 8px;
-	padding: 18px 22px;
-	margin: 18px 0;
+	border: 1px solid var(--prrint-a-line);
+	border-radius: var(--prrint-a-radius);
+	padding: 22px 26px;
+	margin: 16px 0;
 	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
 }
 
 .prrint-card h2 {
-	margin-top: 0;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 4px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid var(--prrint-a-line);
+	font-size: 1.1em;
+	color: var(--prrint-a-ink);
+}
+
+.prrint-card > .description:first-of-type,
+.prrint-card h2 + .description {
+	margin-top: 10px;
+}
+
+.prrint-card-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	flex: 0 0 auto;
+	border-radius: 8px;
+	background: var(--prrint-a-accent-soft);
+	font-size: 0.95em;
 }
 
 .prrint-card h3 {
-	margin: 18px 0 6px;
-	font-size: 1em;
+	margin: 20px 0 8px;
+	font-size: 0.95em;
+	font-weight: 600;
+	color: var(--prrint-a-ink);
 }
+
+.prrint-card .description {
+	color: var(--prrint-a-muted);
+	max-width: 62em;
+}
+
+/* ------------------------------------------------------------- form-table */
+
+.prrint-card .form-table {
+	margin-top: 4px;
+}
+
+.prrint-card .form-table th {
+	padding-left: 0;
+	font-weight: 600;
+	color: var(--prrint-a-ink);
+}
+
+.prrint-card .form-table td {
+	padding-bottom: 18px;
+}
+
+/* --------------------------------------------------------------- tables */
 
 .prrint-table {
 	max-width: 640px;
 	margin-top: 10px;
+	border: 1px solid var(--prrint-a-line);
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.prrint-table thead th {
+	background: #fafafa;
+	font-size: 0.85em;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: var(--prrint-a-muted);
 }
 
 .prrint-table input[type="text"],
@@ -60,14 +152,18 @@
 	cursor: pointer;
 	border: 0;
 	background: none;
+	border-radius: 4px;
+	padding: 2px 6px;
+	transition: background 0.12s ease;
 }
 
 .prrint-remove-row:hover {
 	color: #8a2424;
+	background: #fdecec;
 }
 
 .prrint-add-row {
-	margin-top: 4px !important;
+	margin-top: 10px !important;
 }
 
 .prrint-product-tables .prrint-table input[type="text"],
@@ -75,18 +171,44 @@
 	max-width: 120px;
 }
 
+/* ------------------------------------------------------------ chip toggles */
+
 .prrint-checkbox-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-	gap: 8px 16px;
-	max-width: 640px;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: 8px 10px;
+	max-width: 720px;
 }
 
 .prrint-checkbox-grid label {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: 7px;
+	padding: 8px 12px;
+	border: 1px solid var(--prrint-a-line);
+	border-radius: 999px;
+	background: #fff;
+	cursor: pointer;
+	transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
+
+.prrint-checkbox-grid label:hover {
+	border-color: var(--prrint-a-accent);
+}
+
+.prrint-checkbox-grid label:has(input:checked) {
+	background: var(--prrint-a-accent-soft);
+	border-color: var(--prrint-a-accent);
+	color: var(--prrint-a-accent-dark);
+	font-weight: 600;
+}
+
+.prrint-checkbox-grid input[type="checkbox"] {
+	margin: 0;
+	flex: 0 0 auto;
+}
+
+/* ------------------------------------------------------------- color lists */
 
 .prrint-color-list-input {
 	max-width: 480px;
@@ -100,8 +222,8 @@
 }
 
 .prrint-swatch-chip {
-	width: 22px;
-	height: 22px;
+	width: 24px;
+	height: 24px;
 	border-radius: 50%;
 	border: 1px solid rgba(0, 0, 0, 0.15);
 	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
@@ -112,4 +234,18 @@
 	background-image: linear-gradient(45deg, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%), linear-gradient(45deg, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);
 	background-size: 8px 8px;
 	background-position: 0 0, 4px 4px;
+}
+
+/* --------------------------------------------------------------- save bar */
+
+.prrint-save-bar {
+	margin-top: 24px;
+	padding-top: 4px;
+}
+
+.prrint-save-bar .button-primary {
+	padding: 4px 22px;
+	height: auto;
+	line-height: 2;
+	border-radius: 6px;
 }
