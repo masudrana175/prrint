@@ -84,10 +84,12 @@ lands — check git log for the commit implementing each item.
   - DuoTone is a **true 2-stop gradient** (palette remap technique), not an approximation
 - **Adjust** — Brightness, Contrast, Saturation, Gamma, Exposure, Clarity, Shadows, Highlights
   (Shadows/Highlights are global approximations — see "Notes on feasibility limits")
-- **Text** — multi-layer captions: any Google Fonts family (typed, with autocomplete —
-  not a fixed picklist), font size, bold, alignment, color, background color, line
-  spacing, rotation, drag-to-move, and an on-canvas floating toolbar (Edit/Move to
-  Front/Duplicate/Delete) above the selected layer, alongside the side-panel controls
+- **Text** — multi-layer captions: a searchable Font Family dropdown (each option
+  rendered in its own font) over the popular-fonts list, or type any Google Fonts
+  name and press Enter — not a fixed picklist — font size, bold, alignment, color,
+  background color, line spacing, rotation, drag-to-move, and an on-canvas floating
+  toolbar (Edit/Move to Front/Duplicate/Delete) above the selected layer, alongside
+  the side-panel controls
   - Google Fonts: the browser preview loads the family live from Google's CSS2 API;
     the GD print pipeline (which needs a local TTF, not a webfont) downloads one via
     Google's legacy `css?family=` endpoint — spoofing an old user agent to get a
@@ -189,6 +191,25 @@ lands — check git log for the commit implementing each item.
   describes the crop rectangle in source pixels (exactly what
   `edExportCrop()` already computes), not the print's physical inches, so it
   was buildable without the bigger architecture change that note worried about.
+- **Crop tool verified end-to-end, no bug found** — a user report of "crop not
+  working" couldn't be pinned down to specifics, so rather than guess, it was
+  tested directly: a Playwright script drives the *real* plugin JS/CSS against
+  the *real* server-rendered markup (via reflection into `render_studio_markup`,
+  not a hand-copied mock) — uploads a photo, opens the editor, drags the canvas,
+  scroll-wheel zooms, drags the zoom slider, types into the Crop Size fields,
+  toggles Keep Resolution, clicks Reset to Default — and asserts the visible
+  DPI/zoom/crop-size readouts actually change, while watching for any JS
+  exception. Every interaction passed clean. If it's still not working on a
+  live site, the likely cause is stale cached assets rather than a code bug —
+  worth a hard refresh / cache-plugin purge before re-reporting.
+- **General visual polish pass** — every editor tool, not just Transform, got a
+  consistency pass: `<input type="range">` sliders (Adjust, Text, Border, Focus,
+  Draw) now use a custom-styled thumb/track instead of relying on the browser's
+  own look (`accent-color` alone renders very differently across browsers);
+  color swatches get a hover scale-up and a smoother active ring; filter/overlay
+  preview tiles lift on hover; shape buttons and the tool-rail icons got matching
+  hover/active micro-interactions. Verified visually via Playwright screenshots
+  of Adjust, Elements and the Font dropdown against the running plugin.
 
 ## 🚧 Not started / partially covered
 

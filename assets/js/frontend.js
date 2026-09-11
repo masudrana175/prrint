@@ -66,7 +66,12 @@
 		textBgSwatches: document.getElementById('prrint-text-bg-swatches'),
 		textDuplicate: document.getElementById('prrint-text-duplicate'),
 		textDelete: document.getElementById('prrint-text-delete'),
-		textFont: document.getElementById('prrint-text-font'),
+		fontDropdown: document.getElementById('prrint-font-dropdown'),
+		fontToggle: document.getElementById('prrint-font-toggle'),
+		fontToggleLabel: document.getElementById('prrint-font-toggle-label'),
+		fontPanel: document.getElementById('prrint-font-panel'),
+		fontSearch: document.getElementById('prrint-font-search'),
+		fontList: document.getElementById('prrint-font-list'),
 		layerToolbar: document.getElementById('prrint-layer-toolbar'),
 		layerEdit: document.getElementById('prrint-layer-edit'),
 		layerFront: document.getElementById('prrint-layer-front'),
@@ -1968,11 +1973,13 @@
 	function showLayerFields(layer) {
 		if (!layer) {
 			els.textFields.hidden = true;
+			closeFontDropdown();
 			return;
 		}
 		els.textFields.hidden = false;
 		els.textContent.value = layer.text;
-		if (els.textFont) { els.textFont.value = layer.fontFamily || ''; }
+		if (els.fontToggleLabel) { els.fontToggleLabel.textContent = layer.fontFamily || cfg.i18n.defaultFont || 'Default'; }
+		syncFontDropdownActive(layer.fontFamily);
 		els.textSize.value = String(Math.round(layer.fontSize * 100));
 		els.textSpacing.value = String(Math.round(layer.lineSpacing * 10));
 		if (els.textSpacingOut) { els.textSpacingOut.textContent = layer.lineSpacing.toFixed(1); }
@@ -2042,21 +2049,115 @@
 		});
 		els.textSize.addEventListener('change', pushHistory);
 	}
-	if (els.textFont) {
-		els.textFont.addEventListener('change', function () {
-			var l = selectedLayer('text');
-			if (!l) { return; }
-			l.fontFamily = sanitizeFontFamily(this.value);
-			this.value = l.fontFamily;
-			edDraw();
-			var item = ed.item;
-			ensureGoogleFont(l.fontFamily, function () {
-				if (ed.item === item) { edDraw(); }
-				if (item) { renderCard(item); }
-			});
-			pushHistory();
+	/* Font Family dropdown: styled combobox over cfg.popularFonts, but not
+	   restricted to it — typing a name and pressing Enter (or Search's
+	   free text) applies any Google Fonts family. */
+	var popularFontsBatchLoaded = false;
+	function loadPopularFontsBatch() {
+		if (popularFontsBatchLoaded || !cfg.popularFonts || !cfg.popularFonts.length) { return; }
+		popularFontsBatchLoaded = true;
+		var families = cfg.popularFonts.map(function (f) {
+			return 'family=' + encodeURIComponent(f).replace(/%20/g, '+') + ':wght@400;700';
+		}).join('&');
+		var link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.href = 'https://fonts.googleapis.com/css2?' + families + '&display=swap';
+		document.head.appendChild(link);
+	}
+
+	function applyFontFamily(layer, rawValue) {
+		layer.fontFamily = sanitizeFontFamily(rawValue);
+		if (els.fontToggleLabel) { els.fontToggleLabel.textContent = layer.fontFamily || cfg.i18n.defaultFont || 'Default'; }
+		syncFontDropdownActive(layer.fontFamily);
+		edDraw();
+		var item = ed.item;
+		ensureGoogleFont(layer.fontFamily, function () {
+			if (ed.item === item) { edDraw(); }
+			if (item) { renderCard(item); }
+		});
+		pushHistory();
+	}
+
+	function syncFontDropdownActive(family) {
+		if (!els.fontList) { return; }
+		els.fontList.querySelectorAll('.prrint-font-option').forEach(function (b) {
+			b.classList.toggle('is-active', (b.dataset.family || '') === (family || ''));
 		});
 	}
+
+	function openFontDropdown() {
+		if (!els.fontPanel) { return; }
+		loadPopularFontsBatch();
+		els.fontPanel.hidden = false;
+		if (els.fontDropdown) { els.fontDropdown.setAttribute('data-open', 'true'); }
+		if (els.fontToggle) { els.fontToggle.setAttribute('aria-expanded', 'true'); }
+		if (els.fontSearch) {
+			els.fontSearch.value = '';
+			els.fontList.querySelectorAll('.prrint-font-option').forEach(function (b) { b.hidden = false; });
+			els.fontSearch.focus();
+		}
+	}
+
+	function closeFontDropdown() {
+		if (!els.fontPanel) { return; }
+		els.fontPanel.hidden = true;
+		if (els.fontDropdown) { els.fontDropdown.removeAttribute('data-open'); }
+		if (els.fontToggle) { els.fontToggle.setAttribute('aria-expanded', 'false'); }
+	}
+
+	if (els.fontToggle) {
+		els.fontToggle.addEventListener('click', function (e) {
+			e.stopPropagation();
+			if (!selectedLayer('text')) { return; }
+			if (els.fontPanel.hidden) { openFontDropdown(); } else { closeFontDropdown(); }
+		});
+	}
+	if (els.fontList) {
+		els.fontList.addEventListener('click', function (e) {
+			var btn = e.target.closest ? e.target.closest('.prrint-font-option') : null;
+			if (!btn) { return; }
+			var l = selectedLayer('text');
+			if (l) { applyFontFamily(l, btn.dataset.family || ''); }
+			closeFontDropdown();
+		});
+	}
+	if (els.fontSearch) {
+		els.fontSearch.addEventListener('input', function () {
+			var q = this.value.trim().toLowerCase();
+			var any = false;
+			els.fontList.querySelectorAll('.prrint-font-option').forEach(function (b) {
+				var isDefault = !b.dataset.family;
+				var defaultLabel = (cfg.i18n.defaultFont || '').toLowerCase();
+				var match = !q || (b.dataset.family || '').toLowerCase().indexOf(q) !== -1 || (isDefault && defaultLabel.indexOf(q) !== -1);
+				b.hidden = !match;
+				if (match) { any = true; }
+			});
+			var empty = els.fontList.querySelector('.prrint-font-empty');
+			if (!any && q) {
+				if (!empty) {
+					empty = document.createElement('p');
+					empty.className = 'prrint-font-empty';
+					els.fontList.appendChild(empty);
+				}
+				empty.textContent = (cfg.i18n.fontUseTyped || 'Press Enter to use "%s"').replace('%s', this.value);
+			} else if (empty) {
+				empty.remove();
+			}
+		});
+		els.fontSearch.addEventListener('keydown', function (e) {
+			if (e.key !== 'Enter') { return; }
+			e.preventDefault();
+			var l = selectedLayer('text');
+			if (l) { applyFontFamily(l, this.value); }
+			closeFontDropdown();
+		});
+	}
+	document.addEventListener('click', function (e) {
+		if (els.fontDropdown && !els.fontPanel.hidden && !els.fontDropdown.contains(e.target)) { closeFontDropdown(); }
+	});
+	document.addEventListener('keydown', function (e) {
+		if (e.key === 'Escape' && els.fontPanel && !els.fontPanel.hidden) { closeFontDropdown(); }
+	});
 	if (els.textSpacing) {
 		els.textSpacing.addEventListener('input', function () {
 			var l = selectedLayer('text');

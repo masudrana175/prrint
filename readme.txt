@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.18.0
+Stable tag: 1.19.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,25 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.19.0 =
+* Font Family in the Text tool is now a proper styled dropdown: click to
+  open a searchable list of popular Google Fonts, each option rendered in
+  its own font, or type any Google Fonts name and press Enter — still
+  "unlimited," just easier to browse. Fixed a bug (only reachable if a
+  site's localized strings are incomplete, e.g. right after an update)
+  where the search box could throw and leave the list stuck half-filtered.
+* Polish pass across every editor tool: sliders (Adjust, Text, Border,
+  Focus, Draw) now have a custom thumb/track instead of the plain browser
+  default; color swatches, filter/overlay preview tiles, shape buttons and
+  the tool rail icons all got hover/active micro-interactions (lift, glow,
+  scale) for a more polished, consistent feel across every panel.
+* Verified the crop tool (drag, scroll/slider/typed-number zoom, the
+  numeric Crop Size fields, Keep Resolution) end-to-end with an automated
+  browser test against the real plugin code — found no bugs in it. If
+  crop still isn't working on your site, please confirm you're on this
+  version and describe exactly what happens (nothing responds? an error?
+  the final print looks wrong?) so it can be reproduced and fixed.
 
 = 1.18.0 =
 * Add unlimited Google Fonts to the Text tool: type any Google Fonts family

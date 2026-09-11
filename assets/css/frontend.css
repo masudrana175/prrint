@@ -754,17 +754,19 @@ body.prrint-modal-open {
 	color: var(--prrint-dark-muted);
 	font-size: 1.15em;
 	cursor: pointer;
-	transition: background 0.15s ease, color 0.15s ease;
+	transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .prrint-tool-btn:hover {
 	background: rgba(255, 255, 255, 0.08);
 	color: var(--prrint-dark-text);
+	transform: scale(1.06);
 }
 
 .prrint-tool-btn.is-active {
 	background: rgba(37, 99, 235, 0.25);
 	color: #fff;
+	box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.5);
 }
 
 .prrint-tool-panels {
@@ -783,6 +785,56 @@ body.prrint-modal-open {
 	width: 100%;
 	accent-color: var(--prrint-dark-accent);
 	background: transparent;
+	-webkit-appearance: none;
+	appearance: none;
+	height: 20px;
+	margin: 0;
+	cursor: pointer;
+}
+
+.prrint-tool-panel input[type="range"]::-webkit-slider-runnable-track {
+	height: 4px;
+	border-radius: 999px;
+	background: var(--prrint-dark-line, #2a2a32);
+}
+
+.prrint-tool-panel input[type="range"]::-moz-range-track {
+	height: 4px;
+	border-radius: 999px;
+	background: var(--prrint-dark-line, #2a2a32);
+}
+
+.prrint-tool-panel input[type="range"]::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 16px;
+	height: 16px;
+	margin-top: -6px;
+	border-radius: 50%;
+	background: var(--prrint-dark-accent, #2563eb);
+	border: 2px solid #fff;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	transition: transform 0.12s ease;
+}
+
+.prrint-tool-panel input[type="range"]::-moz-range-thumb {
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: var(--prrint-dark-accent, #2563eb);
+	border: 2px solid #fff;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	transition: transform 0.12s ease;
+}
+
+.prrint-tool-panel input[type="range"]:hover::-webkit-slider-thumb,
+.prrint-tool-panel input[type="range"]:active::-webkit-slider-thumb {
+	transform: scale(1.15);
+}
+
+.prrint-tool-panel input[type="range"]:hover::-moz-range-thumb,
+.prrint-tool-panel input[type="range"]:active::-moz-range-thumb {
+	transform: scale(1.15);
 }
 
 .prrint-panel-row {
@@ -889,27 +941,132 @@ body.prrint-modal-open {
 
 .prrint-font-family-row {
 	display: flex;
+	align-items: stretch;
+	gap: 8px;
+}
+
+.prrint-font-dropdown {
+	position: relative;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.prrint-font-dropdown-toggle {
+	width: 100%;
+	box-sizing: border-box;
+	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
-	padding: 8px 10px;
-	border: 1px solid var(--prrint-dark-line);
+	padding: 10px 12px;
+	border: 1px solid var(--prrint-dark-line, #2a2a32);
 	border-radius: 8px;
-}
-
-.prrint-font-family-input {
-	flex: 1 1 auto;
-	min-width: 0;
-	border: none;
-	background: transparent;
+	background: rgba(255, 255, 255, 0.04);
 	color: var(--prrint-dark-text, #f5f5f7);
 	font-weight: 700;
 	font-size: 0.9em;
-	padding: 6px 0;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.prrint-font-family-input:focus {
+.prrint-font-dropdown-toggle span:first-child {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.prrint-font-dropdown-toggle:hover {
+	border-color: var(--prrint-dark-accent, #2563eb);
+}
+
+.prrint-font-dropdown[data-open="true"] .prrint-font-dropdown-toggle {
+	border-color: var(--prrint-dark-accent, #2563eb);
+	background: rgba(37, 99, 235, 0.12);
+}
+
+.prrint-font-dropdown-arrow {
+	flex: 0 0 auto;
+	color: var(--prrint-dark-muted, #9a9aa5);
+	font-size: 0.8em;
+	transition: transform 0.15s ease;
+}
+
+.prrint-font-dropdown[data-open="true"] .prrint-font-dropdown-arrow {
+	transform: rotate(180deg);
+}
+
+.prrint-font-dropdown-panel {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: calc(100% + 6px);
+	z-index: 20;
+	background: #16161c;
+	border: 1px solid var(--prrint-dark-line, #2a2a32);
+	border-radius: 10px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+	padding: 8px;
+}
+
+.prrint-font-dropdown-panel[hidden] {
+	display: none;
+}
+
+.prrint-font-search {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 8px 10px;
+	margin-bottom: 6px;
+	border: 1px solid var(--prrint-dark-line, #2a2a32);
+	border-radius: 6px;
+	background: rgba(255, 255, 255, 0.05);
+	color: var(--prrint-dark-text, #f5f5f7);
+	font-size: 0.9em;
+}
+
+.prrint-font-search:focus {
 	outline: none;
+	border-color: var(--prrint-dark-accent, #2563eb);
+}
+
+.prrint-font-list {
+	max-height: 220px;
+	overflow-y: auto;
+}
+
+.prrint-font-option {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 9px 10px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--prrint-dark-text, #f5f5f7);
+	font-size: 1em;
+	text-align: left;
+	cursor: pointer;
+	transition: background 0.12s ease;
+}
+
+.prrint-font-option:hover {
+	background: rgba(255, 255, 255, 0.08);
+}
+
+.prrint-font-option.is-active {
+	background: rgba(37, 99, 235, 0.28);
+	color: #fff;
+}
+
+.prrint-font-option[hidden] {
+	display: none;
+}
+
+.prrint-font-empty {
+	padding: 10px;
+	font-size: 0.85em;
+	color: var(--prrint-dark-muted, #9a9aa5);
+	text-align: center;
 }
 
 .prrint-layer-toolbar {
@@ -1004,11 +1161,18 @@ body.prrint-modal-open {
 	cursor: pointer;
 	padding: 0;
 	background-clip: padding-box;
+	transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.prrint-swatch:hover {
+	transform: scale(1.12);
+	border-color: var(--prrint-dark-muted, #9a9aa5);
 }
 
 .prrint-swatch.is-active {
 	border-color: var(--prrint-dark-accent);
 	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+	transform: scale(1.08);
 }
 
 .prrint-swatch-none {
@@ -1031,11 +1195,19 @@ body.prrint-modal-open {
 	cursor: pointer;
 	overflow: hidden;
 	padding: 0;
+	transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.prrint-filter-swatch:hover {
+	transform: translateY(-2px);
+	border-color: var(--prrint-dark-muted, #9a9aa5);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 .prrint-filter-swatch.is-active {
 	outline: 2px solid var(--prrint-dark-accent);
 	outline-offset: 1px;
+	box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
 }
 
 .prrint-filter-caption {
@@ -1195,15 +1367,18 @@ body.prrint-modal-open {
 	padding: 10px 6px;
 	border: 1px solid var(--prrint-dark-line);
 	border-radius: 8px;
-	background: transparent;
+	background: rgba(255, 255, 255, 0.03);
 	color: var(--prrint-dark-text);
 	font-size: 1.3em;
 	line-height: 1;
 	cursor: pointer;
+	transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
 }
 
 .prrint-editor-panel .prrint-shape-btn:hover {
 	border-color: var(--prrint-dark-accent);
+	background: rgba(37, 99, 235, 0.12);
+	transform: translateY(-1px);
 }
 
 .prrint-editor-panel .prrint-shape-btn.is-active {

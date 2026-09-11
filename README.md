@@ -38,12 +38,12 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
 - **Order one photo in several sizes** — "Add size" on any card clones that
   photo (same crop/edits) into a second, independently priced cart line so
   a customer can order the same shot as, say, one 8×10 and two 5×7s.
-- **Text layers** — add captions on top of the photo: any Google Fonts
-  family (typed with autocomplete suggestions, not a fixed picklist), font
-  size, bold, alignment, text color, background color, line spacing and
-  rotation, with move-by-drag and an on-canvas Edit/Move to Front/
-  Duplicate/Delete toolbar above the selected layer. Great for cards,
-  gifts and greetings.
+- **Text layers** — add captions on top of the photo: a searchable Font
+  Family dropdown of popular Google Fonts (each shown in its own font),
+  or type any Google Fonts name — not a fixed picklist — font size, bold,
+  alignment, text color, background color, line spacing and rotation,
+  with move-by-drag and an on-canvas Edit/Move to Front/Duplicate/Delete
+  toolbar above the selected layer. Great for cards, gifts and greetings.
 - **Elements** — colored sticker shapes (circle, square, triangle, diamond,
   pentagon, hexagon, star, heart, arrow, cross, line), resizable and
   rotatable, drawn from the same geometry client- and server-side so what

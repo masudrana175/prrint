@@ -184,6 +184,7 @@ class Prrint_Frontend {
 				array( 'id' => 'line',     'label' => '—' ),
 			),
 			'shapeColors'    => array_values( $settings['shape_colors'] ),
+			'popularFonts'   => Prrint_Fonts::popular_families(),
 			'textTemplates'  => self::enabled_text_templates( $settings['text_templates_enabled'] ),
 			'drawColors'     => array_values( $settings['draw_colors'] ),
 			'enabledTools'   => array_values( $settings['enabled_tools'] ),
@@ -245,6 +246,10 @@ class Prrint_Frontend {
 				'photoDeleted'  => __( 'Photo deleted.', 'prrint' ),
 				'libraryEmpty'  => __( "You haven't uploaded any photos yet — they'll show up here once you do.", 'prrint' ),
 				'refreshing'    => __( 'Refreshing…', 'prrint' ),
+				'defaultFont'   => __( 'Default (Liberation Sans)', 'prrint' ),
+				'fontSearch'    => __( 'Search fonts…', 'prrint' ),
+				/* translators: %s: the font name the customer typed */
+				'fontUseTyped'  => __( 'Press Enter to use "%s"', 'prrint' ),
 			),
 		) );
 	}
@@ -497,15 +502,28 @@ class Prrint_Frontend {
 
 									<p class="prrint-field-label"><?php esc_html_e( 'Font Family', 'prrint' ); ?></p>
 									<div class="prrint-font-family-row">
-										<input type="text" id="prrint-text-font" class="prrint-font-family-input" list="prrint-gfont-list" autocomplete="off" placeholder="<?php esc_attr_e( 'Default (Liberation Sans)', 'prrint' ); ?>" />
+										<div class="prrint-font-dropdown" id="prrint-font-dropdown">
+											<button type="button" class="prrint-font-dropdown-toggle" id="prrint-font-toggle" aria-haspopup="listbox" aria-expanded="false">
+												<span id="prrint-font-toggle-label"><?php esc_html_e( 'Default (Liberation Sans)', 'prrint' ); ?></span>
+												<span class="prrint-font-dropdown-arrow" aria-hidden="true">▾</span>
+											</button>
+											<div class="prrint-font-dropdown-panel" id="prrint-font-panel" hidden>
+												<input type="text" id="prrint-font-search" class="prrint-font-search" placeholder="<?php esc_attr_e( 'Search fonts…', 'prrint' ); ?>" autocomplete="off" />
+												<div class="prrint-font-list" id="prrint-font-list" role="listbox">
+													<button type="button" class="prrint-font-option is-active" data-family="" role="option">
+														<?php esc_html_e( 'Default (Liberation Sans)', 'prrint' ); ?>
+													</button>
+													<?php foreach ( Prrint_Fonts::popular_families() as $gfont ) : ?>
+														<button type="button" class="prrint-font-option" data-family="<?php echo esc_attr( $gfont ); ?>" role="option" style="font-family:'<?php echo esc_attr( $gfont ); ?>', sans-serif;">
+															<?php echo esc_html( $gfont ); ?>
+														</button>
+													<?php endforeach; ?>
+												</div>
+											</div>
+										</div>
 										<button type="button" class="prrint-tool" id="prrint-text-bold" title="<?php esc_attr_e( 'Bold', 'prrint' ); ?>"><strong>B</strong></button>
 									</div>
-									<datalist id="prrint-gfont-list">
-										<?php foreach ( Prrint_Fonts::popular_families() as $gfont ) : ?>
-											<option value="<?php echo esc_attr( $gfont ); ?>"></option>
-										<?php endforeach; ?>
-									</datalist>
-									<p class="prrint-editor-hint"><?php esc_html_e( 'Type any Google Fonts name — start typing for suggestions.', 'prrint' ); ?></p>
+									<p class="prrint-editor-hint"><?php esc_html_e( 'Search, or type any Google Fonts name and press Enter.', 'prrint' ); ?></p>
 
 									<div class="prrint-two-col">
 										<div>
