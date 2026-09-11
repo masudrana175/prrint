@@ -3,7 +3,7 @@
  * Plugin Name: Prrint — Photo Print Studio for WooCommerce
  * Plugin URI:  https://github.com/masudrana175/prrint
  * Description: Turn WooCommerce products into a full photo print shop: multi-photo upload, crop/zoom/rotate editor, print sizes, paper finishes, white borders, live pricing, print-quality checks, and 300 DPI print-ready files on every order.
- * Version:     1.19.0
+ * Version:     1.20.0
  * Author:      Masud Rana
  * Author URI:  https://github.com/masudrana175
  * Text Domain: prrint
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PRRINT_VERSION', '1.19.0' );
+define( 'PRRINT_VERSION', '1.20.0' );
 define( 'PRRINT_FILE', __FILE__ );
 define( 'PRRINT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PRRINT_URL', plugin_dir_url( __FILE__ ) );
@@ -224,6 +224,29 @@ function prrint_text_template_ids() {
 	return array( 'banner', 'stacked', 'quote', 'corner', 'stamp', 'sidestrip' );
 }
 
+/**
+ * Filter presets that can be turned off per store. "None" isn't in this
+ * list — it's always offered so a customer can clear a filter they applied.
+ */
+function prrint_toggleable_filters() {
+	return array( 'bw', 'warm', 'cold', 'vintage', 'duotone', 'legacy', 'smooth' );
+}
+
+/**
+ * Overlay textures that can be turned off per store. "None" is always
+ * offered, same reasoning as filters.
+ */
+function prrint_toggleable_overlays() {
+	return array( 'vignette', 'glow', 'lightleak', 'grain', 'bokeh', 'scratches' );
+}
+
+/**
+ * Sticker shapes that can be turned off per store.
+ */
+function prrint_toggleable_shapes() {
+	return array( 'circle', 'square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'star', 'heart', 'arrow', 'cross', 'line' );
+}
+
 function prrint_default_settings() {
 	return array(
 		'sizes'                  => prrint_default_sizes(),
@@ -238,6 +261,9 @@ function prrint_default_settings() {
 		'studio_product_id'      => 0, // 0 = use the auto-created sample product.
 		'enabled_tools'          => prrint_toggleable_tools(),
 		'text_templates_enabled' => prrint_text_template_ids(),
+		'enabled_filters'        => prrint_toggleable_filters(),
+		'enabled_overlays'       => prrint_toggleable_overlays(),
+		'enabled_shapes'         => prrint_toggleable_shapes(),
 		'text_colors'            => array( '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
 		'text_bg_colors'         => array( '', '#ffffff', '#000000', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7' ),
 		'border_colors'          => array( '#ffffff', '#000000', '#9ca3af', '#f43f5e', '#f59e0b', '#3b82f6' ),

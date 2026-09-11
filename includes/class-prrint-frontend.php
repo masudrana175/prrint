@@ -148,41 +148,12 @@ class Prrint_Frontend {
 			'preselectSize'  => $preselect_size,
 			'preselectPaper' => $preselect_paper,
 			'cartUrl'        => wc_get_cart_url(),
-			'filters'        => array(
-				array( 'id' => '',        'label' => __( 'None', 'prrint' ) ),
-				array( 'id' => 'bw',      'label' => __( 'B&W', 'prrint' ) ),
-				array( 'id' => 'warm',    'label' => __( 'Warm', 'prrint' ) ),
-				array( 'id' => 'cold',    'label' => __( 'Cold', 'prrint' ) ),
-				array( 'id' => 'vintage', 'label' => __( 'Vintage', 'prrint' ) ),
-				array( 'id' => 'duotone', 'label' => __( 'DuoTone', 'prrint' ) ),
-				array( 'id' => 'legacy',  'label' => __( 'Legacy', 'prrint' ) ),
-				array( 'id' => 'smooth',  'label' => __( 'Smooth', 'prrint' ) ),
-			),
-			'overlays'       => array(
-				array( 'id' => '',          'label' => __( 'None', 'prrint' ), 'url' => '' ),
-				array( 'id' => 'vignette',  'label' => __( 'Vignette', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/vignette.png' ),
-				array( 'id' => 'glow',      'label' => __( 'Glow', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/glow.png' ),
-				array( 'id' => 'lightleak', 'label' => __( 'Light Leak', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/lightleak.png' ),
-				array( 'id' => 'grain',     'label' => __( 'Grain', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/grain.png' ),
-				array( 'id' => 'bokeh',     'label' => __( 'Bokeh', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/bokeh.png' ),
-				array( 'id' => 'scratches', 'label' => __( 'Scratches', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/scratches.png' ),
-			),
+			'filters'        => self::enabled_filters( $settings['enabled_filters'] ),
+			'overlays'       => self::enabled_overlays( $settings['enabled_overlays'] ),
 			'textColors'     => array_values( $settings['text_colors'] ),
 			'textBgColors'   => array_values( $settings['text_bg_colors'] ),
 			'borderColors'   => array_values( $settings['border_colors'] ),
-			'shapes'         => array(
-				array( 'id' => 'circle',   'label' => '●' ),
-				array( 'id' => 'square',   'label' => '■' ),
-				array( 'id' => 'triangle', 'label' => '▲' ),
-				array( 'id' => 'diamond',  'label' => '◆' ),
-				array( 'id' => 'pentagon', 'label' => '⬠' ),
-				array( 'id' => 'hexagon',  'label' => '⬡' ),
-				array( 'id' => 'star',     'label' => '★' ),
-				array( 'id' => 'heart',    'label' => '♥' ),
-				array( 'id' => 'arrow',    'label' => '➤' ),
-				array( 'id' => 'cross',    'label' => '✚' ),
-				array( 'id' => 'line',     'label' => '—' ),
-			),
+			'shapes'         => self::enabled_shapes( $settings['enabled_shapes'] ),
 			'shapeColors'    => array_values( $settings['shape_colors'] ),
 			'popularFonts'   => Prrint_Fonts::popular_families(),
 			'textTemplates'  => self::enabled_text_templates( $settings['text_templates_enabled'] ),
@@ -270,6 +241,68 @@ class Prrint_Frontend {
 	 * The Text Design template id/label list, filtered to the ones the
 	 * store has left enabled (default: all of them).
 	 */
+	/**
+	 * The Filters preset list, filtered to what the store has left enabled.
+	 * "None" is always included so a customer can clear a filter they applied.
+	 */
+	protected static function enabled_filters( $enabled_ids ) {
+		$all = array(
+			array( 'id' => 'bw',      'label' => __( 'B&W', 'prrint' ) ),
+			array( 'id' => 'warm',    'label' => __( 'Warm', 'prrint' ) ),
+			array( 'id' => 'cold',    'label' => __( 'Cold', 'prrint' ) ),
+			array( 'id' => 'vintage', 'label' => __( 'Vintage', 'prrint' ) ),
+			array( 'id' => 'duotone', 'label' => __( 'DuoTone', 'prrint' ) ),
+			array( 'id' => 'legacy',  'label' => __( 'Legacy', 'prrint' ) ),
+			array( 'id' => 'smooth',  'label' => __( 'Smooth', 'prrint' ) ),
+		);
+		$filtered = array_values( array_filter( $all, function ( $f ) use ( $enabled_ids ) {
+			return in_array( $f['id'], $enabled_ids, true );
+		} ) );
+		array_unshift( $filtered, array( 'id' => '', 'label' => __( 'None', 'prrint' ) ) );
+		return $filtered;
+	}
+
+	/**
+	 * The Overlays texture list, filtered the same way. "None" always included.
+	 */
+	protected static function enabled_overlays( $enabled_ids ) {
+		$all = array(
+			array( 'id' => 'vignette',  'label' => __( 'Vignette', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/vignette.png' ),
+			array( 'id' => 'glow',      'label' => __( 'Glow', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/glow.png' ),
+			array( 'id' => 'lightleak', 'label' => __( 'Light Leak', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/lightleak.png' ),
+			array( 'id' => 'grain',     'label' => __( 'Grain', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/grain.png' ),
+			array( 'id' => 'bokeh',     'label' => __( 'Bokeh', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/bokeh.png' ),
+			array( 'id' => 'scratches', 'label' => __( 'Scratches', 'prrint' ), 'url' => PRRINT_URL . 'assets/overlays/scratches.png' ),
+		);
+		$filtered = array_values( array_filter( $all, function ( $o ) use ( $enabled_ids ) {
+			return in_array( $o['id'], $enabled_ids, true );
+		} ) );
+		array_unshift( $filtered, array( 'id' => '', 'label' => __( 'None', 'prrint' ), 'url' => '' ) );
+		return $filtered;
+	}
+
+	/**
+	 * The Elements sticker-shape list, filtered the same way.
+	 */
+	protected static function enabled_shapes( $enabled_ids ) {
+		$all = array(
+			array( 'id' => 'circle',   'label' => '●' ),
+			array( 'id' => 'square',   'label' => '■' ),
+			array( 'id' => 'triangle', 'label' => '▲' ),
+			array( 'id' => 'diamond',  'label' => '◆' ),
+			array( 'id' => 'pentagon', 'label' => '⬠' ),
+			array( 'id' => 'hexagon',  'label' => '⬡' ),
+			array( 'id' => 'star',     'label' => '★' ),
+			array( 'id' => 'heart',    'label' => '♥' ),
+			array( 'id' => 'arrow',    'label' => '➤' ),
+			array( 'id' => 'cross',    'label' => '✚' ),
+			array( 'id' => 'line',     'label' => '—' ),
+		);
+		return array_values( array_filter( $all, function ( $s ) use ( $enabled_ids ) {
+			return in_array( $s['id'], $enabled_ids, true );
+		} ) );
+	}
+
 	protected static function enabled_text_templates( $enabled_ids ) {
 		$all = array(
 			array( 'id' => 'banner',    'label' => __( 'Banner', 'prrint' ) ),

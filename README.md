@@ -81,6 +81,13 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
   upload limits, JPEG quality, print DPI and warning thresholds.
 - **Per-product overrides** — a "Print Studio" tab in the product editor:
   enable the studio per product and optionally override sizes/papers.
+- **Fine-grained tool control** — turn whole editor tools on/off, and within
+  Filters/Overlays/Elements pick exactly which presets/shapes are offered
+  ("None" stays available for Filters/Overlays so customers can always clear
+  one). Also: which Text Design layouts show, and the text/background/
+  border/shape/draw color palettes, all editable from Settings.
+- **Studio preview button** — one click from Settings opens the live
+  `[prrint_studio]` page in a new tab.
 - **Print-ready files** — every order line gets a flattened 300 DPI JPEG
   (configurable) rendered with the exact crop and border the customer chose,
   plus a copy of the original upload. Buttons on the admin order screen, and

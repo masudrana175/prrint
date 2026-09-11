@@ -32,6 +32,11 @@
 	margin-top: 0;
 }
 
+.prrint-card h3 {
+	margin: 18px 0 6px;
+	font-size: 1em;
+}
+
 .prrint-table {
 	max-width: 640px;
 	margin-top: 10px;

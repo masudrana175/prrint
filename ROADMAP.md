@@ -164,6 +164,18 @@ lands — check git log for the commit implementing each item.
 - **Color palettes** — the text/background/border/shape/draw color swatch lists are
   now editable (comma-separated hex, "transparent" for no fill) instead of a fixed
   hardcoded set, with a live swatch preview in the admin page
+- **Filters / Overlays / Elements presets** — one level finer than the whole-tool
+  toggle above: keep a tool on but pick exactly which presets it offers (e.g. only
+  B&W and Warm out of the 7 filters). "None" is never in the checkbox list for
+  Filters/Overlays — it's always injected server-side so a customer can still clear
+  a filter they applied even if a store disables every named preset. The AJAX
+  sanitizer's own whitelist (`class-prrint-ajax.php`) deliberately stays the *full*
+  id list regardless of these settings — it's a data-validation boundary, not a UI
+  preference, and must keep accepting a shape/filter/overlay id from an order or
+  reorder placed before an admin later disabled it.
+- **Studio preview button** — a "Preview" link next to the product picker opens the
+  live `[prrint_studio]` page (once it's published) in a new tab, so a store owner
+  doesn't have to go hunting for the URL after changing settings.
 
 ### Visual design
 - Full-screen dark theme matching the reference (top bar, icon rail, filter preview

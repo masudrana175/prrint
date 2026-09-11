@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.19.0
+Stable tag: 1.20.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,17 @@ uploads are purged after 8 days; files attached to orders are kept.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.20.0 =
+* Add admin control over exactly which Filters, Overlays and Elements
+  (shapes) show in the editor, matching the existing whole-tool on/off
+  switches — e.g. keep the Filters tool on but only offer B&W and Warm.
+  "None" always stays available for Filters/Overlays so a customer can
+  clear one they applied.
+* Add a "Preview" button next to the studio product picker in
+  WooCommerce → Prrint Studio that opens the live [prrint_studio] page
+  in a new tab.
+* Fix a double-escaped "&" in the new settings card's heading.
 
 = 1.19.0 =
 * Font Family in the Text tool is now a proper styled dropdown: click to

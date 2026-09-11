@@ -92,6 +92,21 @@ class Prrint_Settings {
 			isset( $input['text_templates_enabled'] ) && is_array( $input['text_templates_enabled'] ) ? $input['text_templates_enabled'] : array()
 		) );
 
+		$out['enabled_filters'] = array_values( array_intersect(
+			prrint_toggleable_filters(),
+			isset( $input['enabled_filters'] ) && is_array( $input['enabled_filters'] ) ? $input['enabled_filters'] : array()
+		) );
+
+		$out['enabled_overlays'] = array_values( array_intersect(
+			prrint_toggleable_overlays(),
+			isset( $input['enabled_overlays'] ) && is_array( $input['enabled_overlays'] ) ? $input['enabled_overlays'] : array()
+		) );
+
+		$out['enabled_shapes'] = array_values( array_intersect(
+			prrint_toggleable_shapes(),
+			isset( $input['enabled_shapes'] ) && is_array( $input['enabled_shapes'] ) ? $input['enabled_shapes'] : array()
+		) );
+
 		foreach ( array( 'text_colors', 'text_bg_colors', 'border_colors', 'shape_colors', 'draw_colors' ) as $key ) {
 			$out[ $key ] = self::sanitize_color_list( isset( $input[ $key ] ) ? $input[ $key ] : '', $defaults[ $key ] );
 		}
@@ -269,6 +284,13 @@ class Prrint_Settings {
 							<th scope="row"><label for="prrint_studio_product_id"><?php esc_html_e( 'Product', 'prrint' ); ?></label></th>
 							<td><?php self::render_studio_product_select( (int) $s['studio_product_id'] ); ?></td>
 						</tr>
+						<?php $preview_url = self::studio_preview_url(); ?>
+						<?php if ( $preview_url ) : ?>
+							<tr>
+								<th scope="row"><?php esc_html_e( 'Preview', 'prrint' ); ?></th>
+								<td><a href="<?php echo esc_url( $preview_url ); ?>" class="button" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open the studio page ↗', 'prrint' ); ?></a></td>
+							</tr>
+						<?php endif; ?>
 					</table>
 				</div>
 
@@ -276,6 +298,17 @@ class Prrint_Settings {
 					<h2><?php esc_html_e( 'Editor tools', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Turn tools off to simplify the editor for your store. Transform (crop & rotate) is always on.', 'prrint' ); ?></p>
 					<?php self::render_tool_checkboxes( $s['enabled_tools'] ); ?>
+				</div>
+
+				<div class="prrint-card">
+					<h2><?php esc_html_e( 'Filters, Overlays & Shapes', 'prrint' ); ?></h2>
+					<p class="description"><?php esc_html_e( 'Pick which presets show inside each tool\'s panel — turn off ones your store doesn\'t want to offer. "None" is always available for Filters and Overlays so a customer can clear one they applied.', 'prrint' ); ?></p>
+					<h3><?php esc_html_e( 'Filters', 'prrint' ); ?></h3>
+					<?php self::render_filter_checkboxes( $s['enabled_filters'] ); ?>
+					<h3><?php esc_html_e( 'Overlays', 'prrint' ); ?></h3>
+					<?php self::render_overlay_checkboxes( $s['enabled_overlays'] ); ?>
+					<h3><?php esc_html_e( 'Elements (shapes)', 'prrint' ); ?></h3>
+					<?php self::render_shape_checkboxes( $s['enabled_shapes'] ); ?>
 				</div>
 
 				<div class="prrint-card">
@@ -302,6 +335,18 @@ class Prrint_Settings {
 			</form>
 		</div>
 		<?php
+	}
+
+	/**
+	 * URL of the auto-created "Create Your Print" page, if it's been
+	 * published — used for the settings page's "Preview" button.
+	 */
+	protected static function studio_preview_url() {
+		$page_id = (int) get_option( 'prrint_sample_page' );
+		if ( ! $page_id || 'publish' !== get_post_status( $page_id ) ) {
+			return '';
+		}
+		return get_permalink( $page_id );
 	}
 
 	/**
@@ -347,6 +392,75 @@ class Prrint_Settings {
 		foreach ( $labels as $id => $label ) {
 			printf(
 				'<label><input type="checkbox" name="prrint_settings[enabled_tools][]" value="%1$s" %2$s /> %3$s</label>',
+				esc_attr( $id ),
+				checked( in_array( $id, $enabled, true ), true, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</p>';
+	}
+
+	protected static function render_filter_checkboxes( $enabled ) {
+		$labels = array(
+			'bw'      => __( 'B&W', 'prrint' ),
+			'warm'    => __( 'Warm', 'prrint' ),
+			'cold'    => __( 'Cold', 'prrint' ),
+			'vintage' => __( 'Vintage', 'prrint' ),
+			'duotone' => __( 'DuoTone', 'prrint' ),
+			'legacy'  => __( 'Legacy', 'prrint' ),
+			'smooth'  => __( 'Smooth', 'prrint' ),
+		);
+		echo '<p class="prrint-checkbox-grid">';
+		foreach ( $labels as $id => $label ) {
+			printf(
+				'<label><input type="checkbox" name="prrint_settings[enabled_filters][]" value="%1$s" %2$s /> %3$s</label>',
+				esc_attr( $id ),
+				checked( in_array( $id, $enabled, true ), true, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</p>';
+	}
+
+	protected static function render_overlay_checkboxes( $enabled ) {
+		$labels = array(
+			'vignette'  => __( 'Vignette', 'prrint' ),
+			'glow'      => __( 'Glow', 'prrint' ),
+			'lightleak' => __( 'Light Leak', 'prrint' ),
+			'grain'     => __( 'Grain', 'prrint' ),
+			'bokeh'     => __( 'Bokeh', 'prrint' ),
+			'scratches' => __( 'Scratches', 'prrint' ),
+		);
+		echo '<p class="prrint-checkbox-grid">';
+		foreach ( $labels as $id => $label ) {
+			printf(
+				'<label><input type="checkbox" name="prrint_settings[enabled_overlays][]" value="%1$s" %2$s /> %3$s</label>',
+				esc_attr( $id ),
+				checked( in_array( $id, $enabled, true ), true, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</p>';
+	}
+
+	protected static function render_shape_checkboxes( $enabled ) {
+		$labels = array(
+			'circle'   => __( 'Circle', 'prrint' ),
+			'square'   => __( 'Square', 'prrint' ),
+			'triangle' => __( 'Triangle', 'prrint' ),
+			'diamond'  => __( 'Diamond', 'prrint' ),
+			'pentagon' => __( 'Pentagon', 'prrint' ),
+			'hexagon'  => __( 'Hexagon', 'prrint' ),
+			'star'     => __( 'Star', 'prrint' ),
+			'heart'    => __( 'Heart', 'prrint' ),
+			'arrow'    => __( 'Arrow', 'prrint' ),
+			'cross'    => __( 'Cross', 'prrint' ),
+			'line'     => __( 'Line', 'prrint' ),
+		);
+		echo '<p class="prrint-checkbox-grid">';
+		foreach ( $labels as $id => $label ) {
+			printf(
+				'<label><input type="checkbox" name="prrint_settings[enabled_shapes][]" value="%1$s" %2$s /> %3$s</label>',
 				esc_attr( $id ),
 				checked( in_array( $id, $enabled, true ), true, false ),
 				esc_html( $label )
