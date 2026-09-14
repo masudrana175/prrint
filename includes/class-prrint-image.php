@@ -136,6 +136,20 @@ class Prrint_Image {
 			$im = $rotated;
 		}
 
+		// Continuous "straighten" rotation, applied after the quarter-turn
+		// but before crop extraction — the crop rect sent by the editor is
+		// already expressed in this fine-rotated space (see edExportCrop()
+		// in frontend.js), so the two must stay in lockstep.
+		$fine_rot = isset( $crop['fineRot'] ) ? max( -45.0, min( 45.0, (float) $crop['fineRot'] ) ) : 0.0;
+		if ( abs( $fine_rot ) > 0.01 ) {
+			$fine = imagerotate( $im, -$fine_rot, 0 );
+			imagedestroy( $im );
+			if ( ! $fine ) {
+				return false;
+			}
+			$im = $fine;
+		}
+
 		$iw = imagesx( $im );
 		$ih = imagesy( $im );
 

@@ -25,7 +25,8 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
   scroll-wheel, slider or typed-number zoom, a numeric Crop Size (W × H in
   source-photo pixels, aspect-locked to the print size) for exact crops, a
   "Keep Resolution" toggle that stops you zooming past the target print
-  DPI, 90° rotation, flip horizontal/vertical, a one-click Reset to
+  DPI, 90° rotation, a continuous -45°..+45° "Straighten" slider for fine
+  leveling, flip horizontal/vertical, a one-click Reset to
   Default, portrait/landscape toggle, rule-of-thirds guides, and an
   inch/pixel ruler along the print frame. The crop frame is always locked
   to the chosen print size's aspect ratio: what the customer sees is

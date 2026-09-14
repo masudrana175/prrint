@@ -453,6 +453,11 @@ class Prrint_Frontend {
 									<button type="button" class="prrint-tool" id="prrint-flip-h" title="<?php esc_attr_e( 'Flip horizontal', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'flip-h', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Flip H', 'prrint' ); ?></button>
 									<button type="button" class="prrint-tool" id="prrint-flip-v" title="<?php esc_attr_e( 'Flip vertical', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'flip-v', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Flip V', 'prrint' ); ?></button>
 								</div>
+								<label class="prrint-straighten-row">
+									<span><?php esc_html_e( 'Straighten', 'prrint' ); ?></span>
+									<span class="prrint-straighten-out" id="prrint-fine-rot-out">0°</span>
+								</label>
+								<input type="range" id="prrint-fine-rot" min="-45" max="45" step="0.5" value="0" aria-label="<?php esc_attr_e( 'Straighten (fine rotation)', 'prrint' ); ?>" />
 								<label class="prrint-border-label prrint-keep-res-label"><input type="checkbox" id="prrint-keep-resolution" /> <?php esc_html_e( 'Keep Resolution', 'prrint' ); ?></label>
 								<p class="prrint-field-label"><?php esc_html_e( 'Crop Size', 'prrint' ); ?></p>
 								<div class="prrint-panel-row prrint-crop-size-row">

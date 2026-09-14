@@ -263,15 +263,16 @@ body.prrint-modal-open {
 
 .prrint-item {
 	border: 1px solid var(--prrint-line);
-	border-radius: var(--prrint-radius);
+	border-radius: 16px;
 	background: #fff;
 	box-shadow: 0 1px 3px rgba(16, 24, 40, 0.07);
 	overflow: hidden;
-	transition: box-shadow 0.15s ease;
+	transition: box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .prrint-item:hover {
-	box-shadow: 0 4px 14px rgba(16, 24, 40, 0.12);
+	box-shadow: 0 10px 26px rgba(16, 24, 40, 0.14);
+	transform: translateY(-2px);
 }
 
 .prrint-thumb {
@@ -354,33 +355,49 @@ body.prrint-modal-open {
 .prrint-item-fields {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
-	padding: 14px;
+	gap: 14px;
+	padding: 18px;
 }
 
 .prrint-field {
 	display: flex;
 	flex-direction: column;
-	gap: 3px;
+	gap: 5px;
 	margin: 0 !important;
 }
 
 .prrint-field > span {
 	font-size: 0.78em;
 	font-weight: 700;
-	letter-spacing: 0.03em;
+	letter-spacing: 0.04em;
 	text-transform: uppercase;
 	color: var(--prrint-muted);
 }
 
 .prrint-field select {
 	width: 100%;
-	padding: 7px 10px;
+	padding: 9px 32px 9px 12px;
 	border: 1px solid var(--prrint-line);
-	border-radius: 8px;
-	background: #fff;
+	border-radius: 9px;
+	background:
+		#fff
+		url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%236b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>')
+		no-repeat right 8px center / 16px 16px;
+	appearance: none;
 	color: var(--prrint-ink);
-	font-size: 0.95em;
+	font-size: 0.96em;
+	cursor: pointer;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.prrint-field select:hover {
+	border-color: var(--prrint-accent);
+}
+
+.prrint-field select:focus {
+	outline: none;
+	border-color: var(--prrint-accent);
+	box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
 .prrint-field-row {
@@ -404,19 +421,21 @@ body.prrint-modal-open {
 	display: inline-flex;
 	align-items: stretch;
 	border: 1px solid var(--prrint-line);
-	border-radius: 8px;
+	border-radius: 9px;
 	overflow: hidden;
 }
 
 .prrint-qty button {
-	width: 30px;
+	width: 32px;
 	border: 0;
 	background: var(--prrint-bg);
 	color: var(--prrint-ink);
-	font-size: 1.05em;
+	font-size: 1.1em;
+	font-weight: 600;
 	cursor: pointer;
 	line-height: 1;
-	padding: 6px 0;
+	padding: 7px 0;
+	transition: background 0.15s ease, color 0.15s ease;
 }
 
 .prrint-qty button:hover {
@@ -449,13 +468,14 @@ body.prrint-modal-open {
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
-	padding-top: 8px;
+	padding-top: 12px;
 	border-top: 1px solid var(--prrint-line);
 }
 
 .prrint-item-price {
 	font-weight: 700;
-	font-size: 1.02em;
+	font-size: 1.1em;
+	color: var(--prrint-ink);
 }
 
 .prrint-remove-btn {
@@ -907,6 +927,24 @@ body.prrint-modal-open {
 	align-items: center;
 	gap: 4px;
 	color: var(--prrint-dark-text);
+}
+
+.prrint-straighten-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 14px;
+	font-size: 0.85em;
+	color: var(--prrint-dark-muted);
+}
+
+.prrint-straighten-out {
+	color: var(--prrint-dark-text);
+	font-variant-numeric: tabular-nums;
+}
+
+#prrint-fine-rot {
+	margin-top: 4px;
 }
 
 .prrint-zoom-input-wrap input[type="number"] {

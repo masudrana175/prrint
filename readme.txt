@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.24.0
+Stable tag: 1.25.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,18 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.25.0 =
+* Add a continuous "Straighten" slider to the photo editor's Transform
+  panel (-45° to +45°, half-degree steps) for fine leveling of tilted
+  horizons, on top of the existing 90°-quarter-turn rotate buttons. The
+  live preview, the cart/card thumbnail, and the final print-ready file
+  all apply the same rotation, and panning is automatically clamped so a
+  straightened photo can never expose an empty corner.
+* Restyle the cart-page photo item cards: larger rounded corners, a
+  subtle hover lift, roomier spacing around the size/paper dropdowns and
+  border checkbox, and a custom-styled select arrow in place of the
+  browser default.
 
 = 1.24.0 =
 * Redesign the studio page's "Your Photos" tiles: bigger photos, a

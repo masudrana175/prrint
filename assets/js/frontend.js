@@ -105,6 +105,8 @@
 		keepResolution: document.getElementById('prrint-keep-resolution'),
 		cropW: document.getElementById('prrint-crop-w'),
 		cropH: document.getElementById('prrint-crop-h'),
+		fineRot: document.getElementById('prrint-fine-rot'),
+		fineRotOut: document.getElementById('prrint-fine-rot-out'),
 		focusShapes: document.getElementById('prrint-focus-shapes'),
 		focusFields: document.getElementById('prrint-focus-fields'),
 		focusPositionFields: document.getElementById('prrint-focus-position-fields'),
@@ -232,25 +234,32 @@
 			x: (d.w - sw) / 2,
 			y: (d.h - sh) / 2,
 			w: sw,
-			h: sh
+			h: sh,
+			fineRot: 0
 		};
 	}
 
 	/**
 	 * Refit an item's crop after size/orientation change, keeping its center.
+	 * Works in the same fine-rotation-aware bounding space edExportCrop()
+	 * does (r.w,r.h instead of the unrotated d.w,d.h) and carries the crop's
+	 * own fineRot forward — refitting on the card (without reopening the
+	 * editor) must not silently discard a straighten adjustment.
 	 */
 	function refitCrop(item) {
 		var d = rotatedDims(item);
 		var p = printDims(item);
 		var aspect = p.w / p.h;
+		var fineRot = item.crop.fineRot || 0;
+		var r = edBoundingBox(d.w, d.h, fineRot * Math.PI / 180);
 		var cx = item.crop.x + item.crop.w / 2;
 		var cy = item.crop.y + item.crop.h / 2;
-		var sw = Math.min(item.crop.w, d.w, d.h * aspect);
+		var sw = Math.min(item.crop.w, r.w, r.h * aspect);
 		var sh = sw / aspect;
-		if (sh > d.h) { sh = d.h; sw = sh * aspect; }
-		var x = Math.max(0, Math.min(cx - sw / 2, d.w - sw));
-		var y = Math.max(0, Math.min(cy - sh / 2, d.h - sh));
-		item.crop = { x: x, y: y, w: sw, h: sh };
+		if (sh > r.h) { sh = r.h; sw = sh * aspect; }
+		var x = Math.max(0, Math.min(cx - sw / 2, r.w - sw));
+		var y = Math.max(0, Math.min(cy - sh / 2, r.h - sh));
+		item.crop = { x: x, y: y, w: sw, h: sh, fineRot: fineRot };
 	}
 
 	/* -------------------------------------------------- design / filters */
@@ -886,6 +895,8 @@
 		var innerH = TH - 2 * by;
 
 		var d = rotatedDims(item);
+		var fineRotRad = (item.crop.fineRot || 0) * Math.PI / 180;
+		var r = edBoundingBox(d.w, d.h, fineRotRad);
 		var s = innerW / item.crop.w;
 
 		c.save();
@@ -896,8 +907,9 @@
 		c.translate(bx, by);
 		c.scale(s, s);
 		c.translate(-item.crop.x, -item.crop.y);
-		c.translate(d.w / 2, d.h / 2);
+		c.translate(r.w / 2, r.h / 2);
 		c.rotate(item.rot * Math.PI / 2);
+		c.rotate(fineRotRad);
 		c.scale(item.design.flipH ? -1 : 1, item.design.flipV ? -1 : 1);
 		c.drawImage(item.img, -item.natW / 2, -item.natH / 2);
 		c.restore();
@@ -909,8 +921,9 @@
 			octx.translate(bx, by);
 			octx.scale(s, s);
 			octx.translate(-item.crop.x, -item.crop.y);
-			octx.translate(d.w / 2, d.h / 2);
+			octx.translate(r.w / 2, r.h / 2);
 			octx.rotate(item.rot * Math.PI / 2);
+			octx.rotate(fineRotRad);
 			octx.scale(item.design.flipH ? -1 : 1, item.design.flipV ? -1 : 1);
 			octx.drawImage(item.img, -item.natW / 2, -item.natH / 2);
 			octx.restore();
@@ -1219,6 +1232,7 @@
 	var ed = {
 		item: null,          // item being edited
 		rot: 0,
+		fineRot: 0,          // continuous "straighten" rotation in degrees, clockwise, applied on top of rot
 		orientation: 'portrait',
 		sizeIdx: 0,
 		design: newDesign(),
@@ -1237,13 +1251,40 @@
 		hasDrawing: false,
 		brushColor: '#000000',
 		brushSize: 4,
-		history: [],            // JSON snapshots of {design, rot, orientation, sizeIdx}
+		history: [],            // JSON snapshots of {design, rot, fineRot, orientation, sizeIdx}
 		historyIndex: -1
 	};
 
 	function edRotatedDims() {
 		var it = ed.item;
 		return (ed.rot % 2) ? { w: it.natH, h: it.natW } : { w: it.natW, h: it.natH };
+	}
+
+	/**
+	 * Bounding box (canvas px) of a w x h rectangle after rotating it by
+	 * `thetaRad` radians — shared by the min-zoom, pan-clamp and crop-export
+	 * math below, all of which need to know how much source coverage a fine
+	 * ("straighten") rotation demands.
+	 */
+	function edBoundingBox(w, h, thetaRad) {
+		var c = Math.abs(Math.cos(thetaRad));
+		var s = Math.abs(Math.sin(thetaRad));
+		return { w: w * c + h * s, h: w * s + h * c };
+	}
+
+	function edFineRotRad() {
+		return (ed.fineRot || 0) * Math.PI / 180;
+	}
+
+	/**
+	 * The smallest zoom (in ed.scale terms) at which the rotated (by the
+	 * current fine rotation) source still fully covers the frame — i.e. the
+	 * rotation-aware generalization of the old `max(frame.w/d.w, frame.h/d.h)`
+	 * fit formula, which this reduces to exactly when fineRot is 0.
+	 */
+	function edMinScaleFor(d) {
+		var bb = edBoundingBox(ed.frame.w, ed.frame.h, edFineRotRad());
+		return Math.max(bb.w / d.w, bb.h / d.h);
 	}
 
 	function edPrintDims() {
@@ -1285,12 +1326,36 @@
 		ed.frame = { x: (ed.cssW - fw) / 2, y: (ed.cssH - fh) / 2, w: fw, h: fh };
 	}
 
+	/**
+	 * Keep the source image fully covering the frame while panning, even
+	 * with a fine rotation active — clamping off.x/off.y independently (the
+	 * old formula) is only safe when fineRot is 0; a rotated source needs
+	 * more clearance near its corners. Works by clamping in a "de-rotated"
+	 * offset space (where the bound genuinely is an independent per-axis
+	 * box, verified numerically against every frame corner) and rotating
+	 * the clamped result back — reduces to the exact old formula at
+	 * fineRot=0.
+	 */
 	function edClamp() {
 		var d = edRotatedDims();
-		var maxX = Math.max(0, (d.w * ed.scale - ed.frame.w) / 2);
-		var maxY = Math.max(0, (d.h * ed.scale - ed.frame.h) / 2);
-		ed.off.x = Math.max(-maxX, Math.min(maxX, ed.off.x));
-		ed.off.y = Math.max(-maxY, Math.min(maxY, ed.off.y));
+		var theta = edFineRotRad();
+		var cosT = Math.cos(theta), sinT = Math.sin(theta);
+
+		// off (canvas px) -> v (source-space units, de-rotated by theta).
+		var ux = ed.off.x / ed.scale, uy = ed.off.y / ed.scale;
+		var vx = ux * cosT + uy * sinT;
+		var vy = -ux * sinT + uy * cosT;
+
+		var A = (ed.frame.w * Math.abs(cosT) + ed.frame.h * Math.abs(sinT)) / (2 * ed.scale);
+		var B = (ed.frame.w * Math.abs(sinT) + ed.frame.h * Math.abs(cosT)) / (2 * ed.scale);
+		var maxVx = Math.max(0, d.w / 2 - A);
+		var maxVy = Math.max(0, d.h / 2 - B);
+		vx = Math.max(-maxVx, Math.min(maxVx, vx));
+		vy = Math.max(-maxVy, Math.min(maxVy, vy));
+
+		// v -> off (rotate back, then back to canvas px).
+		ed.off.x = (vx * cosT - vy * sinT) * ed.scale;
+		ed.off.y = (vx * sinT + vy * cosT) * ed.scale;
 	}
 
 	/**
@@ -1299,20 +1364,23 @@
 	function edViewFromCrop(crop) {
 		var d = edRotatedDims();
 		edFrame();
-		ed.minScale = Math.max(ed.frame.w / d.w, ed.frame.h / d.h);
+		ed.fineRot = crop.fineRot || 0;
+		ed.minScale = edMinScaleFor(d);
 		ed.maxScale = ed.minScale * 5;
 		ed.scale = Math.max(ed.minScale, Math.min(ed.maxScale, ed.frame.w / crop.w));
-		ed.off.x = (d.w / 2 - (crop.x + crop.w / 2)) * ed.scale;
-		ed.off.y = (d.h / 2 - (crop.y + crop.h / 2)) * ed.scale;
+		var r = edBoundingBox(d.w, d.h, edFineRotRad());
+		ed.off.x = (r.w / 2 - (crop.x + crop.w / 2)) * ed.scale;
+		ed.off.y = (r.h / 2 - (crop.y + crop.h / 2)) * ed.scale;
 		edClamp();
 		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
 		if (els.zoomPct) { els.zoomPct.textContent = els.zoom.value + '%'; }
+		syncFineRotUI();
 	}
 
 	function edFit() {
 		var d = edRotatedDims();
 		edFrame();
-		ed.minScale = Math.max(ed.frame.w / d.w, ed.frame.h / d.h);
+		ed.minScale = edMinScaleFor(d);
 		ed.maxScale = ed.minScale * 5;
 		ed.scale = ed.minScale;
 		ed.off.x = 0;
@@ -1322,24 +1390,34 @@
 		edClamp();
 	}
 
+	/**
+	 * Crop rectangle in "source pixel space AFTER $rotation quarter-turns
+	 * AND the fine ("straighten") rotation" — i.e. exactly the space
+	 * Prrint_Image::render() produces by rotating the source that far before
+	 * cropping. The crop's *size* (sw,sh) depends only on frame size and
+	 * zoom, never on rotation; only its *position* shifts, referenced against
+	 * the rotated bounding canvas (r.w,r.h) instead of the unrotated one.
+	 */
 	function edExportCrop() {
 		var d = edRotatedDims();
 		var f = ed.frame;
-		var sx = (d.w * ed.scale / 2 - f.w / 2 - ed.off.x) / ed.scale;
-		var sy = (d.h * ed.scale / 2 - f.h / 2 - ed.off.y) / ed.scale;
+		var r = edBoundingBox(d.w, d.h, edFineRotRad());
+		var sx = (r.w * ed.scale / 2 - f.w / 2 - ed.off.x) / ed.scale;
+		var sy = (r.h * ed.scale / 2 - f.h / 2 - ed.off.y) / ed.scale;
 		var sw = f.w / ed.scale;
 		var sh = f.h / ed.scale;
 
-		sx = Math.max(0, Math.min(sx, d.w - 1));
-		sy = Math.max(0, Math.min(sy, d.h - 1));
-		sw = Math.min(sw, d.w - sx);
-		sh = Math.min(sh, d.h - sy);
+		sx = Math.max(0, Math.min(sx, r.w - 1));
+		sy = Math.max(0, Math.min(sy, r.h - 1));
+		sw = Math.min(sw, r.w - sx);
+		sh = Math.min(sh, r.h - sy);
 
 		return {
 			x: Math.round(sx * 100) / 100,
 			y: Math.round(sy * 100) / 100,
 			w: Math.round(sw * 100) / 100,
-			h: Math.round(sh * 100) / 100
+			h: Math.round(sh * 100) / 100,
+			fineRot: Math.round((ed.fineRot || 0) * 100) / 100
 		};
 	}
 
@@ -1368,6 +1446,7 @@
 		ctx.filter = designFilterCss(ed.design);
 		ctx.translate(cx, cy);
 		ctx.rotate(ed.rot * Math.PI / 2);
+		ctx.rotate(edFineRotRad());
 		ctx.scale(ed.design.flipH ? -1 : 1, ed.design.flipV ? -1 : 1);
 		ctx.scale(innerScale, innerScale);
 		ctx.drawImage(it.img, -it.natW / 2, -it.natH / 2);
@@ -1378,6 +1457,7 @@
 			octx.save();
 			octx.translate(cx, cy);
 			octx.rotate(ed.rot * Math.PI / 2);
+			octx.rotate(edFineRotRad());
 			octx.scale(ed.design.flipH ? -1 : 1, ed.design.flipV ? -1 : 1);
 			octx.scale(innerScale, innerScale);
 			octx.drawImage(it.img, -it.natW / 2, -it.natH / 2);
@@ -1558,6 +1638,11 @@
 		crop = crop || edExportCrop();
 		els.cropW.value = String(Math.round(crop.w));
 		els.cropH.value = String(Math.round(crop.h));
+	}
+
+	function syncFineRotUI() {
+		if (els.fineRot && document.activeElement !== els.fineRot) { els.fineRot.value = String(ed.fineRot || 0); }
+		if (els.fineRotOut) { els.fineRotOut.textContent = (Math.round((ed.fineRot || 0) * 10) / 10) + '°'; }
 	}
 
 	/**
@@ -2407,7 +2492,7 @@
 	// stay live camera state like in most editors. Capped at 50 steps.
 
 	function snapshotState() {
-		return JSON.stringify({ design: ed.design, rot: ed.rot, orientation: ed.orientation, sizeIdx: ed.sizeIdx });
+		return JSON.stringify({ design: ed.design, rot: ed.rot, fineRot: ed.fineRot, orientation: ed.orientation, sizeIdx: ed.sizeIdx });
 	}
 
 	function updateUndoRedoButtons() {
@@ -2430,10 +2515,12 @@
 		var state = JSON.parse(snap);
 		ed.design = state.design;
 		ed.rot = state.rot;
+		ed.fineRot = state.fineRot || 0;
 		ed.orientation = state.orientation;
 		ed.sizeIdx = state.sizeIdx;
 		ed.selectedLayerId = null;
 		syncPanelUI();
+		syncFineRotUI();
 		edFit(); // crop/zoom aren't tracked in history, so re-fit to the restored aspect
 		edDraw();
 		edUpdateDpi();
@@ -2812,6 +2899,38 @@
 		});
 	}
 
+	/**
+	 * Continuous "straighten" rotation, on top of the 90° Rotate button.
+	 * Changing it can raise the minimum zoom (a rotated photo needs more of
+	 * itself visible to still fully cover the frame with no empty corners),
+	 * so re-clamp scale/pan the same way Keep Resolution's cap does.
+	 */
+	function setFineRotation(deg) {
+		if (!ed.item) { return; }
+		ed.fineRot = Math.max(-45, Math.min(45, deg));
+		var d = edRotatedDims();
+		ed.minScale = edMinScaleFor(d);
+		ed.maxScale = ed.minScale * 5;
+		if (ed.scale < ed.minScale) { ed.scale = ed.minScale; }
+		ed.scale = Math.min(ed.scale, edEffectiveMaxScale());
+		edClamp();
+		edDraw();
+		edUpdateDpi();
+		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
+		updateZoomPct();
+		syncFineRotUI();
+	}
+
+	if (els.fineRot) {
+		els.fineRot.addEventListener('input', function () {
+			setFineRotation(Number(this.value));
+		});
+		els.fineRot.addEventListener('change', function () {
+			if (!ed.item) { return; }
+			pushHistory();
+		});
+	}
+
 	if (els.keepResolution) {
 		els.keepResolution.addEventListener('change', function () {
 			if (!ed.item) { return; }
@@ -2848,10 +2967,12 @@
 			var item = ed.item;
 			if (!item) { return; }
 			ed.rot = 0;
+			ed.fineRot = 0;
 			ed.design.flipH = false;
 			ed.design.flipV = false;
 			if (els.flipH) { els.flipH.classList.remove('is-active'); }
 			if (els.flipV) { els.flipV.classList.remove('is-active'); }
+			syncFineRotUI();
 			edFit();
 			edDraw();
 			edUpdateDpi();

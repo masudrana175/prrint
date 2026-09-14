@@ -247,10 +247,11 @@ class Prrint_Ajax {
 				'design'      => isset( $raw['design'] ) ? self::sanitize_design( $raw['design'] ) : null,
 				'rotation'    => isset( $crop_raw['rotation'] ) ? absint( $crop_raw['rotation'] ) % 4 : 0,
 				'crop'        => array(
-					'x' => (float) $crop_raw['x'],
-					'y' => (float) $crop_raw['y'],
-					'w' => max( 1.0, (float) $crop_raw['w'] ),
-					'h' => max( 1.0, (float) $crop_raw['h'] ),
+					'x'       => (float) $crop_raw['x'],
+					'y'       => (float) $crop_raw['y'],
+					'w'       => max( 1.0, (float) $crop_raw['w'] ),
+					'h'       => max( 1.0, (float) $crop_raw['h'] ),
+					'fineRot' => isset( $crop_raw['fineRot'] ) ? max( -45.0, min( 45.0, (float) $crop_raw['fineRot'] ) ) : 0.0,
 				),
 			),
 		);

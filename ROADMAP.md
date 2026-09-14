@@ -325,6 +325,32 @@ lands — check git log for the commit implementing each item.
   preview tiles lift on hover; shape buttons and the tool-rail icons got matching
   hover/active micro-interactions. Verified visually via Playwright screenshots
   of Adjust, Elements and the Font dropdown against the running plugin.
+- **Continuous-rotation "Straighten" dial** — a -45°..+45° slider in the
+  Transform panel for fine leveling, on top of the existing 90°-quarter-turn
+  buttons. This supersedes the "deferred, not just an approximation gap" note
+  below: the crop coordinate contract (`Prrint_Image::render()`) was extended
+  rather than replaced — the client now exports the crop rectangle in
+  "source pixels after N quarter-turns AND the fine rotation" (one extra
+  `imagerotate()` call server-side, applied right after the existing
+  quarter-turn and right before crop extraction, both keyed off the same
+  `crop.fineRot` field so client and server never disagree about which
+  space the rectangle is in). The two non-trivial pieces of math involved —
+  the crop rectangle's position (its width/height don't change with
+  rotation, only x/y do) and the pan-clamp (naively reusing the old
+  unrotated clamp would let you pan a straightened photo until an empty
+  corner shows) — were derived as closed-form formulas and checked against
+  standalone brute-force coordinate-transform scripts before any product
+  code was written; the pan-clamp script caught a real gap in the first
+  draft (independent-axis clamping only becomes safe once you de-rotate
+  into the photo's own frame first). Verified end-to-end with a mock GD
+  test that renders a real photo through `Prrint_Image::render()` at
+  fineRot=12.5°, 45° (the clamp boundary), and combined with a 90°
+  quarter-turn, confirming no fatal errors and that fineRot=0 still
+  produces pixel-for-pixel identical output dimensions to omitting the
+  field entirely (no regression to the existing crop-only flow).
+- **Item card visual polish** — cart-line photo cards got larger rounded
+  corners, a hover lift, roomier field spacing, and a custom-styled select
+  arrow on the Size/Paper dropdowns in place of the browser default.
 
 ## 🚧 Not started / partially covered
 
@@ -333,7 +359,7 @@ how feasible + valuable each is to build next:
 
 | Item | What the reference has | Status |
 |---|---|---|
-| **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | **Flip H/V, Reset to Default, typeable Zoom %, numeric Crop Size (W×H in source pixels, aspect-locked), and Keep Resolution all shipped.** Common aspect-ratio/size presets (the reference's "COMMON" grid — Square, 6x4, 4x6, 7x5, 10x8, 14x11, etc.) and a continuous-rotation dial are still not started. The presets grid raises a bigger question first: those tiles look like a second way to pick print size/aspect *from inside the editor*, which currently only lives in the card's Size dropdown outside the editor — needs a decision on whether to duplicate size-selection into the editor (and keep it synced both ways) before building it, rather than building a grid that doesn't actually change anything |
+| **Transform — richer controls** | Numeric Crop Size (W×H), "Keep Resolution" toggle, Reset to Default, common aspect-ratio presets, continuous-rotation dial, flip H/V | **Flip H/V, Reset to Default, typeable Zoom %, numeric Crop Size (W×H in source pixels, aspect-locked), Keep Resolution, and a continuous "Straighten" rotation dial (-45°..+45°) all shipped.** Common aspect-ratio/size presets (the reference's "COMMON" grid — Square, 6x4, 4x6, 7x5, 10x8, 14x11, etc.) are still not started. The presets grid raises a bigger question first: those tiles look like a second way to pick print size/aspect *from inside the editor*, which currently only lives in the card's Size dropdown outside the editor — needs a decision on whether to duplicate size-selection into the editor (and keep it synced both ways) before building it, rather than building a grid that doesn't actually change anything |
 | **Floating layer toolbar — rotate handle** | A drag-handle circle below the selected layer for freehand rotation, in addition to Edit/Move to Front/Duplicate/Delete | **The Edit/Move to Front/Duplicate/Delete toolbar itself shipped** (positioned above the selected layer on canvas, matching the reference, alongside the existing side-panel controls). The drag-handle rotation gesture is still not built — the side panel's Rotation slider covers the same value today |
 
 ## ❌ Not started at all
@@ -368,18 +394,13 @@ built as honest approximations rather than pixel-perfect ports:
   destination-in mask — visually very close, same "CSS approximates GD, GD print output
   is ground truth" principle the Filters/Adjust panels already use (see their code
   comments), just not literally the same algorithm pixel-for-pixel.
-- **Continuous-rotation dial and numeric Crop W×H are deferred, not just an approximation
-  gap.** The crop coordinate contract between the browser editor and the GD renderer
-  (`Prrint_Image::render()`) is built entirely around 90°-quarter-turn rotation — crop
-  x/y/w/h are exchanged in "source pixels after N quarter turns," which is exact and
-  cheap (`imagerotate($im, -90 * $rotation, 0)`, always axis-aligned). An arbitrary-angle
-  dial needs the crop rectangle itself to rotate with the photo (a rotated rect, not an
-  axis-aligned one), which changes what "crop x/y/w/h" means everywhere it's read: the
-  renderer, the cart-preview thumbnail, the print-ready export, and the reorder replay.
-  That's a coordinate-model change to code this session deliberately left alone as
-  "unchanged legacy," not a one-slider addition — worth doing as its own pass with
-  focused testing rather than folded into this one. Numeric Crop W×H has the same
-  dependency (it's just a text-input front end onto the same rect). Aspect-ratio presets
-  don't apply the same way here to begin with: Prrint's crop frame is always locked to
-  the chosen print size's aspect ratio by design (see README "Crop editor"), where the
-  reference's presets exist because its canvas *isn't* pre-locked to a print size.
+- **Continuous-rotation dial has since shipped** (see "Done" above) — the note that
+  used to live here called it a deferred coordinate-model change, not a one-slider
+  addition. That held for the original 90°-quarter-turn-only crop contract; it was
+  resolved by extending (not replacing) that contract: the crop rectangle is now
+  exchanged in "source pixels after N quarter turns AND the fine rotation," with the
+  server applying the same extra `imagerotate()` step the client's canvas preview
+  does. Aspect-ratio presets still don't apply the same way here: Prrint's crop frame
+  is always locked to the chosen print size's aspect ratio by design (see README
+  "Crop editor"), where the reference's presets exist because its canvas *isn't*
+  pre-locked to a print size.

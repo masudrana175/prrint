@@ -612,10 +612,11 @@ class Prrint_Account {
 			'design'      => isset( $snapshot['design'] ) && is_array( $snapshot['design'] ) ? $snapshot['design'] : null,
 			'rotation'    => ( (int) $snapshot['rotation'] ) % 4,
 			'crop'        => array(
-				'x' => (float) $snapshot['crop']['x'],
-				'y' => (float) $snapshot['crop']['y'],
-				'w' => max( 1.0, (float) $snapshot['crop']['w'] ),
-				'h' => max( 1.0, (float) $snapshot['crop']['h'] ),
+				'x'       => (float) $snapshot['crop']['x'],
+				'y'       => (float) $snapshot['crop']['y'],
+				'w'       => max( 1.0, (float) $snapshot['crop']['w'] ),
+				'h'       => max( 1.0, (float) $snapshot['crop']['h'] ),
+				'fineRot' => isset( $snapshot['crop']['fineRot'] ) ? max( -45.0, min( 45.0, (float) $snapshot['crop']['fineRot'] ) ) : 0.0,
 			),
 		);
 
