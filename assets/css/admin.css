@@ -1,5 +1,14 @@
 /* Prrint — admin styles */
 
+.prrint-icon {
+	display: inline-block;
+	flex-shrink: 0;
+	vertical-align: middle;
+	width: auto;
+	height: auto;
+	max-width: none;
+}
+
 .prrint-admin-wrap {
 	--prrint-a-accent: #2563eb;
 	--prrint-a-accent-dark: #1d4ed8;

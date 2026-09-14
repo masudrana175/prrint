@@ -26,6 +26,20 @@
 	box-sizing: border-box;
 }
 
+/* Defensive baseline for every Prrint_Icons::get() SVG: keeps a fixed,
+   correctly-proportioned size regardless of a theme's own SVG resets
+   (some set svg{width:100%;height:auto} globally) or a flex container
+   trying to shrink it — the width/height attributes on the <svg> itself
+   are the source of truth, this just stops outside CSS from overriding them. */
+.prrint-icon {
+	display: inline-block;
+	flex-shrink: 0;
+	vertical-align: middle;
+	width: auto;
+	height: auto;
+	max-width: none;
+}
+
 .prrint-studio {
 	--prrint-accent: #4f46e5;
 	--prrint-accent-dark: #4338ca;
@@ -139,14 +153,14 @@ body.prrint-modal-open {
 
 .prrint-library-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-	gap: 12px;
+	grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+	gap: 18px;
 }
 
 .prrint-library-tile {
 	position: relative;
 	border: 1px solid var(--prrint-line);
-	border-radius: var(--prrint-radius);
+	border-radius: 14px;
 	overflow: hidden;
 	background: #fff;
 	box-shadow: 0 1px 3px rgba(16, 24, 40, 0.07);
@@ -154,14 +168,14 @@ body.prrint-modal-open {
 }
 
 .prrint-library-tile:hover {
-	box-shadow: 0 6px 16px rgba(16, 24, 40, 0.14);
-	transform: translateY(-2px);
+	box-shadow: 0 10px 24px rgba(16, 24, 40, 0.16);
+	transform: translateY(-3px);
 }
 
 .prrint-library-tile img {
 	display: block;
 	width: 100%;
-	height: 110px;
+	height: 190px;
 	object-fit: cover;
 	background:
 		repeating-conic-gradient(#f1f2f4 0% 25%, #fafbfc 0% 50%) 0 0 / 20px 20px;
@@ -171,10 +185,10 @@ body.prrint-modal-open {
 	display: block;
 	width: 100%;
 	border: 0;
-	padding: 7px 6px;
+	padding: 12px 10px;
 	background: var(--prrint-accent);
 	color: #fff;
-	font-size: 0.78em;
+	font-size: 0.9em;
 	font-weight: 600;
 	cursor: pointer;
 	transition: background 0.15s ease;
@@ -193,8 +207,8 @@ body.prrint-modal-open {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 6px;
-	padding: 6px;
+	gap: 10px;
+	padding: 10px;
 	border-top: 1px solid var(--prrint-line);
 }
 
@@ -203,8 +217,9 @@ body.prrint-modal-open {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 26px;
-	height: 26px;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
 	border-radius: 50%;
 	border: 1px solid var(--prrint-line);
 	background: #fff;

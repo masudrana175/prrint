@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.23.0
+Stable tag: 1.24.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,21 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.24.0 =
+* Redesign the studio page's "Your Photos" tiles: bigger photos, a
+  roomier "Use this photo" button, and larger download/delete icons in
+  a bigger tap target — was cramped at ~120px wide, now ~190px+ with
+  proportionally larger everything.
+* Harden every icon against being squished or resized by a theme's own
+  CSS (some themes apply `svg { width: 100%; height: auto }` globally
+  for responsive images) or an HTML-minifying cache plugin — icons now
+  explicitly reassert their own fixed size regardless.
+* Change the default "Keep guest photo libraries for" setting from 90
+  days to 20. Only affects sites that have never saved the settings
+  page since this was added — if you already saved it once, the 90
+  saved to your database won't change on its own; edit the number in
+  WooCommerce → Prrint Studio → Quality & uploads if you want 20 now.
 
 = 1.23.0 =
 * Replace every emoji/Unicode symbol used as a UI icon (editor tool rail,

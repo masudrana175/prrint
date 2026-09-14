@@ -248,6 +248,24 @@ lands — check git log for the commit implementing each item.
     crop/font-dropdown work (uploads a photo, opens the editor, exercises every panel
     touched) — zero JS errors — plus a dedicated screenshot pass over the rail, Transform
     panel, Text panel, item card, and the full admin settings page.
+- **Studio "Your Photos" tiles enlarged, icons hardened** — a user screenshot from a live
+  site showed the library tiles' download/delete icons as barely-visible thin marks
+  instead of clear icons, plus a request for bigger/nicer cards generally. Re-rendering
+  the exact same markup/CSS locally showed correct icons, so the live-site issue is most
+  likely a theme's own `svg { width: 100%; height: auto }` reset (common for responsive
+  images) or an HTML-minifying cache plugin mangling the inline SVG — not reproducible
+  here, but `.prrint-icon` now explicitly reasserts `width/height: auto; max-width: none`
+  everywhere it's used (frontend, account, admin CSS) to cancel that class of override
+  regardless of the exact cause. Independently, the tiles themselves got a real size/style
+  pass either way: grid tiles ~120px → ~190px+, image height 110px → 190px, action-button
+  circles 26px → 36px with correspondingly larger icons (a separate `libraryDownload`/
+  `libraryTrash` localized icon size from the item-card's smaller versions, since they'd
+  otherwise share one size unsuited to both contexts).
+- **Guest library retention default lowered to 20 days** — was 90 (a judgment call made
+  when the feature first shipped); changed to 20 on explicit request. Only affects sites
+  that haven't saved the settings page since — WordPress options only take the coded
+  default before the first save, so a site that already saved 90 to its database keeps
+  90 until an admin edits the field themselves.
 - **My Account pages redesigned** — My Prints and My Photos had never gotten the same
   design attention as the studio/editor (a bare table and an unstyled grid, effectively
   default browser styling). Rebuilt using the studio's own design tokens (accent color,

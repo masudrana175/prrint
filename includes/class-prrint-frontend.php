@@ -157,9 +157,11 @@ class Prrint_Frontend {
 			'shapeColors'    => array_values( $settings['shape_colors'] ),
 			'popularFonts'   => Prrint_Fonts::popular_families(),
 			'icons'          => array(
-				'download' => Prrint_Icons::get( 'download', 14 ),
-				'trash'    => Prrint_Icons::get( 'trash', 14 ),
-				'copy'     => Prrint_Icons::get( 'copy', 14 ),
+				'download'        => Prrint_Icons::get( 'download', 14 ),
+				'trash'           => Prrint_Icons::get( 'trash', 14 ),
+				'copy'            => Prrint_Icons::get( 'copy', 14 ),
+				'libraryDownload' => Prrint_Icons::get( 'download', 18 ),
+				'libraryTrash'    => Prrint_Icons::get( 'trash', 18 ),
 			),
 			'textTemplates'  => self::enabled_text_templates( $settings['text_templates_enabled'] ),
 			'drawColors'     => array_values( $settings['draw_colors'] ),
@@ -363,8 +365,8 @@ class Prrint_Frontend {
 								<?php esc_html_e( 'Use this photo', 'prrint' ); ?>
 							</button>
 							<div class="prrint-library-tile-actions">
-								<a href="<?php echo esc_url( prrint_file_url( $row['file'] ) ); ?>" class="prrint-library-download" download title="<?php esc_attr_e( 'Download', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'download', 15 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></a>
-								<button type="button" class="prrint-library-delete" data-id="<?php echo esc_attr( $row['id'] ); ?>" title="<?php esc_attr_e( 'Delete', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'trash', 15 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+								<a href="<?php echo esc_url( prrint_file_url( $row['file'] ) ); ?>" class="prrint-library-download" download title="<?php esc_attr_e( 'Download', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'download', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></a>
+								<button type="button" class="prrint-library-delete" data-id="<?php echo esc_attr( $row['id'] ); ?>" title="<?php esc_attr_e( 'Delete', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'trash', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 							</div>
 						</div>
 					<?php endforeach; ?>

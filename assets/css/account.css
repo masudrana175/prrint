@@ -14,6 +14,18 @@
 	--prrint-radius: 12px;
 }
 
+/* Defensive baseline for every Prrint_Icons::get() SVG — see frontend.css
+   for why: stops a theme's own svg{width:100%;height:auto} reset (common
+   for responsive images) from overriding the icon's own fixed size. */
+.prrint-icon {
+	display: inline-block;
+	flex-shrink: 0;
+	vertical-align: middle;
+	width: auto;
+	height: auto;
+	max-width: none;
+}
+
 .prrint-photo-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));

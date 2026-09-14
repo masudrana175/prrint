@@ -1111,8 +1111,8 @@
 			'<img src="' + esc(photo.preview) + '" alt="" loading="lazy" />' +
 			'<button type="button" class="prrint-library-use" data-id="' + esc(photo.id) + '">' + esc(cfg.i18n.usePhoto || 'Use this photo') + '</button>' +
 			'<div class="prrint-library-tile-actions">' +
-				'<a href="' + esc(photo.file) + '" class="prrint-library-download" download title="' + esc(cfg.i18n.download) + '">' + cfg.icons.download + '</a>' +
-				'<button type="button" class="prrint-library-delete" data-id="' + esc(photo.id) + '" title="' + esc(cfg.i18n.remove) + '">' + cfg.icons.trash + '</button>' +
+				'<a href="' + esc(photo.file) + '" class="prrint-library-download" download title="' + esc(cfg.i18n.download) + '">' + cfg.icons.libraryDownload + '</a>' +
+				'<button type="button" class="prrint-library-delete" data-id="' + esc(photo.id) + '" title="' + esc(cfg.i18n.remove) + '">' + cfg.icons.libraryTrash + '</button>' +
 			'</div>' +
 		'</div>';
 	}
