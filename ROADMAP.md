@@ -224,6 +224,30 @@ lands — check git log for the commit implementing each item.
 ### Visual design
 - Full-screen dark theme matching the reference (top bar, icon rail, filter preview
   tiles, Text panel layout) — verified with an actual Playwright render, not just CSS review
+- **Real icon set, no external library** — every emoji/Unicode glyph used as a UI icon
+  (editor tool rail, Transform panel Rotate/Orientation/Flip H/Flip V, text alignment,
+  refresh/download/delete/add-size, all 8 admin settings card icons + the header logo)
+  replaced with a small set of hand-authored inline SVG icons (`Prrint_Icons::get()`,
+  `includes/class-prrint-icons.php`) — 24×24 viewBox, `stroke="currentColor"`, one
+  consistent line-icon style throughout. Deliberately *not* Font Awesome or any other
+  icon font/CDN — the README's own "no jQuery, no external libraries" stance ruled that
+  out; inline SVG gets the same "looks like a real product" upgrade with zero added
+  dependency, no extra HTTP request, and crisp rendering at any size (emoji/Unicode
+  glyphs render wildly differently across OS/browser font stacks, which was the actual
+  "doesn't look professional" complaint). Icons needed by JS-generated markup (the
+  download/trash/copy icons in card and library-tile templates) are localized from PHP
+  into `cfg.icons.*` rather than duplicated as separate strings in `frontend.js`, so
+  there's exactly one source of truth for each icon's markup.
+  - **Found while wiring this in**: the studio page's Refresh button toggled its own
+    `.textContent` between "Refresh" and "Refreshing…" and back — harmless with a plain
+    text label, but `textContent`'s setter replaces *all* children, so giving the button
+    an icon *and* leaving that code as-is would have deleted the icon permanently the
+    first time anyone clicked Refresh. Fixed by moving the label into its own `<span>`
+    that JS swaps instead of the whole button.
+  - Verified with the same real-server-rendered-markup Playwright harness used for the
+    crop/font-dropdown work (uploads a photo, opens the editor, exercises every panel
+    touched) — zero JS errors — plus a dedicated screenshot pass over the rail, Transform
+    panel, Text panel, item card, and the full admin settings page.
 - **My Account pages redesigned** — My Prints and My Photos had never gotten the same
   design attention as the studio/editor (a bare table and an unstyled grid, effectively
   default browser styling). Rebuilt using the studio's own design tokens (accent color,

@@ -156,6 +156,11 @@ class Prrint_Frontend {
 			'shapes'         => self::enabled_shapes( $settings['enabled_shapes'] ),
 			'shapeColors'    => array_values( $settings['shape_colors'] ),
 			'popularFonts'   => Prrint_Fonts::popular_families(),
+			'icons'          => array(
+				'download' => Prrint_Icons::get( 'download', 14 ),
+				'trash'    => Prrint_Icons::get( 'trash', 14 ),
+				'copy'     => Prrint_Icons::get( 'copy', 14 ),
+			),
 			'textTemplates'  => self::enabled_text_templates( $settings['text_templates_enabled'] ),
 			'drawColors'     => array_values( $settings['draw_colors'] ),
 			'enabledTools'   => array_values( $settings['enabled_tools'] ),
@@ -345,7 +350,8 @@ class Prrint_Frontend {
 				<div class="prrint-library-header">
 					<h3><?php esc_html_e( 'Your uploaded photos', 'prrint' ); ?></h3>
 					<button type="button" class="prrint-btn-secondary" id="prrint-library-refresh">
-						↻ <?php esc_html_e( 'Refresh', 'prrint' ); ?>
+						<?php echo Prrint_Icons::get( 'rotate', 14 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<span id="prrint-library-refresh-label"><?php esc_html_e( 'Refresh', 'prrint' ); ?></span>
 					</button>
 				</div>
 				<div class="prrint-library-grid" id="prrint-library-grid" <?php echo empty( $library_rows ) ? 'hidden' : ''; ?>>
@@ -357,8 +363,8 @@ class Prrint_Frontend {
 								<?php esc_html_e( 'Use this photo', 'prrint' ); ?>
 							</button>
 							<div class="prrint-library-tile-actions">
-								<a href="<?php echo esc_url( prrint_file_url( $row['file'] ) ); ?>" class="prrint-library-download" download title="<?php esc_attr_e( 'Download', 'prrint' ); ?>">⬇</a>
-								<button type="button" class="prrint-library-delete" data-id="<?php echo esc_attr( $row['id'] ); ?>" title="<?php esc_attr_e( 'Delete', 'prrint' ); ?>">🗑</button>
+								<a href="<?php echo esc_url( prrint_file_url( $row['file'] ) ); ?>" class="prrint-library-download" download title="<?php esc_attr_e( 'Download', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'download', 15 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></a>
+								<button type="button" class="prrint-library-delete" data-id="<?php echo esc_attr( $row['id'] ); ?>" title="<?php esc_attr_e( 'Delete', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'trash', 15 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 							</div>
 						</div>
 					<?php endforeach; ?>
@@ -405,25 +411,25 @@ class Prrint_Frontend {
 
 					<div class="prrint-editor-body">
 						<div class="prrint-tool-rail" role="tablist" aria-label="<?php esc_attr_e( 'Editor tools', 'prrint' ); ?>">
-							<button type="button" class="prrint-tool-btn is-active" data-tool="transform" title="<?php esc_attr_e( 'Crop & rotate', 'prrint' ); ?>">⤢</button>
+							<button type="button" class="prrint-tool-btn is-active" data-tool="transform" title="<?php esc_attr_e( 'Crop & rotate', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'crop' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 							<?php
 							$rail_tools = array(
-								'filters'    => array( '◐', __( 'Filters', 'prrint' ) ),
-								'adjust'     => array( '☼', __( 'Adjust', 'prrint' ) ),
-								'focus'      => array( '◎', __( 'Focus', 'prrint' ) ),
-								'text'       => array( 'A', __( 'Text', 'prrint' ) ),
-								'textdesign' => array( '🔖', __( 'Text Design', 'prrint' ) ),
-								'elements'   => array( '★', __( 'Elements', 'prrint' ) ),
-								'draw'       => array( '✎', __( 'Draw', 'prrint' ) ),
-								'overlays'   => array( '▨', __( 'Overlays', 'prrint' ) ),
-								'border'     => array( '▢', __( 'Border', 'prrint' ) ),
+								'filters'    => array( 'filter', __( 'Filters', 'prrint' ) ),
+								'adjust'     => array( 'sun', __( 'Adjust', 'prrint' ) ),
+								'focus'      => array( 'target', __( 'Focus', 'prrint' ) ),
+								'text'       => array( 'text', __( 'Text', 'prrint' ) ),
+								'textdesign' => array( 'bookmark', __( 'Text Design', 'prrint' ) ),
+								'elements'   => array( 'star', __( 'Elements', 'prrint' ) ),
+								'draw'       => array( 'pencil', __( 'Draw', 'prrint' ) ),
+								'overlays'   => array( 'layers', __( 'Overlays', 'prrint' ) ),
+								'border'     => array( 'square', __( 'Border', 'prrint' ) ),
 							);
 							foreach ( $rail_tools as $tool_id => $tool ) :
 								if ( ! in_array( $tool_id, $enabled_tools, true ) ) {
 									continue;
 								}
 								?>
-								<button type="button" class="prrint-tool-btn" data-tool="<?php echo esc_attr( $tool_id ); ?>" title="<?php echo esc_attr( $tool[1] ); ?>"><?php echo esc_html( $tool[0] ); ?></button>
+								<button type="button" class="prrint-tool-btn" data-tool="<?php echo esc_attr( $tool_id ); ?>" title="<?php echo esc_attr( $tool[1] ); ?>"><?php echo Prrint_Icons::get( $tool[0] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 							<?php endforeach; ?>
 						</div>
 
@@ -438,12 +444,12 @@ class Prrint_Frontend {
 									</span>
 								</label>
 								<div class="prrint-panel-row">
-									<button type="button" class="prrint-tool" id="prrint-rotate" title="<?php esc_attr_e( 'Rotate 90°', 'prrint' ); ?>">⟳ <?php esc_html_e( 'Rotate', 'prrint' ); ?></button>
-									<button type="button" class="prrint-tool" id="prrint-orient" title="<?php esc_attr_e( 'Portrait / landscape', 'prrint' ); ?>">▭ <?php esc_html_e( 'Orientation', 'prrint' ); ?></button>
+									<button type="button" class="prrint-tool" id="prrint-rotate" title="<?php esc_attr_e( 'Rotate 90°', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'rotate', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Rotate', 'prrint' ); ?></button>
+									<button type="button" class="prrint-tool" id="prrint-orient" title="<?php esc_attr_e( 'Portrait / landscape', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'orientation', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Orientation', 'prrint' ); ?></button>
 								</div>
 								<div class="prrint-panel-row">
-									<button type="button" class="prrint-tool" id="prrint-flip-h" title="<?php esc_attr_e( 'Flip horizontal', 'prrint' ); ?>">⇋ <?php esc_html_e( 'Flip H', 'prrint' ); ?></button>
-									<button type="button" class="prrint-tool" id="prrint-flip-v" title="<?php esc_attr_e( 'Flip vertical', 'prrint' ); ?>">⇵ <?php esc_html_e( 'Flip V', 'prrint' ); ?></button>
+									<button type="button" class="prrint-tool" id="prrint-flip-h" title="<?php esc_attr_e( 'Flip horizontal', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'flip-h', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Flip H', 'prrint' ); ?></button>
+									<button type="button" class="prrint-tool" id="prrint-flip-v" title="<?php esc_attr_e( 'Flip vertical', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'flip-v', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Flip V', 'prrint' ); ?></button>
 								</div>
 								<label class="prrint-border-label prrint-keep-res-label"><input type="checkbox" id="prrint-keep-resolution" /> <?php esc_html_e( 'Keep Resolution', 'prrint' ); ?></label>
 								<p class="prrint-field-label"><?php esc_html_e( 'Crop Size', 'prrint' ); ?></p>
@@ -569,9 +575,9 @@ class Prrint_Frontend {
 										<div>
 											<p class="prrint-field-label"><?php esc_html_e( 'Alignment', 'prrint' ); ?></p>
 											<div class="prrint-panel-row">
-												<button type="button" class="prrint-tool" data-align="left" title="<?php esc_attr_e( 'Align left', 'prrint' ); ?>">⯇</button>
-												<button type="button" class="prrint-tool" data-align="center" title="<?php esc_attr_e( 'Align center', 'prrint' ); ?>">≡</button>
-												<button type="button" class="prrint-tool" data-align="right" title="<?php esc_attr_e( 'Align right', 'prrint' ); ?>">⯈</button>
+												<button type="button" class="prrint-tool" data-align="left" title="<?php esc_attr_e( 'Align left', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'align-left', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+												<button type="button" class="prrint-tool" data-align="center" title="<?php esc_attr_e( 'Align center', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'align-center', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+												<button type="button" class="prrint-tool" data-align="right" title="<?php esc_attr_e( 'Align right', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'align-right', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 											</div>
 										</div>
 									</div>

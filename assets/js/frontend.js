@@ -713,7 +713,7 @@
 			'<div class="prrint-thumb">' +
 				'<canvas class="prrint-thumb-canvas"></canvas>' +
 				'<span class="prrint-dpi-dot" title=""></span>' +
-				'<a class="prrint-download-btn" href="' + esc(item.img.src) + '" download title="' + esc(cfg.i18n.download) + '">⬇</a>' +
+				'<a class="prrint-download-btn" href="' + esc(item.img.src) + '" download title="' + esc(cfg.i18n.download) + '">' + cfg.icons.download + '</a>' +
 				'<button type="button" class="prrint-edit-btn">' + esc(cfg.i18n.edit) + '</button>' +
 			'</div>' +
 			'<div class="prrint-item-fields">' +
@@ -732,8 +732,8 @@
 				'<div class="prrint-item-footer">' +
 					'<span class="prrint-item-price"></span>' +
 					'<span class="prrint-item-footer-actions">' +
-						'<button type="button" class="prrint-addsize-btn" title="' + esc(cfg.i18n.addAnotherSize) + '">⧉ ' + esc(cfg.i18n.addSize) + '</button>' +
-						'<button type="button" class="prrint-remove-btn" aria-label="' + esc(cfg.i18n.remove) + '">🗑</button>' +
+						'<button type="button" class="prrint-addsize-btn" title="' + esc(cfg.i18n.addAnotherSize) + '">' + cfg.icons.copy + ' ' + esc(cfg.i18n.addSize) + '</button>' +
+						'<button type="button" class="prrint-remove-btn" aria-label="' + esc(cfg.i18n.remove) + '">' + cfg.icons.trash + '</button>' +
 					'</span>' +
 				'</div>' +
 			'</div>';
@@ -1111,8 +1111,8 @@
 			'<img src="' + esc(photo.preview) + '" alt="" loading="lazy" />' +
 			'<button type="button" class="prrint-library-use" data-id="' + esc(photo.id) + '">' + esc(cfg.i18n.usePhoto || 'Use this photo') + '</button>' +
 			'<div class="prrint-library-tile-actions">' +
-				'<a href="' + esc(photo.file) + '" class="prrint-library-download" download title="' + esc(cfg.i18n.download) + '">⬇</a>' +
-				'<button type="button" class="prrint-library-delete" data-id="' + esc(photo.id) + '" title="' + esc(cfg.i18n.remove) + '">🗑</button>' +
+				'<a href="' + esc(photo.file) + '" class="prrint-library-download" download title="' + esc(cfg.i18n.download) + '">' + cfg.icons.download + '</a>' +
+				'<button type="button" class="prrint-library-delete" data-id="' + esc(photo.id) + '" title="' + esc(cfg.i18n.remove) + '">' + cfg.icons.trash + '</button>' +
 			'</div>' +
 		'</div>';
 	}
@@ -1132,18 +1132,19 @@
 	}
 
 	if (els.libraryRefresh) {
+		var libraryRefreshLabel = document.getElementById('prrint-library-refresh-label');
 		els.libraryRefresh.addEventListener('click', function () {
 			els.libraryRefresh.disabled = true;
-			var original = els.libraryRefresh.textContent;
-			els.libraryRefresh.textContent = cfg.i18n.refreshing;
+			var original = libraryRefreshLabel ? libraryRefreshLabel.textContent : els.libraryRefresh.textContent;
+			if (libraryRefreshLabel) { libraryRefreshLabel.textContent = cfg.i18n.refreshing; } else { els.libraryRefresh.textContent = cfg.i18n.refreshing; }
 			postAjax('prrint_get_library', {}, function (data) {
 				renderLibraryGrid(data.photos || []);
 				els.libraryRefresh.disabled = false;
-				els.libraryRefresh.textContent = original;
+				if (libraryRefreshLabel) { libraryRefreshLabel.textContent = original; } else { els.libraryRefresh.textContent = original; }
 			}, function (message) {
 				toast(message || cfg.i18n.uploadError, true);
 				els.libraryRefresh.disabled = false;
-				els.libraryRefresh.textContent = original;
+				if (libraryRefreshLabel) { libraryRefreshLabel.textContent = original; } else { els.libraryRefresh.textContent = original; }
 			});
 		});
 	}

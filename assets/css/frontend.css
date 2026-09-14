@@ -121,6 +121,12 @@ body.prrint-modal-open {
 	margin-bottom: 10px;
 }
 
+.prrint-library-header .prrint-btn-secondary {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
 .prrint-library-header h3 {
 	margin: 0;
 	font-size: 1em;
@@ -438,6 +444,9 @@ body.prrint-modal-open {
 }
 
 .prrint-remove-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	border: 0;
 	background: transparent;
 	font-size: 1.05em;
@@ -459,6 +468,9 @@ body.prrint-modal-open {
 }
 
 .prrint-addsize-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 	border: 1px solid var(--prrint-line);
 	border-radius: 999px;
 	background: #fff;
@@ -1315,6 +1327,10 @@ body.prrint-modal-open {
 .prrint-dpi-low  { background: rgba(220, 38, 38, 0.92); }
 
 .prrint-tool {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
 	min-width: 40px;
 	padding: 6px 10px;
 	border: 1px solid var(--prrint-line);

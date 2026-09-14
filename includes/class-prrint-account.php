@@ -397,15 +397,17 @@ class Prrint_Account {
 				'<div class="prrint-photo-tile"><img src="%1$s" alt="" loading="lazy" />' .
 				'<div class="prrint-photo-meta">%2$s</div>' .
 				'<div class="prrint-photo-tile-actions">' .
-				'<a href="%3$s" class="prrint-photo-download" download title="%4$s">⬇</a>' .
-				'<button type="button" class="prrint-photo-delete button" data-id="%5$s">%6$s</button>' .
+				'<a href="%3$s" class="prrint-photo-download" download title="%4$s">%7$s</a>' .
+				'<button type="button" class="prrint-photo-delete button" data-id="%5$s">%8$s %6$s</button>' .
 				'</div></div>',
 				esc_url( prrint_file_url( $preview ) ),
 				esc_html( gmdate( get_option( 'date_format' ), (int) $row['added'] ) ),
 				esc_url( prrint_file_url( $row['file'] ) ),
 				esc_attr__( 'Download', 'prrint' ),
 				esc_attr( $row['id'] ),
-				esc_html__( 'Delete', 'prrint' )
+				esc_html__( 'Delete', 'prrint' ),
+				Prrint_Icons::get( 'download', 15 ),
+				Prrint_Icons::get( 'trash', 14 )
 			);
 		}
 		echo '</div>';

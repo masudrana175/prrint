@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.22.0
+Stable tag: 1.23.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,19 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.23.0 =
+* Replace every emoji/Unicode symbol used as a UI icon (editor tool rail,
+  Transform panel buttons, text alignment, refresh/download/delete/add-size,
+  admin settings card icons) with a consistent set of hand-drawn inline SVG
+  icons. No icon font, no CDN — matches the plugin's existing "no external
+  libraries" design, and renders identically across every OS/browser instead
+  of relying on however that system happens to render 🔖/☼/⯇/🗑/etc.
+* Fix a bug caught while doing this: the studio page's Refresh button
+  temporarily swapped its own `textContent` to show "Refreshing…" and back —
+  which would have silently deleted its new icon the first time it was
+  clicked, since `textContent` replaces *all* children, icon included. The
+  label is now a separate span so only the text swaps.
 
 = 1.22.0 =
 * Redesign the WooCommerce → Prrint Studio settings page: a proper header,
