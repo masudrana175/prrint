@@ -126,6 +126,8 @@ class Prrint_Frontend {
 
 		$product_id = $product->get_id();
 		$settings   = prrint_settings();
+
+		wp_add_inline_style( 'prrint-frontend', self::theme_color_css( $settings ) );
 		$sizes      = prrint_get_sizes( $product_id );
 		$papers     = prrint_get_papers( $product_id );
 
@@ -139,6 +141,8 @@ class Prrint_Frontend {
 			'productId'      => $product_id,
 			'sizes'          => array_values( $sizes ),
 			'papers'         => array_values( $papers ),
+			'styles'         => array_values( $settings['styles'] ),
+			'edgeColors'     => array_values( $settings['edge_colors'] ),
 			'basePrice'      => (float) $product->get_price(),
 			'maxMb'          => (int) $settings['max_mb'],
 			'minDpi'         => (int) $settings['min_dpi'],
@@ -184,6 +188,8 @@ class Prrint_Frontend {
 				'qty'          => __( 'Qty', 'prrint' ),
 				'size'         => __( 'Size', 'prrint' ),
 				'paper'        => __( 'Paper', 'prrint' ),
+				'style'        => __( 'Style', 'prrint' ),
+				'edgeColor'    => __( 'Edge Color', 'prrint' ),
 				'each'         => __( 'each', 'prrint' ),
 				'dpiGood'      => __( 'Excellent quality', 'prrint' ),
 				'dpiOk'        => __( 'Good quality', 'prrint' ),
@@ -230,6 +236,43 @@ class Prrint_Frontend {
 				'fontUseTyped'  => __( 'Press Enter to use "%s"', 'prrint' ),
 			),
 		) );
+	}
+
+	/**
+	 * The dashboard's Studio colors as CSS custom properties. Values were
+	 * sanitize_hex_color()'d on save; re-checked here since this is printed
+	 * into a <style> block.
+	 */
+	protected static function theme_color_css( $settings ) {
+		$c = array();
+		foreach ( prrint_default_theme_colors() as $key => $default ) {
+			$value     = isset( $settings[ $key ] ) ? sanitize_hex_color( $settings[ $key ] ) : '';
+			$c[ $key ] = $value ? $value : $default;
+		}
+		return sprintf(
+			'#prrint-studio{--prrint-accent:%1$s;--prrint-accent-dark:%2$s;--prrint-accent-text:%3$s;--prrint-ink:%4$s;--prrint-card-bg:%5$s;--prrint-summary-bg:%6$s;}',
+			$c['color_primary'],
+			self::shade_hex( $c['color_primary'], 0.85 ),
+			$c['color_primary_text'],
+			$c['color_text'],
+			$c['color_card_bg'],
+			$c['color_summary_bg']
+		);
+	}
+
+	/**
+	 * Multiply each RGB channel of a #rgb/#rrggbb color by $factor (<1 darkens).
+	 */
+	protected static function shade_hex( $hex, $factor ) {
+		$hex = ltrim( $hex, '#' );
+		if ( 3 === strlen( $hex ) ) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+		$out = '#';
+		foreach ( str_split( $hex, 2 ) as $channel ) {
+			$out .= sprintf( '%02x', (int) max( 0, min( 255, round( hexdec( $channel ) * $factor ) ) ) );
+		}
+		return $out;
 	}
 
 	protected static function match_index( $rows, $slug ) {

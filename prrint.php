@@ -3,7 +3,7 @@
  * Plugin Name: Prrint — Photo Print Studio for WooCommerce
  * Plugin URI:  https://github.com/masudrana175/prrint
  * Description: Turn WooCommerce products into a full photo print shop: multi-photo upload, crop/zoom/rotate editor, print sizes, paper finishes, white borders, live pricing, print-quality checks, and 300 DPI print-ready files on every order.
- * Version:     1.25.0
+ * Version:     1.26.0
  * Author:      Masud Rana
  * Author URI:  https://github.com/masudrana175
  * Text Domain: prrint
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PRRINT_VERSION', '1.25.0' );
+define( 'PRRINT_VERSION', '1.26.0' );
 define( 'PRRINT_FILE', __FILE__ );
 define( 'PRRINT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PRRINT_URL', plugin_dir_url( __FILE__ ) );
@@ -250,6 +250,42 @@ function prrint_default_papers() {
 }
 
 /**
+ * Product styles (e.g. a plain paper print vs. a mounted ColorLite or
+ * Color Box). "edge" marks styles that have a visible colored edge, which
+ * is what makes the Edge Color dropdown appear for them.
+ */
+function prrint_default_styles() {
+	return array(
+		array( 'label' => 'Paper print', 'surcharge' => 0, 'edge' => false ),
+		array( 'label' => 'ColorLite',   'surcharge' => 0, 'edge' => true ),
+		array( 'label' => 'Color Box',   'surcharge' => 0, 'edge' => true ),
+	);
+}
+
+function prrint_default_edge_colors() {
+	return array(
+		array( 'label' => 'Black', 'color' => '#111111' ),
+		array( 'label' => 'White', 'color' => '#ffffff' ),
+		array( 'label' => 'Gray',  'color' => '#9ca3af' ),
+		array( 'label' => 'Red',   'color' => '#dc2626' ),
+		array( 'label' => 'Blue',  'color' => '#2563eb' ),
+	);
+}
+
+/**
+ * Studio color scheme, editable under WooCommerce → Prrint Studio → Colors.
+ */
+function prrint_default_theme_colors() {
+	return array(
+		'color_primary'      => '#4f46e5',
+		'color_primary_text' => '#ffffff',
+		'color_text'         => '#1f2430',
+		'color_card_bg'      => '#ffffff',
+		'color_summary_bg'   => '#111827',
+	);
+}
+
+/**
  * Editor tools that can be turned off per store. Transform (crop/rotate)
  * isn't in this list — it's core to the product (it decides what gets
  * printed) and always stays on.
@@ -290,9 +326,11 @@ function prrint_toggleable_shapes() {
 }
 
 function prrint_default_settings() {
-	return array(
+	return array_merge( array(
 		'sizes'                         => prrint_default_sizes(),
 		'papers'                        => prrint_default_papers(),
+		'styles'                        => prrint_default_styles(),
+		'edge_colors'                   => prrint_default_edge_colors(),
 		'max_mb'                        => 40,
 		'jpeg_quality'                  => 92,
 		'target_dpi'                    => 300,
@@ -312,7 +350,7 @@ function prrint_default_settings() {
 		'border_colors'                 => array( '#ffffff', '#000000', '#9ca3af', '#f43f5e', '#f59e0b', '#3b82f6' ),
 		'shape_colors'                  => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#eab308' ),
 		'draw_colors'                   => array( '#000000', '#ffffff', '#f43f5e', '#f59e0b', '#22c55e', '#3b82f6' ),
-	);
+	), prrint_default_theme_colors() );
 }
 
 /**

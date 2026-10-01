@@ -351,6 +351,27 @@ lands — check git log for the commit implementing each item.
 - **Item card visual polish** — cart-line photo cards got larger rounded
   corners, a hover lift, roomier field spacing, and a custom-styled select
   arrow on the Size/Paper dropdowns in place of the browser default.
+- **Product styles + Edge Color (client request)** — a Style dropdown under
+  Paper (admin table: name, surcharge, "colored edge" flag) and an Edge Color
+  dropdown that appears only for styles with an edge. The edge is the mounted
+  product's physical side, not part of the printed image, so it's previewed as
+  a colored frame around the card's photo (and the cart thumbnail) rather than
+  baked into the print file. Server re-validates both indexes against the saved
+  settings; labels, surcharge and edge color go on the cart line, order meta and
+  the Reorder snapshot (with `isset()` guards so older snapshots still replay).
+- **Theme-proof studio + dashboard colors** — a client's theme turned the
+  studio's buttons pink and uppercase. Every frontend.css selector is now
+  prefixed with `#prrint-studio` (done by a comment-aware script, 212
+  selectors; relative ordering unchanged since every rule gained the same
+  one-ID boost), plus a reset for theme typography (`text-transform`,
+  `letter-spacing`, `min-height`…). A new "Studio colors" card sets the CSS
+  variables. Verified with Playwright against a deliberately hostile theme
+  stylesheet loaded *after* the plugin's CSS: card, summary and editor buttons
+  all kept the plugin's look, and a pink primary from settings applied.
+  - *Found while building this:* the add-to-cart payload never sent the
+    Straighten angle (`crop.fineRot`) and "Add size" dropped it too, so a
+    straightened photo printed unstraightened. Both fixed; the Playwright
+    test now asserts `fineRot` is in the payload.
 
 ## 🚧 Not started / partially covered
 

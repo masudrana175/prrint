@@ -258,3 +258,25 @@
 	line-height: 2;
 	border-radius: 6px;
 }
+
+/* ------------------------------------------------------------ color inputs */
+
+.prrint-color-input {
+	width: 44px;
+	height: 32px;
+	padding: 2px;
+	border: 1px solid #c3c4c7;
+	border-radius: 6px;
+	background: #fff;
+	cursor: pointer;
+	vertical-align: middle;
+}
+
+.prrint-color-value {
+	margin: 0 8px;
+	vertical-align: middle;
+}
+
+.prrint-color-reset {
+	vertical-align: middle;
+}

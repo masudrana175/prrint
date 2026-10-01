@@ -60,6 +60,22 @@
 		});
 	}
 
+	document.addEventListener('input', function (e) {
+		if (!e.target.classList || !e.target.classList.contains('prrint-color-input')) { return; }
+		var code = e.target.parentElement.querySelector('.prrint-color-value');
+		if (code) { code.textContent = e.target.value; }
+	});
+
+	document.addEventListener('click', function (e) {
+		var reset = e.target.closest && e.target.closest('.prrint-color-reset');
+		if (!reset) { return; }
+		e.preventDefault();
+		var input = reset.parentElement.querySelector('.prrint-color-input');
+		if (!input) { return; }
+		input.value = reset.dataset.default;
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+	});
+
 	document.querySelectorAll('.prrint-color-list-input').forEach(function (input) {
 		renderSwatchPreview(input);
 		input.addEventListener('input', function () { renderSwatchPreview(input); });

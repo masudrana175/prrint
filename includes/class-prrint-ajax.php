@@ -99,7 +99,7 @@ class Prrint_Ajax {
 	 * Add a batch of customized prints to the WooCommerce cart.
 	 *
 	 * Payload: product_id, items = JSON array of
-	 * { token, size, paper, qty, orientation, border, crop:{x,y,w,h,rotation} }.
+	 * { token, size, paper, style, edge, qty, orientation, border, crop:{x,y,w,h,fineRot,rotation} }.
 	 */
 	public static function add_to_cart() {
 		check_ajax_referer( 'prrint_studio', 'nonce' );
@@ -228,6 +228,28 @@ class Prrint_Ajax {
 		$size  = $sizes[ $size_idx ];
 		$paper = $papers[ $paper_idx ];
 
+		// Style is required whenever the store offers any; edge color only
+		// applies to a style flagged as having one.
+		$settings = prrint_settings();
+		$styles   = array_values( $settings['styles'] );
+		$edges    = array_values( $settings['edge_colors'] );
+		$style    = null;
+		$edge     = null;
+		if ( ! empty( $styles ) ) {
+			$style_idx = isset( $raw['style'] ) ? (int) $raw['style'] : 0;
+			if ( ! isset( $styles[ $style_idx ] ) ) {
+				return new WP_Error( 'prrint', __( 'Invalid print options selected.', 'prrint' ) );
+			}
+			$style = $styles[ $style_idx ];
+			if ( ! empty( $style['edge'] ) && ! empty( $edges ) ) {
+				$edge_idx = isset( $raw['edge'] ) ? (int) $raw['edge'] : 0;
+				if ( ! isset( $edges[ $edge_idx ] ) ) {
+					return new WP_Error( 'prrint', __( 'Invalid print options selected.', 'prrint' ) );
+				}
+				$edge = $edges[ $edge_idx ];
+			}
+		}
+
 		$w_in = 'landscape' === $orientation ? max( $size['w'], $size['h'] ) : min( $size['w'], $size['h'] );
 		$h_in = 'landscape' === $orientation ? min( $size['w'], $size['h'] ) : max( $size['w'], $size['h'] );
 
@@ -242,6 +264,10 @@ class Prrint_Ajax {
 				'h_in'        => (float) $h_in,
 				'paper_label' => $paper['label'],
 				'surcharge'   => (float) $paper['surcharge'],
+				'style_label'     => $style ? $style['label'] : '',
+				'style_surcharge' => $style ? (float) $style['surcharge'] : 0.0,
+				'edge_label'      => $edge ? $edge['label'] : '',
+				'edge_color'      => $edge ? $edge['color'] : '',
 				'orientation' => $orientation,
 				'border'      => $border,
 				'design'      => isset( $raw['design'] ) ? self::sanitize_design( $raw['design'] ) : null,

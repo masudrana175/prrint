@@ -31,6 +31,14 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
   inch/pixel ruler along the print frame. The crop frame is always locked
   to the chosen print size's aspect ratio: what the customer sees is
   exactly what prints.
+- **Styles & edge colors** — an optional "Style" dropdown (e.g. Paper
+  print, ColorLite, Color Box, each with its own surcharge) and, for
+  styles with a colored edge, an "Edge Color" dropdown whose color is
+  drawn around the photo preview live. Both are managed from the
+  settings page and recorded on the order.
+- **Brandable colors** — primary/button, button text, text, card and
+  Total-bar colors set from the settings page; studio styles are scoped
+  so a theme's own button styling can't override them.
 - **Filters & adjust** — one-click tone presets (B&W, Warm, Cold, Vintage,
   DuoTone, Legacy, Smooth) plus brightness/contrast/saturation sliders,
   rendered identically in the browser preview and the GD print pipeline.

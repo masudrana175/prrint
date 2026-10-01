@@ -39,6 +39,18 @@ class Prrint_Cart {
 			'key'   => __( 'Paper', 'prrint' ),
 			'value' => $v['paper_label'],
 		);
+		if ( ! empty( $v['style_label'] ) ) {
+			$item_data[] = array(
+				'key'   => __( 'Style', 'prrint' ),
+				'value' => $v['style_label'],
+			);
+		}
+		if ( ! empty( $v['edge_label'] ) ) {
+			$item_data[] = array(
+				'key'   => __( 'Edge color', 'prrint' ),
+				'value' => $v['edge_label'],
+			);
+		}
 		if ( ! empty( $v['border'] ) ) {
 			$item_data[] = array(
 				'key'   => __( 'Finish', 'prrint' ),
@@ -54,10 +66,19 @@ class Prrint_Cart {
 			return $thumbnail;
 		}
 		return sprintf(
-			'<img src="%s" alt="%s" class="prrint-cart-thumb" style="max-width:80px;height:auto;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.2);" />',
+			'<img src="%s" alt="%s" class="prrint-cart-thumb" style="max-width:80px;height:auto;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.2);%s" />',
 			esc_url( prrint_file_url( $cart_item['prrint']['preview'] ) ),
-			esc_attr__( 'Your print preview', 'prrint' )
+			esc_attr__( 'Your print preview', 'prrint' ),
+			esc_attr( self::edge_css( $cart_item['prrint'] ) )
 		);
+	}
+
+	/**
+	 * Inline border showing the chosen edge color around a preview image.
+	 */
+	protected static function edge_css( $v ) {
+		$color = ! empty( $v['edge_color'] ) ? sanitize_hex_color( $v['edge_color'] ) : '';
+		return $color ? 'border:4px solid ' . $color . ';' : '';
 	}
 
 	/**
@@ -140,7 +161,8 @@ class Prrint_Cart {
 			}
 			$v    = $cart_item['prrint'];
 			$base = $v['size_price'] > 0 ? (float) $v['size_price'] : (float) $cart_item['data']->get_price( 'edit' );
-			$cart_item['data']->set_price( $base + (float) $v['surcharge'] );
+			$style_extra = isset( $v['style_surcharge'] ) ? (float) $v['style_surcharge'] : 0.0;
+			$cart_item['data']->set_price( $base + (float) $v['surcharge'] + $style_extra );
 		}
 	}
 
@@ -156,6 +178,12 @@ class Prrint_Cart {
 			sprintf( '%s (%s" × %s")', $v['size_label'], wc_format_localized_decimal( $v['w_in'] ), wc_format_localized_decimal( $v['h_in'] ) )
 		);
 		$item->add_meta_data( __( 'Paper', 'prrint' ), $v['paper_label'] );
+		if ( ! empty( $v['style_label'] ) ) {
+			$item->add_meta_data( __( 'Style', 'prrint' ), $v['style_label'] );
+		}
+		if ( ! empty( $v['edge_label'] ) ) {
+			$item->add_meta_data( __( 'Edge color', 'prrint' ), sprintf( '%s (%s)', $v['edge_label'], $v['edge_color'] ) );
+		}
 		if ( ! empty( $v['border'] ) ) {
 			$item->add_meta_data( __( 'Finish', 'prrint' ), __( 'White border', 'prrint' ) );
 		}
@@ -231,6 +259,10 @@ class Prrint_Cart {
 			'h_in'        => $v['h_in'],
 			'paper_label' => $v['paper_label'],
 			'surcharge'   => $v['surcharge'],
+			'style_label'     => isset( $v['style_label'] ) ? $v['style_label'] : '',
+			'style_surcharge' => isset( $v['style_surcharge'] ) ? $v['style_surcharge'] : 0,
+			'edge_label'      => isset( $v['edge_label'] ) ? $v['edge_label'] : '',
+			'edge_color'      => isset( $v['edge_color'] ) ? $v['edge_color'] : '',
 			'orientation' => $v['orientation'],
 			'border'      => $v['border'],
 			'design'      => $design,

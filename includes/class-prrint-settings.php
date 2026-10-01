@@ -72,6 +72,15 @@ class Prrint_Settings {
 			$out['papers'] = $defaults['papers'];
 		}
 
+		// Empty is allowed for both: no rows = the dropdown isn't shown.
+		$out['styles']      = self::sanitize_styles( isset( $input['styles'] ) ? $input['styles'] : array() );
+		$out['edge_colors'] = self::sanitize_edge_colors( isset( $input['edge_colors'] ) ? $input['edge_colors'] : array() );
+
+		foreach ( prrint_default_theme_colors() as $key => $default ) {
+			$color       = isset( $input[ $key ] ) ? sanitize_hex_color( $input[ $key ] ) : '';
+			$out[ $key ] = $color ? $color : $default;
+		}
+
 		$out['max_mb']       = max( 1, min( 200, isset( $input['max_mb'] ) ? absint( $input['max_mb'] ) : $defaults['max_mb'] ) );
 		$out['jpeg_quality'] = max( 50, min( 100, isset( $input['jpeg_quality'] ) ? absint( $input['jpeg_quality'] ) : $defaults['jpeg_quality'] ) );
 		$out['target_dpi']   = max( 72, min( 1200, isset( $input['target_dpi'] ) ? absint( $input['target_dpi'] ) : $defaults['target_dpi'] ) );
@@ -189,6 +198,50 @@ class Prrint_Settings {
 		return array_slice( $papers, 0, 20 );
 	}
 
+	public static function sanitize_styles( $rows ) {
+		$styles = array();
+		if ( ! is_array( $rows ) ) {
+			return $styles;
+		}
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$label = isset( $row['label'] ) ? sanitize_text_field( $row['label'] ) : '';
+			if ( '' === $label ) {
+				continue;
+			}
+			$styles[] = array(
+				'label'     => $label,
+				'surcharge' => (float) max( 0, isset( $row['surcharge'] ) ? (float) $row['surcharge'] : 0 ),
+				'edge'      => ! empty( $row['edge'] ),
+			);
+		}
+		return array_slice( $styles, 0, 20 );
+	}
+
+	public static function sanitize_edge_colors( $rows ) {
+		$colors = array();
+		if ( ! is_array( $rows ) ) {
+			return $colors;
+		}
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$label = isset( $row['label'] ) ? sanitize_text_field( $row['label'] ) : '';
+			$color = isset( $row['color'] ) ? sanitize_hex_color( $row['color'] ) : '';
+			if ( '' === $label || ! $color ) {
+				continue;
+			}
+			$colors[] = array(
+				'label' => $label,
+				'color' => $color,
+			);
+		}
+		return array_slice( $colors, 0, 30 );
+	}
+
 	/* --------------------------------------------------------------------
 	 * Rendering.
 	 * ------------------------------------------------------------------ */
@@ -221,6 +274,18 @@ class Prrint_Settings {
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'paper', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Paper & finish options', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Each paper can add a surcharge on top of the size price.', 'prrint' ); ?></p>
 					<?php self::render_papers_table( 'prrint_settings[papers]', $s['papers'], $currency ); ?>
+				</div>
+
+				<div class="prrint-card">
+					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'layers', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Product styles', 'prrint' ); ?></h2>
+					<p class="description"><?php esc_html_e( 'What the print is made into — e.g. a plain paper print, ColorLite or Color Box. Shown to customers as a "Style" dropdown under Paper, with an optional surcharge. Tick "Colored edge" for styles that have an edge, so customers can pick an Edge Color for them. Remove every row to hide the Style dropdown.', 'prrint' ); ?></p>
+					<?php self::render_styles_table( 'prrint_settings[styles]', $s['styles'], $currency ); ?>
+				</div>
+
+				<div class="prrint-card">
+					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'square', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Edge colors', 'prrint' ); ?></h2>
+					<p class="description"><?php esc_html_e( 'Colors offered in the "Edge Color" dropdown for styles with a colored edge. The selected color is drawn around the customer\'s photo preview so they can see it before ordering.', 'prrint' ); ?></p>
+					<?php self::render_edge_colors_table( 'prrint_settings[edge_colors]', $s['edge_colors'] ); ?>
 				</div>
 
 				<div class="prrint-card">
@@ -337,6 +402,20 @@ class Prrint_Settings {
 						self::render_color_list_field( 'border_colors', __( 'Border color', 'prrint' ), $s['border_colors'] );
 						self::render_color_list_field( 'shape_colors', __( 'Elements (shape) color', 'prrint' ), $s['shape_colors'] );
 						self::render_color_list_field( 'draw_colors', __( 'Draw brush color', 'prrint' ), $s['draw_colors'] );
+						?>
+					</table>
+				</div>
+
+				<div class="prrint-card">
+					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'sun', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Studio colors', 'prrint' ); ?></h2>
+					<p class="description"><?php esc_html_e( 'Match the studio to your brand. These apply to the upload area, photo cards, buttons and the editor, and override your theme\'s own button colors inside the studio.', 'prrint' ); ?></p>
+					<table class="form-table" role="presentation">
+						<?php
+						self::render_color_field( 'color_primary', __( 'Primary (buttons & highlights)', 'prrint' ), $s['color_primary'] );
+						self::render_color_field( 'color_primary_text', __( 'Text on primary buttons', 'prrint' ), $s['color_primary_text'] );
+						self::render_color_field( 'color_text', __( 'Text', 'prrint' ), $s['color_text'] );
+						self::render_color_field( 'color_card_bg', __( 'Photo card background', 'prrint' ), $s['color_card_bg'] );
+						self::render_color_field( 'color_summary_bg', __( 'Total / Add to cart bar', 'prrint' ), $s['color_summary_bg'] );
 						?>
 					</table>
 				</div>
@@ -514,6 +593,85 @@ class Prrint_Settings {
 				<p class="prrint-swatch-preview" data-prrint-swatch-preview></p>
 			</td>
 		</tr>
+		<?php
+	}
+
+	protected static function render_color_field( $key, $label, $value ) {
+		$default = prrint_default_theme_colors()[ $key ];
+		?>
+		<tr>
+			<th scope="row"><label for="prrint_<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label></th>
+			<td>
+				<input type="color" id="prrint_<?php echo esc_attr( $key ); ?>" name="prrint_settings[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $value ); ?>" class="prrint-color-input" />
+				<code class="prrint-color-value"><?php echo esc_html( $value ); ?></code>
+				<button type="button" class="button-link prrint-color-reset" data-default="<?php echo esc_attr( $default ); ?>"><?php esc_html_e( 'Reset', 'prrint' ); ?></button>
+			</td>
+		</tr>
+		<?php
+	}
+
+	public static function render_styles_table( $name, $styles, $currency ) {
+		?>
+		<table class="widefat striped prrint-table" data-prrint-table="styles">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Style', 'prrint' ); ?></th>
+					<th><?php printf( /* translators: %s currency symbol */ esc_html__( 'Surcharge (%s)', 'prrint' ), esc_html( $currency ) ); ?></th>
+					<th><?php esc_html_e( 'Colored edge', 'prrint' ); ?></th>
+					<th class="prrint-col-actions"></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( array_values( $styles ) as $i => $style ) : ?>
+					<tr>
+						<td><input type="text" name="<?php echo esc_attr( $name ); ?>[<?php echo (int) $i; ?>][label]" value="<?php echo esc_attr( $style['label'] ); ?>" /></td>
+						<td><input type="number" step="0.01" min="0" name="<?php echo esc_attr( $name ); ?>[<?php echo (int) $i; ?>][surcharge]" value="<?php echo esc_attr( $style['surcharge'] ); ?>" /></td>
+						<td><label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[<?php echo (int) $i; ?>][edge]" value="1" <?php checked( ! empty( $style['edge'] ) ); ?> /> <?php esc_html_e( 'Yes', 'prrint' ); ?></label></td>
+						<td class="prrint-col-actions"><button type="button" class="button-link-delete prrint-remove-row" aria-label="<?php esc_attr_e( 'Remove row', 'prrint' ); ?>">✕</button></td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<template class="prrint-row-template">
+			<tr>
+				<td><input type="text" name="<?php echo esc_attr( $name ); ?>[__i__][label]" value="" /></td>
+				<td><input type="number" step="0.01" min="0" name="<?php echo esc_attr( $name ); ?>[__i__][surcharge]" value="" /></td>
+				<td><label><input type="checkbox" name="<?php echo esc_attr( $name ); ?>[__i__][edge]" value="1" /> <?php esc_html_e( 'Yes', 'prrint' ); ?></label></td>
+				<td class="prrint-col-actions"><button type="button" class="button-link-delete prrint-remove-row" aria-label="<?php esc_attr_e( 'Remove row', 'prrint' ); ?>">✕</button></td>
+			</tr>
+		</template>
+		<p><button type="button" class="button prrint-add-row"><?php esc_html_e( '+ Add style', 'prrint' ); ?></button></p>
+		<?php
+	}
+
+	public static function render_edge_colors_table( $name, $colors ) {
+		?>
+		<table class="widefat striped prrint-table" data-prrint-table="edge_colors">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Name', 'prrint' ); ?></th>
+					<th><?php esc_html_e( 'Color', 'prrint' ); ?></th>
+					<th class="prrint-col-actions"></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( array_values( $colors ) as $i => $edge ) : ?>
+					<tr>
+						<td><input type="text" name="<?php echo esc_attr( $name ); ?>[<?php echo (int) $i; ?>][label]" value="<?php echo esc_attr( $edge['label'] ); ?>" /></td>
+						<td><input type="color" name="<?php echo esc_attr( $name ); ?>[<?php echo (int) $i; ?>][color]" value="<?php echo esc_attr( $edge['color'] ); ?>" class="prrint-color-input" /></td>
+						<td class="prrint-col-actions"><button type="button" class="button-link-delete prrint-remove-row" aria-label="<?php esc_attr_e( 'Remove row', 'prrint' ); ?>">✕</button></td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<template class="prrint-row-template">
+			<tr>
+				<td><input type="text" name="<?php echo esc_attr( $name ); ?>[__i__][label]" value="" /></td>
+				<td><input type="color" name="<?php echo esc_attr( $name ); ?>[__i__][color]" value="#111111" class="prrint-color-input" /></td>
+				<td class="prrint-col-actions"><button type="button" class="button-link-delete prrint-remove-row" aria-label="<?php esc_attr_e( 'Remove row', 'prrint' ); ?>">✕</button></td>
+			</tr>
+		</template>
+		<p><button type="button" class="button prrint-add-row"><?php esc_html_e( '+ Add edge color', 'prrint' ); ?></button></p>
 		<?php
 	}
 

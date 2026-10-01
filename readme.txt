@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.25.0
+Stable tag: 1.26.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,25 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.26.0 =
+* Add a "Style" dropdown under Paper (e.g. Paper print, ColorLite,
+  Color Box), configured under WooCommerce → Prrint Studio → Product
+  styles, each with an optional surcharge added to the price.
+* Add an "Edge Color" dropdown for styles marked as having a colored
+  edge. The chosen color is drawn around the customer's photo preview as
+  they pick it, and shown on the cart thumbnail. Edge colors are managed
+  under Prrint Studio → Edge colors. Style and edge color are recorded on
+  the cart line, the order, and replayed by Reorder.
+* Add a "Studio colors" section to the settings page: primary/button
+  color, button text, text, photo card background and the Total bar.
+* Stop themes from restyling the studio's buttons (e.g. turning them
+  pink and uppercase): all studio styles are now scoped to the studio
+  container so they out-rank typical theme button/select rules.
+* Replace the studio's section spacing rule with a flex column gap, and
+  stop an empty photo list from adding a blank gap.
+* Fix the Straighten (fine rotation) angle not being sent when adding to
+  cart, and not being kept by "Add size" — both now carry it through.
 
 = 1.25.0 =
 * Add a continuous "Straighten" slider to the photo editor's Transform

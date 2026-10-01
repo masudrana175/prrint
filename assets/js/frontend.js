@@ -212,8 +212,23 @@
 	function unitPrice(item) {
 		var s = cfg.sizes[item.sizeIdx];
 		var p = cfg.papers[item.paperIdx];
+		var st = currentStyle(item);
 		var base = s.price > 0 ? s.price : cfg.basePrice;
-		return base + p.surcharge;
+		return base + p.surcharge + (st ? st.surcharge : 0);
+	}
+
+	var STYLES = cfg.styles || [];
+	var EDGE_COLORS = cfg.edgeColors || [];
+
+	function currentStyle(item) {
+		return STYLES[item.styleIdx] || null;
+	}
+
+	/** The chosen edge color, or null when the style has no colored edge. */
+	function currentEdge(item) {
+		var st = currentStyle(item);
+		if (!st || !st.edge || !EDGE_COLORS.length) { return null; }
+		return EDGE_COLORS[item.edgeIdx] || EDGE_COLORS[0];
 	}
 
 	function itemDpi(item) {
@@ -730,6 +745,15 @@
 					'<select class="prrint-size-select"></select></label>' +
 				'<label class="prrint-field"><span>' + esc(cfg.i18n.paper) + '</span>' +
 					'<select class="prrint-paper-select"></select></label>' +
+				(STYLES.length
+					? '<label class="prrint-field"><span>' + esc(cfg.i18n.style || 'Style') + '</span>' +
+						'<select class="prrint-style-select"></select></label>'
+					: '') +
+				(STYLES.length && EDGE_COLORS.length
+					? '<label class="prrint-field prrint-edge-field"><span>' + esc(cfg.i18n.edgeColor || 'Edge Color') + '</span>' +
+						'<span class="prrint-edge-select-wrap"><i class="prrint-edge-swatch" aria-hidden="true"></i>' +
+						'<select class="prrint-edge-select"></select></span></label>'
+					: '') +
 				'<div class="prrint-field-row">' +
 					'<label class="prrint-border-label"><input type="checkbox" class="prrint-border-check" /> ' + esc(cfg.i18n.whiteBorder) + '</label>' +
 					'<div class="prrint-qty" aria-label="' + esc(cfg.i18n.qty) + '">' +
@@ -765,6 +789,37 @@
 		});
 		paperSel.value = String(item.paperIdx);
 		card.querySelector('.prrint-border-check').checked = !!item.design.border.enabled;
+
+		var styleSel = card.querySelector('.prrint-style-select');
+		if (styleSel) {
+			STYLES.forEach(function (st, i) {
+				var opt = document.createElement('option');
+				opt.value = String(i);
+				opt.textContent = st.label + (st.surcharge > 0 ? ' (+' + formatPrice(st.surcharge) + ')' : '');
+				styleSel.appendChild(opt);
+			});
+			styleSel.value = String(item.styleIdx);
+			styleSel.addEventListener('change', function () {
+				item.styleIdx = Number(this.value) || 0;
+				renderCard(item);
+				updateSummary();
+			});
+		}
+
+		var edgeSel = card.querySelector('.prrint-edge-select');
+		if (edgeSel) {
+			EDGE_COLORS.forEach(function (e, i) {
+				var opt = document.createElement('option');
+				opt.value = String(i);
+				opt.textContent = e.label;
+				edgeSel.appendChild(opt);
+			});
+			edgeSel.value = String(item.edgeIdx);
+			edgeSel.addEventListener('change', function () {
+				item.edgeIdx = Number(this.value) || 0;
+				renderCard(item);
+			});
+		}
 
 		/* events */
 		sizeSel.addEventListener('change', function () {
@@ -846,9 +901,11 @@
 			orientation: source.orientation,
 			sizeIdx: newSizeIdx,
 			paperIdx: source.paperIdx,
+			styleIdx: source.styleIdx,
+			edgeIdx: source.edgeIdx,
 			qty: 1,
 			design: cloneDesign(source.design),
-			crop: { x: source.crop.x, y: source.crop.y, w: source.crop.w, h: source.crop.h },
+			crop: { x: source.crop.x, y: source.crop.y, w: source.crop.w, h: source.crop.h, fineRot: source.crop.fineRot || 0 },
 			ready: true,
 			card: null,
 			_drawingImg: source._drawingImg || null
@@ -944,6 +1001,18 @@
 		var drawingSource = (item._drawingImg && item._drawingImg.complete) ? item._drawingImg : null;
 		drawDesignOverlay(c, item.design, frame, drawingSource);
 
+		// The edge is the physical product's side, not part of the printed
+		// image, so it's shown as a frame around the canvas, never drawn on it.
+		var edge = currentEdge(item);
+		canvas.classList.toggle('prrint-has-edge', !!edge);
+		canvas.style.borderColor = edge ? edge.color : '';
+		var edgeField = card.querySelector('.prrint-edge-field');
+		if (edgeField) {
+			edgeField.hidden = !edge;
+			var swatch = edgeField.querySelector('.prrint-edge-swatch');
+			if (swatch && edge) { swatch.style.background = edge.color; }
+		}
+
 		// Price line.
 		var unit = unitPrice(item);
 		card.querySelector('.prrint-item-price').textContent =
@@ -1036,6 +1105,8 @@
 				orientation: img.naturalWidth >= img.naturalHeight ? 'landscape' : 'portrait',
 				sizeIdx: defaultSize,
 				paperIdx: defaultPaper,
+				styleIdx: 0,
+				edgeIdx: 0,
 				qty: 1,
 				design: newDesign(),
 				crop: null,
@@ -3058,6 +3129,8 @@
 				token: it.token,
 				size: it.sizeIdx,
 				paper: it.paperIdx,
+				style: STYLES.length ? it.styleIdx : -1,
+				edge: currentEdge(it) ? it.edgeIdx : -1,
 				qty: it.qty,
 				orientation: it.orientation,
 				border: it.design.border.enabled ? 1 : 0,
@@ -3067,6 +3140,7 @@
 					y: it.crop.y,
 					w: it.crop.w,
 					h: it.crop.h,
+					fineRot: it.crop.fineRot || 0,
 					rotation: it.rot
 				}
 			};
