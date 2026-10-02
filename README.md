@@ -21,16 +21,17 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
 - **Full-screen dark editor** — a Colorplak-style studio: top bar with
   Undo/Redo and Save/Close, left icon rail, and per-tool side panels with
   large filter preview tiles.
-- **Crop editor** — full-screen modal editor per photo: drag to reposition,
-  scroll-wheel, slider or typed-number zoom, a numeric Crop Size (W × H in
-  source-photo pixels, aspect-locked to the print size) for exact crops, a
-  "Keep Resolution" toggle that stops you zooming past the target print
-  DPI, 90° rotation, a continuous -45°..+45° "Straighten" slider for fine
-  leveling, flip horizontal/vertical, a one-click Reset to
-  Default, portrait/landscape toggle, rule-of-thirds guides, and an
-  inch/pixel ruler along the print frame. The crop frame is always locked
-  to the chosen print size's aspect ratio: what the customer sees is
-  exactly what prints.
+- **Crop editor** — full-screen editor per photo. The whole photo stays in
+  view with a crop box over it (outside dimmed, rule-of-thirds grid): drag
+  the box to move it, drag a corner or scroll to resize it. A "Common" grid
+  of the store's print sizes in both orientations picks the size/aspect
+  right in the editor. Bottom bar: flip horizontal/vertical, a dotted
+  "Straighten" dial (-45°..+45°, double-click to reset) and rotate
+  left/right 90°. Also a numeric Crop Size (W × H in source-photo pixels),
+  a "Keep Resolution" toggle that stops the box shrinking below the target
+  print DPI, Reset to Default and full Undo/Redo. The box is always locked
+  to the chosen print size's aspect ratio and can never leave the photo:
+  what the customer sees is exactly what prints.
 - **Styles & edge colors** — an optional "Style" dropdown (e.g. Paper
   print, ColorLite, Color Box, each with its own surcharge) and, for
   styles with a colored edge, an "Edge Color" dropdown whose color is

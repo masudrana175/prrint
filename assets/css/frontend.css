@@ -775,29 +775,6 @@ body.prrint-modal-open {
 	flex: 0 0 auto;
 }
 
-#prrint-studio .prrint-zoom-control {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	color: var(--prrint-dark-muted);
-	font-size: 0.85em;
-	order: -1;
-	flex: 1 1 100%;
-	justify-content: center;
-}
-
-@media (min-width: 700px) {
-	#prrint-studio .prrint-zoom-control {
-		order: 0;
-		flex: 1 1 auto;
-	}
-}
-
-#prrint-studio .prrint-zoom-control #prrint-zoom-pct {
-	min-width: 3.5em;
-	text-align: center;
-}
-
 #prrint-studio .prrint-topbar-btn {
 	border: 0;
 	background: transparent;
@@ -980,51 +957,6 @@ body.prrint-modal-open {
 	color: var(--prrint-dark-text);
 }
 
-#prrint-studio .prrint-zoom-input-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin-top: 8px;
-	font-size: 0.85em;
-	color: var(--prrint-dark-muted);
-}
-
-#prrint-studio .prrint-zoom-input-wrap {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	color: var(--prrint-dark-text);
-}
-
-#prrint-studio .prrint-straighten-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin-top: 14px;
-	font-size: 0.85em;
-	color: var(--prrint-dark-muted);
-}
-
-#prrint-studio .prrint-straighten-out {
-	color: var(--prrint-dark-text);
-	font-variant-numeric: tabular-nums;
-}
-
-#prrint-studio #prrint-fine-rot {
-	margin-top: 4px;
-}
-
-#prrint-studio .prrint-zoom-input-wrap input[type="number"] {
-	width: 56px;
-	padding: 5px 7px;
-	border: 1px solid var(--prrint-dark-line);
-	border-radius: 6px;
-	background: rgba(255, 255, 255, 0.04);
-	color: var(--prrint-dark-text);
-	font-size: 1em;
-	text-align: right;
-}
-
 #prrint-studio .prrint-field-label {
 	margin: 10px 0 6px;
 	font-size: 0.8em;
@@ -1034,40 +966,283 @@ body.prrint-modal-open {
 	letter-spacing: 0.03em;
 }
 
-#prrint-studio .prrint-keep-res-label {
-	margin-top: 14px !important;
+/* ------------------------------------------------ transform panel (crop) */
+
+#prrint-studio .prrint-transform-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+#prrint-studio .prrint-transform-panel[hidden] {
+	display: none;
+}
+
+#prrint-studio .prrint-panel-title {
+	margin: -4px -18px 0;
+	padding: 0 18px 14px;
+	border-bottom: 1px solid var(--prrint-dark-line);
+	text-align: center;
+	font-size: 0.95em;
+	font-weight: 600;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--prrint-dark-text);
+}
+
+#prrint-studio .prrint-editor-panel .prrint-transform-reset {
+	width: 100%;
+	padding: 9px 12px;
+	border: 1px solid var(--prrint-dark-line);
+	border-radius: 4px;
+	background: transparent;
+	color: var(--prrint-dark-text);
+	font-size: 0.8em;
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+#prrint-studio .prrint-editor-panel .prrint-transform-reset:hover {
+	border-color: var(--prrint-dark-muted);
+}
+
+#prrint-studio .prrint-keep-res-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin: 0;
+	font-size: 0.85em;
+	color: var(--prrint-dark-muted);
+	cursor: pointer;
+}
+
+#prrint-studio .prrint-keep-res-row input {
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	accent-color: var(--prrint-dark-accent);
+	cursor: pointer;
+}
+
+#prrint-studio .prrint-crop-size-title,
+#prrint-studio .prrint-preset-title {
+	margin: 0;
+	font-size: 0.85em;
+	font-weight: 600;
+	color: var(--prrint-dark-text);
 }
 
 #prrint-studio .prrint-crop-size-row {
-	margin-top: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: -6px;
+	padding-bottom: 14px;
+	border-bottom: 1px solid var(--prrint-dark-line);
 }
 
 #prrint-studio .prrint-crop-size-field {
 	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	font-size: 0.85em;
-	color: var(--prrint-dark-muted);
-	flex: 1 1 0;
-}
-
-#prrint-studio .prrint-crop-size-wrap {
-	display: flex;
 	align-items: center;
-	gap: 4px;
+	gap: 6px;
+	flex: 1 1 0;
+	min-width: 0;
+	margin: 0;
+	font-size: 0.8em;
+	font-weight: 700;
 	color: var(--prrint-dark-text);
 }
 
-#prrint-studio .prrint-crop-size-wrap input[type="number"] {
+#prrint-studio .prrint-crop-size-field input[type="number"] {
 	width: 100%;
 	min-width: 0;
-	padding: 5px 7px;
-	border: 1px solid var(--prrint-dark-line);
-	border-radius: 6px;
-	background: rgba(255, 255, 255, 0.04);
+	padding: 4px 2px;
+	border: 0;
+	border-bottom: 1px solid var(--prrint-dark-line);
+	border-radius: 0;
+	background: transparent;
+	color: var(--prrint-dark-muted);
+	font-size: 0.95em;
+	-moz-appearance: textfield;
+	appearance: textfield;
+}
+
+#prrint-studio .prrint-crop-size-field input[type="number"]:focus {
+	outline: none;
+	border-bottom-color: var(--prrint-dark-accent);
 	color: var(--prrint-dark-text);
-	font-size: 1em;
-	text-align: right;
+}
+
+#prrint-studio .prrint-crop-size-field input::-webkit-outer-spin-button,
+#prrint-studio .prrint-crop-size-field input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+#prrint-studio .prrint-crop-size-x {
+	color: var(--prrint-dark-muted);
+	font-size: 0.8em;
+}
+
+#prrint-studio .prrint-preset-title {
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	font-size: 0.82em;
+}
+
+#prrint-studio .prrint-preset-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+#prrint-studio .prrint-editor-panel .prrint-preset {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	aspect-ratio: 1 / 1;
+	padding: 10px 6px 10px;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: #26262b;
+	color: var(--prrint-dark-text);
+	font-size: 0.75em;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	cursor: pointer;
+	transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+#prrint-studio .prrint-editor-panel .prrint-preset:hover {
+	background: #303036;
+}
+
+#prrint-studio .prrint-editor-panel .prrint-preset.is-active {
+	border-color: var(--prrint-dark-accent);
+	background: color-mix(in srgb, var(--prrint-dark-accent) 22%, #26262b);
+}
+
+#prrint-studio .prrint-preset-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 1 1 auto;
+	width: 100%;
+}
+
+#prrint-studio .prrint-preset-icon i {
+	display: block;
+	max-width: 100%;
+	background: #77777f;
+	border-radius: 1px;
+}
+
+#prrint-studio .prrint-preset.is-active .prrint-preset-icon i {
+	background: color-mix(in srgb, var(--prrint-dark-accent) 45%, #9a9aa5);
+}
+
+#prrint-studio .prrint-preset-label {
+	line-height: 1.1;
+	white-space: nowrap;
+}
+
+/* ---------------------------------------------- crop bar under the photo */
+
+#prrint-studio .prrint-crop-bar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 18px;
+	flex: 0 0 auto;
+	height: 52px;
+	padding: 0 16px;
+	line-height: 1;
+}
+
+#prrint-studio .prrint-crop-bar[hidden] {
+	display: none;
+}
+
+#prrint-studio .prrint-editor-panel .prrint-crop-bar-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--prrint-dark-text);
+	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+#prrint-studio .prrint-editor-panel .prrint-crop-bar-btn:hover {
+	background: rgba(255, 255, 255, 0.08);
+}
+
+#prrint-studio .prrint-editor-panel .prrint-crop-bar-btn.is-active {
+	color: var(--prrint-dark-accent);
+}
+
+/* Straighten dial: dots that scroll with the angle around a centered readout.
+   The real <input type=range> stays for keyboard/screen-reader use. */
+#prrint-studio .prrint-dial {
+	--prrint-dial-shift: 0px;
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	width: min(340px, 46vw);
+	height: 34px;
+	cursor: ew-resize;
+	touch-action: none;
+	user-select: none;
+}
+
+#prrint-studio .prrint-dial-ticks {
+	flex: 1 1 0;
+	height: 100%;
+	background-image: radial-gradient(circle, rgba(255, 255, 255, 0.85) 1.3px, transparent 1.8px);
+	background-size: 12px 100%;
+	background-repeat: repeat-x;
+	background-position: var(--prrint-dial-shift) center;
+	-webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
+	mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
+}
+
+#prrint-studio .prrint-dial-out {
+	min-width: 3.2em;
+	text-align: center;
+	color: var(--prrint-dark-text);
+	font-size: 0.95em;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+#prrint-studio .prrint-dial.is-dragging .prrint-dial-out {
+	color: var(--prrint-dark-accent);
+}
+
+#prrint-studio .prrint-dial-input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	border: 0;
+}
+
+#prrint-studio .prrint-dial:focus-within {
+	outline: 2px solid var(--prrint-dark-accent);
+	outline-offset: 2px;
+	border-radius: 6px;
 }
 
 #prrint-studio .prrint-two-col {
@@ -1374,11 +1549,25 @@ body.prrint-modal-open {
 	position: relative;
 	flex: 1 1 auto;
 	min-width: 0;
-	line-height: 0;
 	display: flex;
-	align-items: center;
-	justify-content: center;
+	flex-direction: column;
 	background: #000;
+}
+
+/* Sized by flexbox, never by the canvas inside it (absolute), so edLayout()
+   can read a stable size and resizing the canvas can't feed back into it. */
+#prrint-studio .prrint-canvas-stage {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0;
+	line-height: 0;
+}
+
+#prrint-studio .prrint-canvas-stage #prrint-canvas {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
 }
 
 #prrint-studio #prrint-canvas {
@@ -1599,6 +1788,29 @@ body.prrint-modal-open {
 		border-bottom: 1px solid var(--prrint-dark-line);
 	}
 	#prrint-studio .prrint-editor-canvas-wrap {
-		min-height: 300px;
+		min-height: 360px;
+	}
+	#prrint-studio .prrint-panel-title {
+		display: none;
+	}
+	#prrint-studio .prrint-transform-panel {
+		gap: 10px;
+	}
+	/* One swipeable row of compact tiles so the photo stays in view. */
+	#prrint-studio .prrint-preset-grid {
+		display: flex;
+		overflow-x: auto;
+		gap: 6px;
+		padding-bottom: 4px;
+		scroll-snap-type: x proximity;
+	}
+	#prrint-studio .prrint-editor-panel .prrint-preset {
+		flex: 0 0 76px;
+		aspect-ratio: auto;
+		height: 76px;
+		scroll-snap-align: start;
+	}
+	#prrint-studio .prrint-crop-bar {
+		gap: 8px;
 	}
 }

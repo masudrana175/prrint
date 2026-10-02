@@ -35,9 +35,11 @@
 		addBtn: document.getElementById('prrint-add-to-cart'),
 		editor: document.getElementById('prrint-editor'),
 		canvas: document.getElementById('prrint-canvas'),
-		zoom: document.getElementById('prrint-zoom'),
 		rotate: document.getElementById('prrint-rotate'),
-		orient: document.getElementById('prrint-orient'),
+		rotateLeft: document.getElementById('prrint-rotate-left'),
+		presetGrid: document.getElementById('prrint-preset-grid'),
+		cropBar: document.getElementById('prrint-crop-bar'),
+		dial: document.getElementById('prrint-dial'),
 		dpi: document.getElementById('prrint-dpi'),
 		editorDone: document.getElementById('prrint-editor-done'),
 		editorCancel: document.getElementById('prrint-editor-cancel'),
@@ -92,10 +94,6 @@
 		drawSize: document.getElementById('prrint-draw-size'),
 		drawClear: document.getElementById('prrint-draw-clear'),
 		overlayGrid: document.getElementById('prrint-overlay-grid'),
-		zoomOut: document.getElementById('prrint-zoom-out'),
-		zoomIn: document.getElementById('prrint-zoom-in'),
-		zoomPct: document.getElementById('prrint-zoom-pct'),
-		zoomInput: document.getElementById('prrint-zoom-input'),
 		undoBtn: document.getElementById('prrint-undo'),
 		redoBtn: document.getElementById('prrint-redo'),
 		textSpacingOut: document.getElementById('prrint-text-spacing-out'),
@@ -1310,9 +1308,8 @@
 		selectedLayerId: null,
 		activeTool: 'transform',
 		scale: 1,
-		minScale: 1,
-		maxScale: 1,
 		keepResolution: false,
+		resize: null,         // active corner-handle drag: { ax, ay, sx, sy }
 		off: { x: 0, y: 0 },
 		cssW: 0,
 		cssH: 0,
@@ -1365,16 +1362,26 @@
 		return ed.orientation === 'landscape' ? { w: hi, h: lo } : { w: lo, h: hi };
 	}
 
+	/**
+	 * Two views share one crop model (ed.frame + ed.scale + ed.off):
+	 *  - crop mode (Transform tool): the whole photo sits still, fitted to
+	 *    the canvas, and the customer moves/resizes a crop box over it;
+	 *  - design mode (every other tool): the crop box fills the canvas and
+	 *    the photo is drawn through it, so layers can be placed on the print.
+	 * The crop math only ever reads frame.w/h, scale and off — off is
+	 * "photo center minus box center" in both — so switching views is just
+	 * export the crop, re-lay out, view the same crop again.
+	 */
+	function edCropMode() {
+		return ed.activeTool === 'transform';
+	}
+
 	function edLayout() {
-		// Full-viewport dark editor: fill whatever space the canvas-wrap has
-		// (minus a little breathing room), rather than the old small-card cap.
-		var wrap = els.canvas.parentElement;
-		var availW = Math.max(280, (wrap.clientWidth || 800) - 32);
-		var availH = Math.max(280, (wrap.clientHeight || 600) - 32);
-		var w = Math.min(1400, availW);
-		var h = Math.min(1000, availH);
-		ed.cssW = w;
-		ed.cssH = h;
+		var stage = els.canvas.parentElement;
+		var availW = Math.max(240, stage.clientWidth || 800);
+		var availH = Math.max(240, stage.clientHeight || 600);
+		ed.cssW = Math.min(1600, availW);
+		ed.cssH = Math.min(1100, availH);
 
 		var dpr = window.devicePixelRatio || 1;
 		els.canvas.width = Math.round(ed.cssW * dpr);
@@ -1386,7 +1393,9 @@
 		edFrame();
 	}
 
+	/** Design mode: the print frame, centered and as large as fits. */
 	function edFrame() {
+		if (edCropMode()) { return; }
 		var p = edPrintDims();
 		var aspect = p.w / p.h;
 		var maxW = ed.cssW * 0.88;
@@ -1397,22 +1406,38 @@
 		ed.frame = { x: (ed.cssW - fw) / 2, y: (ed.cssH - fh) / 2, w: fw, h: fh };
 	}
 
+	/** Crop mode: canvas px per source px with the whole (straightened) photo in view. */
+	function edFitScale() {
+		var d = edRotatedDims();
+		var r = edBoundingBox(d.w, d.h, edFineRotRad());
+		return Math.min((ed.cssW - 40) / r.w, (ed.cssH - 40) / r.h);
+	}
+
 	/**
-	 * Keep the source image fully covering the frame while panning, even
-	 * with a fine rotation active — clamping off.x/off.y independently (the
-	 * old formula) is only safe when fineRot is 0; a rotated source needs
-	 * more clearance near its corners. Works by clamping in a "de-rotated"
-	 * offset space (where the bound genuinely is an independent per-axis
-	 * box, verified numerically against every frame corner) and rotating
-	 * the clamped result back — reduces to the exact old formula at
+	 * Re-fit the crop view to the current straighten angle. Done when a dial
+	 * gesture ends rather than on every step, so the photo doesn't rescale
+	 * under the pointer mid-drag.
+	 */
+	function edRefitView() {
+		if (!edCropMode()) { return; }
+		edViewFromCrop(edExportCrop());
+		edDraw();
+	}
+
+	/**
+	 * Keep the source image fully covering the frame, even with a fine
+	 * rotation active — clamping off.x/off.y independently is only safe
+	 * when fineRot is 0; a rotated source needs more clearance near its
+	 * corners. Clamps in a "de-rotated" offset space (where the bound is a
+	 * true per-axis box, verified numerically against every frame corner)
+	 * and rotates the result back — reduces to the plain per-axis clamp at
 	 * fineRot=0.
 	 */
-	function edClamp() {
+	function edClampRaw() {
 		var d = edRotatedDims();
 		var theta = edFineRotRad();
 		var cosT = Math.cos(theta), sinT = Math.sin(theta);
 
-		// off (canvas px) -> v (source-space units, de-rotated by theta).
 		var ux = ed.off.x / ed.scale, uy = ed.off.y / ed.scale;
 		var vx = ux * cosT + uy * sinT;
 		var vy = -ux * sinT + uy * cosT;
@@ -1424,41 +1449,153 @@
 		vx = Math.max(-maxVx, Math.min(maxVx, vx));
 		vy = Math.max(-maxVy, Math.min(maxVy, vy));
 
-		// v -> off (rotate back, then back to canvas px).
 		ed.off.x = (vx * cosT - vy * sinT) * ed.scale;
 		ed.off.y = (vx * sinT + vy * cosT) * ed.scale;
 	}
 
+	function edClamp() {
+		edClampRaw();
+		if (edCropMode()) {
+			// The photo stays centered on the canvas; the box sits at -off from it.
+			ed.frame.x = ed.cssW / 2 - ed.off.x - ed.frame.w / 2;
+			ed.frame.y = ed.cssH / 2 - ed.off.y - ed.frame.h / 2;
+		}
+	}
+
+	/** Smallest box the customer may shrink to (Keep Resolution sets a floor). */
+	function edMinBoxW() {
+		var minW = 24;
+		if (ed.keepResolution) {
+			minW = Math.max(minW, edPrintDims().w * cfg.targetDpi * ed.scale);
+		}
+		return minW;
+	}
+
 	/**
-	 * Set the editor view (scale/offset) to show a given crop rect.
+	 * Crop mode: resize the box to width w around its current center,
+	 * capped by what the (rotated) photo can cover and floored by
+	 * edMinBoxW(), then re-clamp its position.
+	 */
+	function edSetBoxSize(w) {
+		var p = edPrintDims();
+		var a = p.w / p.h;
+		ed.frame.w = a;
+		ed.frame.h = 1;
+		var maxW = a * (ed.scale / edMinScaleFor(edRotatedDims())) * 0.9999;
+		w = Math.max(Math.min(edMinBoxW(), maxW), Math.min(maxW, w));
+		ed.frame.w = w;
+		ed.frame.h = w / a;
+		edClamp();
+	}
+
+	/** Would this box (canvas px) lie entirely on the photo? */
+	function edBoxValid(r) {
+		var saveF = ed.frame, saveO = ed.off;
+		ed.frame = { x: r.x, y: r.y, w: r.w, h: r.h };
+		ed.off = { x: ed.cssW / 2 - (r.x + r.w / 2), y: ed.cssH / 2 - (r.y + r.h / 2) };
+		var ok = edMinScaleFor(edRotatedDims()) <= ed.scale * (1 + 1e-9);
+		if (ok) {
+			var ox = ed.off.x, oy = ed.off.y;
+			edClampRaw();
+			ok = Math.abs(ox - ed.off.x) < 0.01 && Math.abs(oy - ed.off.y) < 0.01;
+		}
+		ed.frame = saveF;
+		ed.off = saveO;
+		return ok;
+	}
+
+	/**
+	 * Corner-handle resize with the opposite corner anchored. Any smaller
+	 * box sharing that anchor is inside the current (valid) one, so validity
+	 * is monotonic in size and a binary search finds the largest that fits.
+	 */
+	function edResizeBoxTo(pt) {
+		var h = ed.resize;
+		var p = edPrintDims();
+		var a = p.w / p.h;
+		var minW = edMinBoxW();
+		var want = Math.max(minW, (pt.x - h.ax) * h.sx, (pt.y - h.ay) * h.sy * a);
+		function rect(w) {
+			var bh = w / a;
+			return { x: h.sx > 0 ? h.ax : h.ax - w, y: h.sy > 0 ? h.ay : h.ay - bh, w: w, h: bh };
+		}
+		var best = 0;
+		if (edBoxValid(rect(want))) {
+			best = want;
+		} else {
+			var lo = 0, hi = want;
+			for (var i = 0; i < 28; i++) {
+				var mid = (lo + hi) / 2;
+				if (edBoxValid(rect(mid))) { lo = mid; best = mid; } else { hi = mid; }
+			}
+		}
+		if (best < minW - 0.5) { return; }
+		var r = rect(best);
+		ed.frame = r;
+		ed.off = { x: ed.cssW / 2 - (r.x + r.w / 2), y: ed.cssH / 2 - (r.y + r.h / 2) };
+		edClamp();
+	}
+
+	/** Which corner handle (if any) is under a canvas point. */
+	function edHandleAt(pt) {
+		var f = ed.frame;
+		var R = 16;
+		var corners = [
+			{ x: f.x, y: f.y, sx: -1, sy: -1 },
+			{ x: f.x + f.w, y: f.y, sx: 1, sy: -1 },
+			{ x: f.x, y: f.y + f.h, sx: -1, sy: 1 },
+			{ x: f.x + f.w, y: f.y + f.h, sx: 1, sy: 1 }
+		];
+		for (var i = 0; i < corners.length; i++) {
+			if (Math.abs(pt.x - corners[i].x) <= R && Math.abs(pt.y - corners[i].y) <= R) {
+				var c = corners[i];
+				// Anchor = the opposite corner; sx/sy = direction the box grows.
+				return { ax: c.sx > 0 ? f.x : f.x + f.w, ay: c.sy > 0 ? f.y : f.y + f.h, sx: c.sx, sy: c.sy };
+			}
+		}
+		return null;
+	}
+
+	function edInBox(pt) {
+		var f = ed.frame;
+		return pt.x >= f.x && pt.x <= f.x + f.w && pt.y >= f.y && pt.y <= f.y + f.h;
+	}
+
+	/**
+	 * Set the editor view (scale/offset/box) to show a given crop rect.
 	 */
 	function edViewFromCrop(crop) {
 		var d = edRotatedDims();
-		edFrame();
 		ed.fineRot = crop.fineRot || 0;
-		ed.minScale = edMinScaleFor(d);
-		ed.maxScale = ed.minScale * 5;
-		ed.scale = Math.max(ed.minScale, Math.min(ed.maxScale, ed.frame.w / crop.w));
 		var r = edBoundingBox(d.w, d.h, edFineRotRad());
-		ed.off.x = (r.w / 2 - (crop.x + crop.w / 2)) * ed.scale;
-		ed.off.y = (r.h / 2 - (crop.y + crop.h / 2)) * ed.scale;
-		edClamp();
-		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
-		if (els.zoomPct) { els.zoomPct.textContent = els.zoom.value + '%'; }
+		if (edCropMode()) {
+			ed.scale = edFitScale();
+			ed.off.x = (r.w / 2 - (crop.x + crop.w / 2)) * ed.scale;
+			ed.off.y = (r.h / 2 - (crop.y + crop.h / 2)) * ed.scale;
+			edSetBoxSize(crop.w * ed.scale);
+		} else {
+			edFrame();
+			var minScale = edMinScaleFor(d);
+			ed.scale = Math.max(minScale, Math.min(minScale * 20, ed.frame.w / crop.w));
+			ed.off.x = (r.w / 2 - (crop.x + crop.w / 2)) * ed.scale;
+			ed.off.y = (r.h / 2 - (crop.y + crop.h / 2)) * ed.scale;
+			edClamp();
+		}
 		syncFineRotUI();
 	}
 
+	/** Largest centered crop for the current size/orientation/rotation. */
 	function edFit() {
-		var d = edRotatedDims();
-		edFrame();
-		ed.minScale = edMinScaleFor(d);
-		ed.maxScale = ed.minScale * 5;
-		ed.scale = ed.minScale;
 		ed.off.x = 0;
 		ed.off.y = 0;
-		els.zoom.value = '0';
-		if (els.zoomPct) { els.zoomPct.textContent = '0%'; }
-		edClamp();
+		if (edCropMode()) {
+			ed.scale = edFitScale();
+			edSetBoxSize(Infinity);
+		} else {
+			edFrame();
+			ed.scale = edMinScaleFor(edRotatedDims());
+			edClamp();
+		}
 	}
 
 	/**
@@ -1496,6 +1633,10 @@
 		var it = ed.item;
 		if (!it) { return; }
 		ctx.clearRect(0, 0, ed.cssW, ed.cssH);
+		if (edCropMode()) {
+			edDrawCropMode();
+			return;
+		}
 
 		var f = ed.frame;
 		var inset = borderInset(f, ed.design, edPrintDims());
@@ -1564,103 +1705,71 @@
 		ctx.strokeStyle = '#ffffff';
 		ctx.lineWidth = 2;
 		ctx.strokeRect(f.x + 1, f.y + 1, f.w - 2, f.h - 2);
-
-		if (ed.activeTool === 'transform') {
-			ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-			ctx.lineWidth = 1;
-			ctx.beginPath();
-			for (var i = 1; i <= 2; i++) {
-				ctx.moveTo(f.x + (f.w * i) / 3, f.y);
-				ctx.lineTo(f.x + (f.w * i) / 3, f.y + f.h);
-				ctx.moveTo(f.x, f.y + (f.h * i) / 3);
-				ctx.lineTo(f.x + f.w, f.y + (f.h * i) / 3);
-			}
-			ctx.stroke();
-
-			drawRulers(f);
-		}
 	}
 
 	/**
-	 * Inch/pixel ruler along the top and left of the print frame — always
-	 * describes the fixed print output (frame size never changes with
-	 * zoom/pan, only what's visible inside it does), so the tick math only
-	 * depends on the selected size/orientation, not the current zoom.
-	 * "Pixel" mode ticks are print-output pixels at the configured target
-	 * DPI, the same frame of reference "inch" mode uses (the print), not
-	 * the source photo's own resolution.
+	 * Transform view: the whole photo (filters/flip/rotation applied), the
+	 * area outside the crop box dimmed, a rule-of-thirds grid and corner
+	 * handles on the box. Text/elements stay visible inside the box only.
 	 */
-	function drawRulers(f) {
-		var RULER = 20;
-		if (f.x < RULER || f.y < RULER) { return; } // not enough margin to draw without clipping
-
-		var p = edPrintDims();
-		var unit = cfg.scaleUnit === 'px' ? 'px' : 'in';
-		var totalW = unit === 'px' ? p.w * cfg.targetDpi : p.w;
-		var totalH = unit === 'px' ? p.h * cfg.targetDpi : p.h;
-		var pxPerUnitX = f.w / totalW;
-		var pxPerUnitY = f.h / totalH;
-
-		var candidates = unit === 'px' ? [50, 100, 250, 500, 1000, 2000] : [0.25, 0.5, 1, 2, 5, 10];
-		var interval = candidates[candidates.length - 1];
-		for (var i = 0; i < candidates.length; i++) {
-			if (candidates[i] * pxPerUnitX >= 40) { interval = candidates[i]; break; }
-		}
-
-		function formatUnit(v) {
-			if (unit === 'px') { return String(Math.round(v)); }
-			return (Math.round(v * 100) / 100) % 1 === 0 ? String(v) : v.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
-		}
+	function edDrawCropMode() {
+		var it = ed.item;
+		var f = ed.frame;
 
 		ctx.save();
-		ctx.fillStyle = 'rgba(11,11,15,0.92)';
-		ctx.fillRect(f.x, f.y - RULER, f.w, RULER);
-		ctx.fillRect(f.x - RULER, f.y, RULER, f.h);
-		ctx.fillRect(f.x - RULER, f.y - RULER, RULER, RULER);
+		ctx.filter = designFilterCss(ed.design);
+		ctx.translate(ed.cssW / 2, ed.cssH / 2);
+		ctx.rotate(ed.rot * Math.PI / 2);
+		ctx.rotate(edFineRotRad());
+		ctx.scale(ed.design.flipH ? -1 : 1, ed.design.flipV ? -1 : 1);
+		ctx.scale(ed.scale, ed.scale);
+		ctx.drawImage(it.img, -it.natW / 2, -it.natH / 2);
+		ctx.restore();
+		ctx.filter = 'none';
 
-		ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-		ctx.fillStyle = 'rgba(255,255,255,0.85)';
-		ctx.font = '10px sans-serif';
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(f.x, f.y, f.w, f.h);
+		ctx.clip();
+		drawDesignOverlay(ctx, ed.design, f, ed.drawCanvas);
+		ctx.restore();
+
+		ctx.fillStyle = 'rgba(0,0,0,0.6)';
+		ctx.beginPath();
+		ctx.rect(0, 0, ed.cssW, ed.cssH);
+		ctx.rect(f.x, f.y, f.w, f.h);
+		ctx.fill('evenodd');
+
+		ctx.strokeStyle = 'rgba(255,255,255,0.55)';
 		ctx.lineWidth = 1;
-
 		ctx.beginPath();
-		var xUnit, px;
-		for (xUnit = 0; xUnit <= totalW + 0.001; xUnit += interval) {
-			px = f.x + xUnit * pxPerUnitX;
-			ctx.moveTo(px, f.y - RULER);
-			ctx.lineTo(px, f.y - RULER * 0.35);
+		for (var i = 1; i <= 2; i++) {
+			ctx.moveTo(Math.round(f.x + (f.w * i) / 3) + 0.5, f.y);
+			ctx.lineTo(Math.round(f.x + (f.w * i) / 3) + 0.5, f.y + f.h);
+			ctx.moveTo(f.x, Math.round(f.y + (f.h * i) / 3) + 0.5);
+			ctx.lineTo(f.x + f.w, Math.round(f.y + (f.h * i) / 3) + 0.5);
 		}
 		ctx.stroke();
-		ctx.textAlign = 'left';
-		ctx.textBaseline = 'middle';
-		for (xUnit = 0; xUnit <= totalW + 0.001; xUnit += interval) {
-			px = f.x + xUnit * pxPerUnitX;
-			if (px + 22 > f.x + f.w) { continue; }
-			ctx.fillText(formatUnit(xUnit), px + 3, f.y - RULER / 2);
-		}
 
+		ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+		ctx.lineWidth = 1.5;
+		ctx.strokeRect(f.x, f.y, f.w, f.h);
+
+		// L-shaped corner handles, drawn just outside the box edge.
+		var L = Math.min(16, f.w / 3, f.h / 3);
+		var o = 1.5;
+		ctx.strokeStyle = '#ffffff';
+		ctx.lineWidth = 3;
+		ctx.lineCap = 'square';
 		ctx.beginPath();
-		var yUnit, py;
-		for (yUnit = 0; yUnit <= totalH + 0.001; yUnit += interval) {
-			py = f.y + yUnit * pxPerUnitY;
-			ctx.moveTo(f.x - RULER, py);
-			ctx.lineTo(f.x - RULER * 0.35, py);
-		}
+		[[f.x - o, f.y - o, 1, 1], [f.x + f.w + o, f.y - o, -1, 1], [f.x - o, f.y + f.h + o, 1, -1], [f.x + f.w + o, f.y + f.h + o, -1, -1]].forEach(function (c) {
+			ctx.moveTo(c[0] + c[2] * L, c[1]);
+			ctx.lineTo(c[0], c[1]);
+			ctx.lineTo(c[0], c[1] + c[3] * L);
+		});
 		ctx.stroke();
-		ctx.save();
-		ctx.textAlign = 'center';
-		for (yUnit = 0; yUnit <= totalH + 0.001; yUnit += interval) {
-			py = f.y + yUnit * pxPerUnitY;
-			if (py - 14 < f.y) { continue; }
-			ctx.save();
-			ctx.translate(f.x - RULER / 2, py - 6);
-			ctx.rotate(-Math.PI / 2);
-			ctx.fillText(formatUnit(yUnit), 0, 0);
-			ctx.restore();
-		}
-		ctx.restore();
-
-		ctx.restore();
+		ctx.lineCap = 'butt';
+		hideLayerToolbar();
 	}
 
 	function edUpdateDpi() {
@@ -1684,24 +1793,8 @@
 	}
 
 	/**
-	 * The most the customer can zoom in (in `ed.scale` terms) while keeping
-	 * the effective print DPI at or above the configured target — used only
-	 * when the "Keep Resolution" toggle is on.
-	 */
-	function edKeepResMaxScale() {
-		var p = edPrintDims();
-		var f = ed.frame;
-		return Math.max(ed.minScale, f.w / (p.w * cfg.targetDpi));
-	}
-
-	function edEffectiveMaxScale() {
-		return ed.keepResolution ? Math.min(ed.maxScale, edKeepResMaxScale()) : ed.maxScale;
-	}
-
-	/**
 	 * Reflect the current crop rectangle (source-photo pixels) into the
-	 * numeric "Crop Size" W/H fields, unless the customer is actively typing
-	 * in one of them.
+	 * numeric "Crop Size" W/H fields, unless the customer is typing in one.
 	 */
 	function syncCropSizeInputs(crop) {
 		if (!els.cropW || !els.cropH) { return; }
@@ -1712,41 +1805,107 @@
 	}
 
 	function syncFineRotUI() {
-		if (els.fineRot && document.activeElement !== els.fineRot) { els.fineRot.value = String(ed.fineRot || 0); }
-		if (els.fineRotOut) { els.fineRotOut.textContent = (Math.round((ed.fineRot || 0) * 10) / 10) + '°'; }
+		var deg = Math.round((ed.fineRot || 0) * 10) / 10;
+		if (els.fineRot && document.activeElement !== els.fineRot) { els.fineRot.value = String(deg); }
+		if (els.fineRotOut) { els.fineRotOut.textContent = deg + '°'; }
+		// The dotted dial scrolls with the angle, like a physical ruler.
+		if (els.dial) { els.dial.style.setProperty('--prrint-dial-shift', (deg * 4) + 'px'); }
 	}
 
 	/**
-	 * Set the crop's source-pixel width (or height); the other dimension
-	 * follows automatically since the crop is always locked to the selected
-	 * print size's aspect ratio.
+	 * Typed crop size (source px). The other side follows, since the box is
+	 * locked to the print size's aspect ratio.
 	 */
 	function setCropWidthPx(px) {
-		if (!ed.item || !px || px <= 0) { return; }
-		var f = ed.frame;
-		ed.scale = Math.max(ed.minScale, Math.min(edEffectiveMaxScale(), f.w / px));
-		edClamp();
+		if (!ed.item || !px || px <= 0 || !edCropMode()) { return; }
+		edSetBoxSize(px * ed.scale);
 		edDraw();
 		edUpdateDpi();
-		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
-		updateZoomPct();
 	}
 
 	function setCropHeightPx(px) {
-		if (!ed.item || !px || px <= 0) { return; }
-		var f = ed.frame;
-		ed.scale = Math.max(ed.minScale, Math.min(edEffectiveMaxScale(), f.h / px));
-		edClamp();
+		if (!ed.item || !px || px <= 0 || !edCropMode()) { return; }
+		var p = edPrintDims();
+		edSetBoxSize(px * ed.scale * p.w / p.h);
 		edDraw();
 		edUpdateDpi();
-		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
-		updateZoomPct();
+	}
+
+	/* ------------------------------------------------------ size presets */
+
+	function fmtInches(v) {
+		return String(Math.round(v * 100) / 100);
+	}
+
+	/**
+	 * The "Common" grid: every configured print size, once per orientation
+	 * (a square size only once). Icon size grows with the print size, as in
+	 * the reference; picking one sets the print size + orientation.
+	 */
+	function buildPresetGrid() {
+		if (!els.presetGrid) { return; }
+		var his = cfg.sizes.map(function (s) { return Math.max(s.w, s.h); });
+		var minHi = Math.min.apply(null, his);
+		var maxHi = Math.max.apply(null, his);
+		var squares = cfg.sizes.filter(function (s) { return s.w === s.h; }).length;
+		var html = '';
+		cfg.sizes.forEach(function (s, i) {
+			var lo = Math.min(s.w, s.h), hi = Math.max(s.w, s.h);
+			var L = 22 + 30 * (hi - minHi) / ((maxHi - minHi) || 1);
+			var price = formatPrice(s.price > 0 ? s.price : cfg.basePrice);
+			var variants = lo === hi
+				? [{ o: '', w: L, h: L, label: squares === 1 ? (cfg.i18n.square || 'Square') : fmtInches(lo) + ' X ' + fmtInches(hi) }]
+				: [
+					{ o: 'landscape', w: L, h: L * lo / hi, label: fmtInches(hi) + ' X ' + fmtInches(lo) },
+					{ o: 'portrait', w: L * lo / hi, h: L, label: fmtInches(lo) + ' X ' + fmtInches(hi) }
+				];
+			variants.forEach(function (v) {
+				html += '<button type="button" class="prrint-preset" role="option" data-idx="' + i + '" data-orient="' + v.o + '" title="' + esc(s.label + ' — ' + price) + '">' +
+					'<span class="prrint-preset-icon"><i style="width:' + Math.round(v.w) + 'px;height:' + Math.round(v.h) + 'px"></i></span>' +
+					'<span class="prrint-preset-label">' + esc(v.label) + '</span></button>';
+			});
+		});
+		els.presetGrid.innerHTML = html;
+	}
+
+	function syncPresetUI() {
+		if (!els.presetGrid) { return; }
+		els.presetGrid.querySelectorAll('.prrint-preset').forEach(function (b) {
+			var on = Number(b.dataset.idx) === ed.sizeIdx && (!b.dataset.orient || b.dataset.orient === ed.orientation);
+			b.classList.toggle('is-active', on);
+			b.setAttribute('aria-selected', on ? 'true' : 'false');
+		});
+	}
+
+	buildPresetGrid();
+	if (els.presetGrid) {
+		els.presetGrid.addEventListener('click', function (e) {
+			var b = e.target.closest('.prrint-preset');
+			if (!b || !ed.item) { return; }
+			ed.sizeIdx = Number(b.dataset.idx) || 0;
+			if (b.dataset.orient) { ed.orientation = b.dataset.orient; }
+			edFit();
+			edDraw();
+			edUpdateDpi();
+			syncPresetUI();
+			pushHistory();
+		});
 	}
 
 	/* --------------------------------------------------------- tool rail */
 
 	function setActiveTool(tool) {
+		var live = ed.item && !els.editor.hidden;
+		var wasCrop = edCropMode();
+		var crop = live ? edExportCrop() : null;
 		ed.activeTool = tool;
+		if (els.cropBar) { els.cropBar.hidden = tool !== 'transform'; }
+		els.canvas.style.cursor = '';
+		if (live && wasCrop !== edCropMode()) {
+			edLayout();
+			edViewFromCrop(crop);
+			edUpdateDpi();
+		}
 		if (els.toolRail) {
 			els.toolRail.querySelectorAll('.prrint-tool-btn').forEach(function (btn) {
 				btn.classList.toggle('is-active', btn.dataset.tool === tool);
@@ -2559,11 +2718,11 @@
 	}
 
 	/* ------------------------------------------------------- undo / redo */
-	// Tracks design/rotation/orientation/size — not crop/zoom/pan, which
-	// stay live camera state like in most editors. Capped at 50 steps.
+	// Tracks design, rotation, size/orientation and the crop itself, so
+	// Undo also steps back through crop-box moves. Capped at 50 steps.
 
 	function snapshotState() {
-		return JSON.stringify({ design: ed.design, rot: ed.rot, fineRot: ed.fineRot, orientation: ed.orientation, sizeIdx: ed.sizeIdx });
+		return JSON.stringify({ design: ed.design, rot: ed.rot, fineRot: ed.fineRot, orientation: ed.orientation, sizeIdx: ed.sizeIdx, crop: edExportCrop() });
 	}
 
 	function updateUndoRedoButtons() {
@@ -2591,8 +2750,13 @@
 		ed.sizeIdx = state.sizeIdx;
 		ed.selectedLayerId = null;
 		syncPanelUI();
+		syncPresetUI();
+		if (state.crop) {
+			edViewFromCrop(state.crop);
+		} else {
+			edFit();
+		}
 		syncFineRotUI();
-		edFit(); // crop/zoom aren't tracked in history, so re-fit to the restored aspect
 		edDraw();
 		edUpdateDpi();
 	}
@@ -2713,6 +2877,7 @@
 		if (els.keepResolution) { els.keepResolution.checked = false; }
 
 		syncPanelUI();
+		syncPresetUI();
 		updateStylePreviewThumbnails();
 
 		ed.design.layers.forEach(function (l) {
@@ -2770,7 +2935,10 @@
 		if (!item) { return; }
 		item.rot = ed.rot;
 		item.orientation = ed.orientation;
+		item.sizeIdx = ed.sizeIdx;
 		item.crop = edExportCrop();
+		var cardSize = item.card && item.card.querySelector('.prrint-size-select');
+		if (cardSize) { cardSize.value = String(item.sizeIdx); }
 		ed.design.drawing = ed.hasDrawing ? { dataUrl: ed.drawCanvas.toDataURL('image/png') } : null;
 		item.design = cloneDesign(ed.design);
 
@@ -2790,7 +2958,7 @@
 
 	/* editor interactions */
 	var dragging = false;
-	var dragMode = null; // 'photo' | 'layer' | 'draw'
+	var dragMode = null; // 'box' | 'resize' | 'photo' | 'layer' | 'draw'
 	var dragLayer = null;
 	var last = { x: 0, y: 0 };
 
@@ -2799,14 +2967,30 @@
 		return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 	}
 
+	function edCropCursor(pt) {
+		var h = edHandleAt(pt);
+		if (h) { return h.sx === h.sy ? 'nwse-resize' : 'nesw-resize'; }
+		return edInBox(pt) ? 'move' : 'default';
+	}
+
 	els.canvas.addEventListener('pointerdown', function (e) {
 		if (!ed.item) { return; }
 		dragging = true;
 		last.x = e.clientX;
 		last.y = e.clientY;
+		var pt = canvasPoint(e);
 
-		if (ed.activeTool === 'text' || ed.activeTool === 'elements') {
-			var pt = canvasPoint(e);
+		if (edCropMode()) {
+			var handle = edHandleAt(pt);
+			if (handle) {
+				dragMode = 'resize';
+				ed.resize = handle;
+			} else if (edInBox(pt)) {
+				dragMode = 'box';
+			} else {
+				dragMode = null;
+			}
+		} else if (ed.activeTool === 'text' || ed.activeTool === 'elements') {
 			var hit = hitTestLayer(pt.x, pt.y);
 			if (hit) {
 				selectLayer(hit.id);
@@ -2818,7 +3002,7 @@
 			}
 		} else if (ed.activeTool === 'draw') {
 			dragMode = 'draw';
-			var dp = canvasToDrawCoords(canvasPoint(e));
+			var dp = canvasToDrawCoords(pt);
 			ed.drawCtx.lineJoin = 'round';
 			ed.drawCtx.lineCap = 'round';
 			ed.drawCtx.strokeStyle = ed.brushColor;
@@ -2838,13 +3022,26 @@
 		e.preventDefault();
 	});
 	els.canvas.addEventListener('pointermove', function (e) {
-		if (!dragging) { return; }
+		if (!dragging) {
+			if (ed.item && edCropMode()) { els.canvas.style.cursor = edCropCursor(canvasPoint(e)); }
+			return;
+		}
 		var dx = e.clientX - last.x;
 		var dy = e.clientY - last.y;
 		last.x = e.clientX;
 		last.y = e.clientY;
 
-		if (dragMode === 'layer' && dragLayer) {
+		if (dragMode === 'box') {
+			ed.off.x -= dx;
+			ed.off.y -= dy;
+			edClamp();
+			edDraw();
+			edUpdateDpi();
+		} else if (dragMode === 'resize') {
+			edResizeBoxTo(canvasPoint(e));
+			edDraw();
+			edUpdateDpi();
+		} else if (dragMode === 'layer' && dragLayer) {
 			dragLayer.x = Math.max(-0.5, Math.min(1.4, dragLayer.x + dx / ed.frame.w));
 			dragLayer.y = Math.max(-0.5, Math.min(1.4, dragLayer.y + dy / ed.frame.h));
 			edDraw();
@@ -2865,90 +3062,35 @@
 		}
 	});
 	els.canvas.addEventListener('pointerup', function () {
-		if (dragMode === 'layer') { pushHistory(); }
+		if (dragMode && dragMode !== 'draw') { pushHistory(); }
 		dragging = false;
 		dragMode = null;
 		dragLayer = null;
 	});
 	els.canvas.addEventListener('pointercancel', function () { dragging = false; dragMode = null; dragLayer = null; });
 
-	function updateZoomPct() {
-		if (els.zoomPct) { els.zoomPct.textContent = els.zoom.value + '%'; }
-		if (els.zoomInput && document.activeElement !== els.zoomInput) { els.zoomInput.value = els.zoom.value; }
-	}
-
-	function setZoomFraction(t) {
-		t = Math.max(0, Math.min(100, t));
-		ed.scale = Math.min(ed.minScale + (ed.maxScale - ed.minScale) * (t / 100), edEffectiveMaxScale());
-		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
-		edClamp();
-		edDraw();
-		edUpdateDpi();
-		updateZoomPct();
-	}
-
+	// Scroll over the photo resizes the crop box around its center.
+	var wheelHistoryTimer = null;
 	els.canvas.addEventListener('wheel', function (e) {
-		if (!ed.item || ed.activeTool !== 'transform') { return; }
+		if (!ed.item || !edCropMode()) { return; }
 		e.preventDefault();
-		var factor = Math.pow(1.0015, -e.deltaY);
-		ed.scale = Math.max(ed.minScale, Math.min(edEffectiveMaxScale(), ed.scale * factor));
-		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
-		edClamp();
+		edSetBoxSize(ed.frame.w / Math.pow(1.0015, -e.deltaY));
 		edDraw();
 		edUpdateDpi();
-		updateZoomPct();
+		clearTimeout(wheelHistoryTimer);
+		wheelHistoryTimer = setTimeout(pushHistory, 300);
 	}, { passive: false });
 
-	els.zoom.addEventListener('input', function () {
+	function rotateQuarter(step) {
 		if (!ed.item) { return; }
-		var t = Number(this.value) / 100;
-		ed.scale = Math.min(ed.minScale + (ed.maxScale - ed.minScale) * t, edEffectiveMaxScale());
-		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
-		edClamp();
-		edDraw();
-		edUpdateDpi();
-		updateZoomPct();
-	});
-
-	if (els.zoomOut) {
-		els.zoomOut.addEventListener('click', function () {
-			if (!ed.item) { return; }
-			setZoomFraction(Number(els.zoom.value) - 10);
-		});
-	}
-	if (els.zoomIn) {
-		els.zoomIn.addEventListener('click', function () {
-			if (!ed.item) { return; }
-			setZoomFraction(Number(els.zoom.value) + 10);
-		});
-	}
-	if (els.zoomInput) {
-		els.zoomInput.addEventListener('change', function () {
-			if (!ed.item) { return; }
-			var v = Number(els.zoomInput.value);
-			if (isNaN(v)) { v = Number(els.zoom.value); }
-			setZoomFraction(v);
-			pushHistory();
-		});
-	}
-
-	els.rotate.addEventListener('click', function () {
-		if (!ed.item) { return; }
-		ed.rot = (ed.rot + 1) % 4;
+		ed.rot = (ed.rot + step + 4) % 4;
 		edFit();
 		edDraw();
 		edUpdateDpi();
 		pushHistory();
-	});
-
-	els.orient.addEventListener('click', function () {
-		if (!ed.item) { return; }
-		ed.orientation = ed.orientation === 'portrait' ? 'landscape' : 'portrait';
-		edFit();
-		edDraw();
-		edUpdateDpi();
-		pushHistory();
-	});
+	}
+	els.rotate.addEventListener('click', function () { rotateQuarter(1); });
+	if (els.rotateLeft) { els.rotateLeft.addEventListener('click', function () { rotateQuarter(-1); }); }
 
 	if (els.flipH) {
 		els.flipH.addEventListener('click', function () {
@@ -2971,24 +3113,21 @@
 	}
 
 	/**
-	 * Continuous "straighten" rotation, on top of the 90° Rotate button.
-	 * Changing it can raise the minimum zoom (a rotated photo needs more of
-	 * itself visible to still fully cover the frame with no empty corners),
-	 * so re-clamp scale/pan the same way Keep Resolution's cap does.
+	 * Continuous "straighten" rotation, on top of the 90° rotate buttons.
+	 * A rotated photo covers less of an axis-aligned box, so the box shrinks
+	 * if it no longer fits, then is re-clamped onto the photo.
 	 */
 	function setFineRotation(deg) {
 		if (!ed.item) { return; }
-		ed.fineRot = Math.max(-45, Math.min(45, deg));
-		var d = edRotatedDims();
-		ed.minScale = edMinScaleFor(d);
-		ed.maxScale = ed.minScale * 5;
-		if (ed.scale < ed.minScale) { ed.scale = ed.minScale; }
-		ed.scale = Math.min(ed.scale, edEffectiveMaxScale());
-		edClamp();
+		ed.fineRot = Math.max(-45, Math.min(45, Math.round(deg * 10) / 10));
+		if (edCropMode()) {
+			edSetBoxSize(ed.frame.w);
+		} else {
+			ed.scale = Math.max(ed.scale, edMinScaleFor(edRotatedDims()));
+			edClamp();
+		}
 		edDraw();
 		edUpdateDpi();
-		els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
-		updateZoomPct();
 		syncFineRotUI();
 	}
 
@@ -2998,6 +3137,38 @@
 		});
 		els.fineRot.addEventListener('change', function () {
 			if (!ed.item) { return; }
+			edRefitView();
+			pushHistory();
+		});
+	}
+
+	// Drag the dotted dial sideways to straighten; double-click resets.
+	if (els.dial) {
+		var dialDrag = null;
+		els.dial.addEventListener('pointerdown', function (e) {
+			if (!ed.item) { return; }
+			dialDrag = { x: e.clientX, deg: ed.fineRot || 0 };
+			els.dial.setPointerCapture(e.pointerId);
+			els.dial.classList.add('is-dragging');
+			e.preventDefault();
+		});
+		els.dial.addEventListener('pointermove', function (e) {
+			if (!dialDrag) { return; }
+			setFineRotation(dialDrag.deg + (e.clientX - dialDrag.x) * 0.25);
+		});
+		var endDial = function () {
+			if (!dialDrag) { return; }
+			dialDrag = null;
+			els.dial.classList.remove('is-dragging');
+			edRefitView();
+			pushHistory();
+		};
+		els.dial.addEventListener('pointerup', endDial);
+		els.dial.addEventListener('pointercancel', endDial);
+		els.dial.addEventListener('dblclick', function () {
+			if (!ed.item) { return; }
+			setFineRotation(0);
+			edRefitView();
 			pushHistory();
 		});
 	}
@@ -3006,14 +3177,10 @@
 		els.keepResolution.addEventListener('change', function () {
 			if (!ed.item) { return; }
 			ed.keepResolution = this.checked;
-			var cap = edEffectiveMaxScale();
-			if (ed.scale > cap) {
-				ed.scale = cap;
-				edClamp();
+			if (edCropMode()) {
+				edSetBoxSize(ed.frame.w);
 				edDraw();
 				edUpdateDpi();
-				els.zoom.value = String(Math.round(((ed.scale - ed.minScale) / (ed.maxScale - ed.minScale || 1)) * 100));
-				updateZoomPct();
 			}
 			pushHistory();
 		});
@@ -3039,11 +3206,14 @@
 			if (!item) { return; }
 			ed.rot = 0;
 			ed.fineRot = 0;
+			ed.sizeIdx = item.sizeIdx;
+			ed.orientation = item.orientation;
 			ed.design.flipH = false;
 			ed.design.flipV = false;
 			if (els.flipH) { els.flipH.classList.remove('is-active'); }
 			if (els.flipV) { els.flipV.classList.remove('is-active'); }
 			syncFineRotUI();
+			syncPresetUI();
 			edFit();
 			edDraw();
 			edUpdateDpi();

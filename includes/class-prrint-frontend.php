@@ -148,7 +148,6 @@ class Prrint_Frontend {
 			'minDpi'         => (int) $settings['min_dpi'],
 			'targetDpi'      => (int) $settings['target_dpi'],
 			'borderIn'       => (float) $settings['border_in'],
-			'scaleUnit'      => $settings['scale_unit'],
 			'preselectSize'  => $preselect_size,
 			'preselectPaper' => $preselect_paper,
 			'cartUrl'        => wc_get_cart_url(),
@@ -188,6 +187,7 @@ class Prrint_Frontend {
 				'qty'          => __( 'Qty', 'prrint' ),
 				'size'         => __( 'Size', 'prrint' ),
 				'paper'        => __( 'Paper', 'prrint' ),
+				'square'       => __( 'Square', 'prrint' ),
 				'style'        => __( 'Style', 'prrint' ),
 				'edgeColor'    => __( 'Edge Color', 'prrint' ),
 				'each'         => __( 'each', 'prrint' ),
@@ -443,11 +443,6 @@ class Prrint_Frontend {
 							<button type="button" class="prrint-topbar-btn" id="prrint-undo" disabled><?php esc_html_e( 'Undo', 'prrint' ); ?></button>
 							<button type="button" class="prrint-topbar-btn" id="prrint-redo" disabled><?php esc_html_e( 'Redo', 'prrint' ); ?></button>
 						</div>
-						<div class="prrint-zoom-control" title="<?php esc_attr_e( 'Drag to reposition · scroll or slide to zoom', 'prrint' ); ?>">
-							<button type="button" class="prrint-topbar-btn" id="prrint-zoom-out" aria-label="<?php esc_attr_e( 'Zoom out', 'prrint' ); ?>">−</button>
-							<span id="prrint-zoom-pct">0%</span>
-							<button type="button" class="prrint-topbar-btn" id="prrint-zoom-in" aria-label="<?php esc_attr_e( 'Zoom in', 'prrint' ); ?>">+</button>
-						</div>
 						<div class="prrint-editor-topbar-right">
 							<button type="button" class="prrint-btn-secondary" id="prrint-editor-cancel"><?php esc_html_e( 'Close', 'prrint' ); ?></button>
 							<button type="button" class="prrint-cta" id="prrint-editor-done"><?php esc_html_e( 'Save', 'prrint' ); ?></button>
@@ -479,47 +474,27 @@ class Prrint_Frontend {
 						</div>
 
 						<div class="prrint-tool-panels">
-							<div class="prrint-tool-panel" data-panel="transform">
-								<input type="range" id="prrint-zoom" min="0" max="100" value="0" aria-label="<?php esc_attr_e( 'Zoom', 'prrint' ); ?>" />
-								<label class="prrint-zoom-input-row">
-									<span><?php esc_html_e( 'Zoom', 'prrint' ); ?></span>
-									<span class="prrint-zoom-input-wrap">
-										<input type="number" id="prrint-zoom-input" min="0" max="100" step="1" value="0" />
-										<span>%</span>
-									</span>
+							<div class="prrint-tool-panel prrint-transform-panel" data-panel="transform">
+								<p class="prrint-panel-title"><?php esc_html_e( 'Transform', 'prrint' ); ?></p>
+								<button type="button" class="prrint-btn-secondary prrint-transform-reset" id="prrint-transform-reset"><?php esc_html_e( 'Reset to Default', 'prrint' ); ?></button>
+								<label class="prrint-keep-res-row" for="prrint-keep-resolution">
+									<span><?php esc_html_e( 'Keep Resolution', 'prrint' ); ?></span>
+									<input type="checkbox" id="prrint-keep-resolution" />
 								</label>
-								<div class="prrint-panel-row">
-									<button type="button" class="prrint-tool" id="prrint-rotate" title="<?php esc_attr_e( 'Rotate 90°', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'rotate', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Rotate', 'prrint' ); ?></button>
-									<button type="button" class="prrint-tool" id="prrint-orient" title="<?php esc_attr_e( 'Portrait / landscape', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'orientation', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Orientation', 'prrint' ); ?></button>
-								</div>
-								<div class="prrint-panel-row">
-									<button type="button" class="prrint-tool" id="prrint-flip-h" title="<?php esc_attr_e( 'Flip horizontal', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'flip-h', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Flip H', 'prrint' ); ?></button>
-									<button type="button" class="prrint-tool" id="prrint-flip-v" title="<?php esc_attr_e( 'Flip vertical', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'flip-v', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php esc_html_e( 'Flip V', 'prrint' ); ?></button>
-								</div>
-								<label class="prrint-straighten-row">
-									<span><?php esc_html_e( 'Straighten', 'prrint' ); ?></span>
-									<span class="prrint-straighten-out" id="prrint-fine-rot-out">0°</span>
-								</label>
-								<input type="range" id="prrint-fine-rot" min="-45" max="45" step="0.5" value="0" aria-label="<?php esc_attr_e( 'Straighten (fine rotation)', 'prrint' ); ?>" />
-								<label class="prrint-border-label prrint-keep-res-label"><input type="checkbox" id="prrint-keep-resolution" /> <?php esc_html_e( 'Keep Resolution', 'prrint' ); ?></label>
-								<p class="prrint-field-label"><?php esc_html_e( 'Crop Size', 'prrint' ); ?></p>
-								<div class="prrint-panel-row prrint-crop-size-row">
+								<p class="prrint-crop-size-title"><?php esc_html_e( 'Crop Size', 'prrint' ); ?></p>
+								<div class="prrint-crop-size-row">
 									<label class="prrint-crop-size-field">
+										<input type="number" id="prrint-crop-w" min="1" step="1" aria-label="<?php esc_attr_e( 'Crop width in pixels', 'prrint' ); ?>" />
 										<span><?php esc_html_e( 'W', 'prrint' ); ?></span>
-										<span class="prrint-crop-size-wrap">
-											<input type="number" id="prrint-crop-w" min="1" step="1" />
-											<span><?php esc_html_e( 'px', 'prrint' ); ?></span>
-										</span>
 									</label>
+									<span class="prrint-crop-size-x" aria-hidden="true">x</span>
 									<label class="prrint-crop-size-field">
+										<input type="number" id="prrint-crop-h" min="1" step="1" aria-label="<?php esc_attr_e( 'Crop height in pixels', 'prrint' ); ?>" />
 										<span><?php esc_html_e( 'H', 'prrint' ); ?></span>
-										<span class="prrint-crop-size-wrap">
-											<input type="number" id="prrint-crop-h" min="1" step="1" />
-											<span><?php esc_html_e( 'px', 'prrint' ); ?></span>
-										</span>
 									</label>
 								</div>
-								<button type="button" class="prrint-btn-secondary prrint-adj-reset" id="prrint-transform-reset"><?php esc_html_e( 'Reset to Default', 'prrint' ); ?></button>
+								<p class="prrint-preset-title"><?php esc_html_e( 'Common', 'prrint' ); ?></p>
+								<div class="prrint-preset-grid" id="prrint-preset-grid" role="listbox" aria-label="<?php esc_attr_e( 'Print size', 'prrint' ); ?>"></div>
 							</div>
 
 							<div class="prrint-tool-panel" data-panel="filters" hidden>
@@ -695,8 +670,22 @@ class Prrint_Frontend {
 						</div>
 
 						<div class="prrint-editor-canvas-wrap">
-							<canvas id="prrint-canvas"></canvas>
-							<span class="prrint-dpi" id="prrint-dpi" hidden></span>
+							<div class="prrint-canvas-stage">
+								<canvas id="prrint-canvas"></canvas>
+								<span class="prrint-dpi" id="prrint-dpi" hidden></span>
+							</div>
+							<div class="prrint-crop-bar" id="prrint-crop-bar">
+								<button type="button" class="prrint-crop-bar-btn" id="prrint-flip-h" title="<?php esc_attr_e( 'Flip horizontal', 'prrint' ); ?>" aria-label="<?php esc_attr_e( 'Flip horizontal', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'mirror-h', 20 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+								<button type="button" class="prrint-crop-bar-btn" id="prrint-flip-v" title="<?php esc_attr_e( 'Flip vertical', 'prrint' ); ?>" aria-label="<?php esc_attr_e( 'Flip vertical', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'mirror-v', 20 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+								<div class="prrint-dial" id="prrint-dial" title="<?php esc_attr_e( 'Drag to straighten · double-click to reset', 'prrint' ); ?>">
+									<span class="prrint-dial-ticks" aria-hidden="true"></span>
+									<output class="prrint-dial-out" id="prrint-fine-rot-out">0°</output>
+									<span class="prrint-dial-ticks" aria-hidden="true"></span>
+									<input type="range" class="prrint-dial-input" id="prrint-fine-rot" min="-45" max="45" step="0.5" value="0" aria-label="<?php esc_attr_e( 'Straighten (fine rotation)', 'prrint' ); ?>" />
+								</div>
+								<button type="button" class="prrint-crop-bar-btn" id="prrint-rotate-left" title="<?php esc_attr_e( 'Rotate left 90°', 'prrint' ); ?>" aria-label="<?php esc_attr_e( 'Rotate left 90°', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'rotate-ccw', 20 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+								<button type="button" class="prrint-crop-bar-btn" id="prrint-rotate" title="<?php esc_attr_e( 'Rotate right 90°', 'prrint' ); ?>" aria-label="<?php esc_attr_e( 'Rotate right 90°', 'prrint' ); ?>"><?php echo Prrint_Icons::get( 'rotate-cw', 20 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+							</div>
 						</div>
 
 						<div class="prrint-layer-toolbar" id="prrint-layer-toolbar" hidden>

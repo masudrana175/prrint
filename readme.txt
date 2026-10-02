@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.26.0
+Stable tag: 1.27.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,22 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.27.0 =
+* Rebuild the Transform (crop) tool to work like a classic crop tool: the
+  whole photo stays still and a crop box sits on top of it — drag the box
+  to move it, drag any corner (or scroll) to resize it. Outside the box is
+  dimmed; the box shows a rule-of-thirds grid and corner handles, and can
+  never be moved or sized off the photo, even when straightened.
+* Add a "Common" grid of print sizes to the Transform panel (each store
+  size in landscape and portrait, e.g. 6 X 4 / 4 X 6). Picking one changes
+  the print size right in the editor, and Save updates the photo card.
+* Move flip, straighten and rotate to a bar under the photo: flip
+  horizontal/vertical, a dotted Straighten dial (drag sideways,
+  double-click to reset) and separate rotate left/right buttons.
+* Undo/Redo now also steps back through crop box moves and resizes.
+* Remove the inch/pixel rulers (and their "Editor ruler units" setting)
+  and the zoom slider/buttons, which the crop box replaces.
 
 = 1.26.0 =
 * Add a "Style" dropdown under Paper (e.g. Paper print, ColorLite,
