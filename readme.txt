@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.27.0
+Stable tag: 1.28.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,14 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.28.0 =
+* Make the photo the main element on the order screen: each uploaded
+  photo is now a full-width row with a large preview (up to ~800px wide on
+  desktop) and its Size/Paper/Style/Edge Color options in a column beside
+  it, instead of a small fixed-width card. On phones the options stack
+  under the photo. Previews are rendered at a higher resolution to stay
+  sharp at the larger size, and the edge-color frame is thicker to match.
 
 = 1.27.0 =
 * Rebuild the Transform (crop) tool to work like a classic crop tool: the

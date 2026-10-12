@@ -283,39 +283,50 @@ body.prrint-modal-open {
 
 /* ---------------------------------------------------------- item cards */
 
+/* Each photo is a wide row: the photo preview is the main element and
+   fills the width, with its options in a side column (stacked on phones). */
 #prrint-studio .prrint-items {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-	gap: 16px;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 20px;
 }
 
 #prrint-studio .prrint-item {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 320px;
 	border: 1px solid var(--prrint-line);
 	border-radius: 16px;
 	background: var(--prrint-card-bg);
 	box-shadow: 0 1px 3px rgba(16, 24, 40, 0.07);
 	overflow: hidden;
-	transition: box-shadow 0.18s ease, transform 0.18s ease;
+	transition: box-shadow 0.18s ease;
 }
 
 #prrint-studio .prrint-item:hover {
 	box-shadow: 0 10px 26px rgba(16, 24, 40, 0.14);
-	transform: translateY(-2px);
 }
 
 #prrint-studio .prrint-thumb {
 	position: relative;
 	background:
 		repeating-conic-gradient(#f1f2f4 0% 25%, #fafbfc 0% 50%) 0 0 / 20px 20px;
-	padding: 14px;
+	padding: 36px 32px;
+	min-height: 440px;
 	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#prrint-studio .prrint-item-fields {
+	border-left: 1px solid var(--prrint-line);
+	align-self: stretch;
 	justify-content: center;
 }
 
 #prrint-studio .prrint-thumb-canvas {
 	display: block;
 	max-width: 100%;
-	max-height: 230px;
+	max-height: 560px;
 	width: auto;
 	height: auto;
 	box-shadow: 0 2px 8px rgba(16, 24, 40, 0.25);
@@ -340,9 +351,9 @@ body.prrint-modal-open {
 
 #prrint-studio .prrint-edit-btn {
 	position: absolute;
-	right: 10px;
-	bottom: 10px;
-	padding: 4px 12px;
+	right: 14px;
+	bottom: 14px;
+	padding: 8px 18px;
 	border: 0;
 	border-radius: 999px;
 	background: rgba(17, 24, 39, 0.75);
@@ -384,7 +395,7 @@ body.prrint-modal-open {
 	display: flex;
 	flex-direction: column;
 	gap: 14px;
-	padding: 18px;
+	padding: 24px;
 }
 
 #prrint-studio .prrint-field {
@@ -458,7 +469,7 @@ body.prrint-modal-open {
 /* The chosen edge color framing the photo, like the mounted product's side.
    The outer ring keeps a white edge visible on the white card. */
 #prrint-studio .prrint-thumb-canvas.prrint-has-edge {
-	border: 9px solid #111;
+	border: 16px solid #111;
 	border-radius: 3px;
 	box-shadow:
 		0 0 0 1px rgba(16, 24, 40, 0.18),
@@ -1812,5 +1823,26 @@ body.prrint-modal-open {
 	}
 	#prrint-studio .prrint-crop-bar {
 		gap: 8px;
+	}
+}
+
+/* Photo rows stack (photo above options) on tablets/phones. */
+@media (max-width: 760px) {
+	#prrint-studio .prrint-item {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	#prrint-studio .prrint-thumb {
+		min-height: 0;
+		padding: 18px;
+	}
+	#prrint-studio .prrint-thumb-canvas {
+		max-height: 380px;
+	}
+	#prrint-studio .prrint-thumb-canvas.prrint-has-edge {
+		border-width: 10px;
+	}
+	#prrint-studio .prrint-item-fields {
+		border-left: 0;
+		border-top: 1px solid var(--prrint-line);
 	}
 }

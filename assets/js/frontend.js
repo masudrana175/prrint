@@ -933,7 +933,9 @@
 
 		var canvas = card.querySelector('.prrint-thumb-canvas');
 		var p = printDims(item);
-		var TW = 440; // retina-ish backing store
+		// Backing store sized for the large row preview (long side 1200px).
+		var LONG = 1200;
+		var TW = p.w >= p.h ? LONG : Math.round(LONG * p.w / p.h);
 		var TH = Math.round(TW * p.h / p.w);
 		canvas.width = TW;
 		canvas.height = TH;
