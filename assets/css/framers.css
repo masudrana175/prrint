@@ -1,0 +1,83 @@
+/* Framers Corner: login / application / status. Inherits the theme's fonts
+   and WooCommerce form styling; only layout and states are set here. */
+.prrint-framers {
+	max-width: 1100px;
+	margin: 0 auto;
+}
+
+.prrint-framers-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 32px;
+	align-items: start;
+}
+
+.prrint-framers-panel {
+	padding: 28px;
+	border: 1px solid #e5e7eb;
+	border-radius: 14px;
+	background: #fff;
+}
+
+.prrint-framers-panel h2 {
+	margin-top: 0;
+}
+
+.prrint-framers-form .form-row {
+	margin: 0 0 14px;
+}
+
+.prrint-framers-form label {
+	display: block;
+	margin-bottom: 4px;
+	font-weight: 600;
+}
+
+.prrint-framers-form .optional {
+	font-weight: 400;
+	opacity: 0.6;
+}
+
+.prrint-framers-form input.input-text,
+.prrint-framers-form textarea.input-text,
+.prrint-framers #loginform input[type="text"],
+.prrint-framers #loginform input[type="password"] {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+/* Spam trap: kept out of sight for people, still in the form for bots. */
+.prrint-framers .prrint-hp {
+	position: absolute !important;
+	left: -9999px !important;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+
+.prrint-framers-notice {
+	margin: 0 0 20px;
+	padding: 18px 22px;
+	border-left: 4px solid #2563eb;
+	border-radius: 8px;
+	background: #eff6ff;
+}
+
+.prrint-framers-notice p {
+	margin: 6px 0 0;
+}
+
+.prrint-framers-notice.is-muted {
+	border-left-color: #9ca3af;
+	background: #f3f4f6;
+}
+
+.prrint-framers-notice.is-error {
+	border-left-color: #dc2626;
+	background: #fef2f2;
+}
+
+.prrint-framers-notice ul {
+	margin: 0;
+	padding-left: 18px;
+}

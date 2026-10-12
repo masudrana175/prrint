@@ -89,6 +89,9 @@ class Prrint_Settings {
 		$out['upload_retention_days'] = max( 1, min( 365, isset( $input['upload_retention_days'] ) ? absint( $input['upload_retention_days'] ) : $defaults['upload_retention_days'] ) );
 		$out['guest_library_retention_days'] = max( 1, min( 365, isset( $input['guest_library_retention_days'] ) ? absint( $input['guest_library_retention_days'] ) : $defaults['guest_library_retention_days'] ) );
 
+		$notify                       = isset( $input['framer_notify_email'] ) ? sanitize_email( $input['framer_notify_email'] ) : '';
+		$out['framer_notify_email'] = is_email( $notify ) ? $notify : '';
+
 		$out['studio_product_id'] = isset( $input['studio_product_id'] ) ? absint( $input['studio_product_id'] ) : 0;
 
 		$out['enabled_tools'] = array_values( array_intersect(
@@ -359,6 +362,28 @@ class Prrint_Settings {
 								<td><a href="<?php echo esc_url( $preview_url ); ?>" class="button" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open the studio page ↗', 'prrint' ); ?></a></td>
 							</tr>
 						<?php endif; ?>
+					</table>
+				</div>
+
+				<div class="prrint-card">
+					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'bookmark', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Framer accounts', 'prrint' ); ?></h2>
+					<p class="description">
+						<?php
+						printf(
+							/* translators: %s: link to the Framers admin screen */
+							esc_html__( 'Framers apply on the Framers Corner page and you approve them under %s. Only approved framers see what is inside the [prrint_framers_corner] shortcode.', 'prrint' ),
+							'<a href="' . esc_url( admin_url( 'admin.php?page=prrint-framers' ) ) . '">' . esc_html__( 'WooCommerce → Framers', 'prrint' ) . '</a>'
+						);
+						?>
+					</p>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th scope="row"><label for="prrint_framer_notify_email"><?php esc_html_e( 'Send new applications to', 'prrint' ); ?></label></th>
+							<td>
+								<input type="email" class="regular-text" id="prrint_framer_notify_email" name="prrint_settings[framer_notify_email]" value="<?php echo esc_attr( $s['framer_notify_email'] ); ?>" placeholder="<?php echo esc_attr( get_option( 'admin_email' ) ); ?>" />
+								<p class="description"><?php esc_html_e( 'Leave empty to use the site admin email.', 'prrint' ); ?></p>
+							</td>
+						</tr>
 					</table>
 				</div>
 

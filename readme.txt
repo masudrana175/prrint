@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.29.0
+Stable tag: 1.30.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,24 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.30.0 =
+* New: framer (trade) accounts. Framers apply on a "Framers Corner" page
+  (business name, contact, phone, address, optional website and seller's
+  permit number). New applicants get an account in "pending" status and you
+  approve or decline them under WooCommerce → Framers, which shows a count of
+  waiting applications. You get an email for each new application (address
+  set in Prrint Studio settings → Framer accounts) and framers are emailed
+  when they are approved or declined.
+* New: [prrint_framers_corner]…[/prrint_framers_corner] shortcode. Approved
+  framers see what's inside it; everyone else sees a login + application
+  form or their application's status. A draft "Framers Corner" page using it
+  is created automatically.
+* Framer status and business details are editable on each user's profile,
+  and shown in a "Framer" column on the Users list.
+* Remove the Classic, Deco and Empire styles and the V – Electric Purple
+  edge color, which ColorPlak no longer offers. Sites still on the
+  unedited 1.29 lists get the updated lists automatically.
 
 = 1.29.0 =
 * Load ColorPlak's real Style list as the default: Paper print, ColorLite,

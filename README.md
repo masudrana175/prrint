@@ -37,6 +37,9 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
   styles with a colored edge, an "Edge Color" dropdown whose color is
   drawn around the photo preview live. Both are managed from the
   settings page and recorded on the order.
+- **Framer (trade) accounts** — framers apply on a Framers Corner page and
+  you approve or decline them under WooCommerce → Framers (emails both ways).
+  Content inside `[prrint_framers_corner]` is only shown to approved framers.
 - **Brandable colors** — primary/button, button text, text, card and
   Total-bar colors set from the settings page; studio styles are scoped
   so a theme's own button styling can't override them.

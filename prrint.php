@@ -3,7 +3,7 @@
  * Plugin Name: Prrint — Photo Print Studio for WooCommerce
  * Plugin URI:  https://github.com/masudrana175/prrint
  * Description: Turn WooCommerce products into a full photo print shop: multi-photo upload, crop/zoom/rotate editor, print sizes, paper finishes, white borders, live pricing, print-quality checks, and 300 DPI print-ready files on every order.
- * Version:     1.29.0
+ * Version:     1.30.0
  * Author:      Masud Rana
  * Author URI:  https://github.com/masudrana175
  * Text Domain: prrint
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PRRINT_VERSION', '1.29.0' );
+define( 'PRRINT_VERSION', '1.30.0' );
 define( 'PRRINT_FILE', __FILE__ );
 define( 'PRRINT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PRRINT_URL', plugin_dir_url( __FILE__ ) );
@@ -57,6 +57,7 @@ function prrint_bootstrap() {
 	require_once PRRINT_DIR . 'includes/class-prrint-ajax.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-cart.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-orders.php';
+	require_once PRRINT_DIR . 'includes/class-prrint-framers.php';
 
 	Prrint_Settings::init();
 	Prrint_Product::init();
@@ -65,6 +66,7 @@ function prrint_bootstrap() {
 	Prrint_Ajax::init();
 	Prrint_Cart::init();
 	Prrint_Orders::init();
+	Prrint_Framers::init();
 }
 
 /* -------------------------------------------------------------------------
@@ -261,11 +263,8 @@ function prrint_default_styles() {
 		array( 'label' => 'ColorLite',   'surcharge' => 0, 'edge' => true,  'description' => '3/8" board with beveled edge. Our most popular style. Recommended for sizes up to 32" x 40".' ),
 		array( 'label' => 'ColorFloat',  'surcharge' => 0, 'edge' => false, 'description' => 'Image mounted on 1/4" board. A 1" box frame is recessed 2" from the edge to make the frame "float". Available in sizes up to 4 feet x 8 feet.' ),
 		array( 'label' => 'ColorBox',    'surcharge' => 0, 'edge' => true,  'description' => 'Image mounted on 1/4" board with beveled edge which is laid on top of a 1" back frame. Available in sizes up to 4 feet x 8 feet.' ),
-		array( 'label' => 'Classic',     'surcharge' => 0, 'edge' => false, 'description' => 'Image is mounted on a 1/2" board with a custom-molded edge.' ),
 		array( 'label' => 'Hi-Lite',     'surcharge' => 0, 'edge' => false, 'description' => 'Image is mounted on a 1/4" board and then onto a 3/8" base creating a 2" border.' ),
 		array( 'label' => 'Canvas',      'surcharge' => 0, 'edge' => false, 'description' => 'Image is transferred to an artist\'s canvas and stretched onto a wood frame.' ),
-		array( 'label' => 'Deco',        'surcharge' => 0, 'edge' => false, 'description' => 'Image is mounted onto 1/4" board. Then a 2 1/2" black or white frame is applied.' ),
-		array( 'label' => 'Empire',      'surcharge' => 0, 'edge' => false, 'description' => 'Image is mounted onto 1/4" board. Then a 4" black or white frame is applied.' ),
 	);
 }
 
@@ -290,7 +289,6 @@ function prrint_default_edge_colors() {
 		array( 'code' => 'S',  'label' => 'Satin Cream',         'color' => '#efe8ce', 'exclude' => '' ),
 		array( 'code' => 'T',  'label' => 'Ice Blue Marble',     'color' => '#375f76', 'exclude' => '' ),
 		array( 'code' => 'U',  'label' => 'Teal Green Marble',   'color' => '#21574a', 'exclude' => '' ),
-		array( 'code' => 'V',  'label' => 'Electric Purple',     'color' => '#580958', 'exclude' => '' ),
 		array( 'code' => 'X',  'label' => 'Dark Walnut',         'color' => '#33190b', 'exclude' => '' ),
 		array( 'code' => 'CB', 'label' => 'Coffee Brown',        'color' => '#492914', 'exclude' => '' ),
 		array( 'code' => 'MS', 'label' => 'Matte Silver',        'color' => '#aaaaaa', 'exclude' => '' ),
@@ -427,6 +425,7 @@ function prrint_default_settings() {
 		'border_in'                     => 0.25,
 		'upload_retention_days'         => 14,
 		'guest_library_retention_days'  => 20,
+		'framer_notify_email'           => '', // '' = the site admin email.
 		'studio_product_id'             => 0, // 0 = use the auto-created sample product.
 		'enabled_tools'                 => prrint_toggleable_tools(),
 		'text_templates_enabled'        => prrint_text_template_ids(),
@@ -446,6 +445,39 @@ function prrint_default_settings() {
  *
  * @return array
  */
+/**
+ * Rows dropped from the defaults since they were shipped, at ColorPlak's
+ * request: Classic, Deco and Empire are no longer offered, and V (Electric
+ * Purple) is discontinued.
+ */
+function prrint_retired_default_rows() {
+	return array(
+		'styles'      => array( 'label', array( 'Classic', 'Deco', 'Empire' ) ),
+		'edge_colors' => array( 'code', array( 'V' ) ),
+	);
+}
+
+/**
+ * Whether a saved styles/edge-colors list is an earlier default nobody has
+ * edited: the 1.26 placeholders, or today's defaults plus rows retired
+ * since. Those are swapped for the current defaults; edited lists are kept.
+ */
+function prrint_is_untouched_old_default( $key, $saved ) {
+	$placeholders = prrint_legacy_placeholder_lists();
+	if ( prrint_list_matches( $saved, $placeholders[ $key ] ) ) {
+		return true;
+	}
+	if ( ! is_array( $saved ) ) {
+		return false;
+	}
+	list( $field, $retired ) = prrint_retired_default_rows()[ $key ];
+	$kept = array_values( array_filter( $saved, function ( $row ) use ( $field, $retired ) {
+		return ! ( is_array( $row ) && isset( $row[ $field ] ) && in_array( $row[ $field ], $retired, true ) );
+	} ) );
+	$current = 'styles' === $key ? prrint_default_styles() : prrint_default_edge_colors();
+	return count( $kept ) < count( $saved ) && prrint_list_matches( $kept, $current );
+}
+
 /**
  * Loose equality for saved settings rows (numbers may come back as strings).
  */
@@ -475,8 +507,8 @@ function prrint_settings() {
 	if ( empty( $settings['papers'] ) || ! is_array( $settings['papers'] ) ) {
 		$settings['papers'] = prrint_default_papers();
 	}
-	foreach ( prrint_legacy_placeholder_lists() as $key => $placeholder ) {
-		if ( isset( $saved[ $key ] ) && prrint_list_matches( $saved[ $key ], $placeholder ) ) {
+	foreach ( array( 'styles', 'edge_colors' ) as $key ) {
+		if ( isset( $saved[ $key ] ) && prrint_is_untouched_old_default( $key, $saved[ $key ] ) ) {
 			$settings[ $key ] = 'styles' === $key ? prrint_default_styles() : prrint_default_edge_colors();
 		}
 	}
