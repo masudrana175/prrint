@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.28.0
+Stable tag: 1.29.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,20 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.29.0 =
+* Load ColorPlak's real Style list as the default: Paper print, ColorLite,
+  ColorFloat, ColorBox, Classic, Hi-Lite, Canvas, Deco and Empire, each with
+  its description, which is now shown to customers under the Style dropdown.
+* Load ColorPlak's 34-color edge chart as the default Edge Colors, each with
+  its chart code ("A - Matte Black", "CF - Carbon Fiber", ...). Colors are
+  sampled from the chart itself; marble/wood finishes use their average tone.
+* Edge colors can now be marked "Not available for" specific styles: Navy
+  Blue (J) and Hammer Copper (HC) are hidden for ColorBox, as on the chart,
+  and the server refuses them for ColorBox too.
+* Stores still holding the old 5-color / 3-style placeholder lists get the
+  real lists automatically; lists an admin has edited are left untouched.
+* Raise the edge color limit from 30 to 100 (the chart alone has 34).
 
 = 1.28.0 =
 * Make the photo the main element on the order screen: each uploaded

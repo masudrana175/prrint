@@ -243,7 +243,7 @@ class Prrint_Ajax {
 			$style = $styles[ $style_idx ];
 			if ( ! empty( $style['edge'] ) && ! empty( $edges ) ) {
 				$edge_idx = isset( $raw['edge'] ) ? (int) $raw['edge'] : 0;
-				if ( ! isset( $edges[ $edge_idx ] ) ) {
+				if ( ! isset( $edges[ $edge_idx ] ) || ! prrint_edge_available( $edges[ $edge_idx ], $style['label'] ) ) {
 					return new WP_Error( 'prrint', __( 'Invalid print options selected.', 'prrint' ) );
 				}
 				$edge = $edges[ $edge_idx ];
@@ -266,7 +266,7 @@ class Prrint_Ajax {
 				'surcharge'   => (float) $paper['surcharge'],
 				'style_label'     => $style ? $style['label'] : '',
 				'style_surcharge' => $style ? (float) $style['surcharge'] : 0.0,
-				'edge_label'      => $edge ? $edge['label'] : '',
+				'edge_label'      => $edge ? prrint_edge_display_label( $edge ) : '',
 				'edge_color'      => $edge ? $edge['color'] : '',
 				'orientation' => $orientation,
 				'border'      => $border,

@@ -3,7 +3,7 @@
  * Plugin Name: Prrint — Photo Print Studio for WooCommerce
  * Plugin URI:  https://github.com/masudrana175/prrint
  * Description: Turn WooCommerce products into a full photo print shop: multi-photo upload, crop/zoom/rotate editor, print sizes, paper finishes, white borders, live pricing, print-quality checks, and 300 DPI print-ready files on every order.
- * Version:     1.28.0
+ * Version:     1.29.0
  * Author:      Masud Rana
  * Author URI:  https://github.com/masudrana175
  * Text Domain: prrint
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PRRINT_VERSION', '1.28.0' );
+define( 'PRRINT_VERSION', '1.29.0' );
 define( 'PRRINT_FILE', __FILE__ );
 define( 'PRRINT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PRRINT_URL', plugin_dir_url( __FILE__ ) );
@@ -250,25 +250,114 @@ function prrint_default_papers() {
 }
 
 /**
- * Product styles (e.g. a plain paper print vs. a mounted ColorLite or
- * Color Box). "edge" marks styles that have a visible colored edge, which
- * is what makes the Edge Color dropdown appear for them.
+ * Product styles — what the print is made into. "edge" marks styles with a
+ * colored (foil) edge, which is what makes the Edge Color dropdown appear;
+ * "description" is shown to the customer under the Style dropdown.
+ * Descriptions come from ColorPlak's own style sheet.
  */
 function prrint_default_styles() {
 	return array(
-		array( 'label' => 'Paper print', 'surcharge' => 0, 'edge' => false ),
-		array( 'label' => 'ColorLite',   'surcharge' => 0, 'edge' => true ),
-		array( 'label' => 'Color Box',   'surcharge' => 0, 'edge' => true ),
+		array( 'label' => 'Paper print', 'surcharge' => 0, 'edge' => false, 'description' => 'A print on photo paper only — no mounting.' ),
+		array( 'label' => 'ColorLite',   'surcharge' => 0, 'edge' => true,  'description' => '3/8" board with beveled edge. Our most popular style. Recommended for sizes up to 32" x 40".' ),
+		array( 'label' => 'ColorFloat',  'surcharge' => 0, 'edge' => false, 'description' => 'Image mounted on 1/4" board. A 1" box frame is recessed 2" from the edge to make the frame "float". Available in sizes up to 4 feet x 8 feet.' ),
+		array( 'label' => 'ColorBox',    'surcharge' => 0, 'edge' => true,  'description' => 'Image mounted on 1/4" board with beveled edge which is laid on top of a 1" back frame. Available in sizes up to 4 feet x 8 feet.' ),
+		array( 'label' => 'Classic',     'surcharge' => 0, 'edge' => false, 'description' => 'Image is mounted on a 1/2" board with a custom-molded edge.' ),
+		array( 'label' => 'Hi-Lite',     'surcharge' => 0, 'edge' => false, 'description' => 'Image is mounted on a 1/4" board and then onto a 3/8" base creating a 2" border.' ),
+		array( 'label' => 'Canvas',      'surcharge' => 0, 'edge' => false, 'description' => 'Image is transferred to an artist\'s canvas and stretched onto a wood frame.' ),
+		array( 'label' => 'Deco',        'surcharge' => 0, 'edge' => false, 'description' => 'Image is mounted onto 1/4" board. Then a 2 1/2" black or white frame is applied.' ),
+		array( 'label' => 'Empire',      'surcharge' => 0, 'edge' => false, 'description' => 'Image is mounted onto 1/4" board. Then a 4" black or white frame is applied.' ),
 	);
 }
 
+/**
+ * ColorPlak's edge color chart ("Edge Colors new one"). Hex values are the
+ * average color of each band sampled from the chart itself; marble, wood and
+ * textured finishes are represented by their average tone. "exclude" lists
+ * styles (comma-separated) a color isn't available for.
+ */
 function prrint_default_edge_colors() {
 	return array(
-		array( 'label' => 'Black', 'color' => '#111111' ),
-		array( 'label' => 'White', 'color' => '#ffffff' ),
-		array( 'label' => 'Gray',  'color' => '#9ca3af' ),
-		array( 'label' => 'Red',   'color' => '#dc2626' ),
-		array( 'label' => 'Blue',  'color' => '#2563eb' ),
+		array( 'code' => 'A',  'label' => 'Matte Black',         'color' => '#000000', 'exclude' => '' ),
+		array( 'code' => 'B',  'label' => 'Matte White',         'color' => '#ffffff', 'exclude' => '' ),
+		array( 'code' => 'C',  'label' => 'Black Marble',        'color' => '#131313', 'exclude' => '' ),
+		array( 'code' => 'D',  'label' => 'Bright Blue Marble',  'color' => '#004891', 'exclude' => '' ),
+		array( 'code' => 'E',  'label' => 'Electric Blue',       'color' => '#014189', 'exclude' => '' ),
+		array( 'code' => 'G',  'label' => 'Kelly Green',         'color' => '#006800', 'exclude' => '' ),
+		array( 'code' => 'I',  'label' => 'Honey Oak',           'color' => '#b17d4e', 'exclude' => '' ),
+		array( 'code' => 'J',  'label' => 'Navy Blue',           'color' => '#002140', 'exclude' => 'ColorBox' ),
+		array( 'code' => 'K',  'label' => 'Gloss Black',         'color' => '#000000', 'exclude' => '' ),
+		array( 'code' => 'N',  'label' => 'Matte Gold',          'color' => '#b6883a', 'exclude' => '' ),
+		array( 'code' => 'S',  'label' => 'Satin Cream',         'color' => '#efe8ce', 'exclude' => '' ),
+		array( 'code' => 'T',  'label' => 'Ice Blue Marble',     'color' => '#375f76', 'exclude' => '' ),
+		array( 'code' => 'U',  'label' => 'Teal Green Marble',   'color' => '#21574a', 'exclude' => '' ),
+		array( 'code' => 'V',  'label' => 'Electric Purple',     'color' => '#580958', 'exclude' => '' ),
+		array( 'code' => 'X',  'label' => 'Dark Walnut',         'color' => '#33190b', 'exclude' => '' ),
+		array( 'code' => 'CB', 'label' => 'Coffee Brown',        'color' => '#492914', 'exclude' => '' ),
+		array( 'code' => 'MS', 'label' => 'Matte Silver',        'color' => '#aaaaaa', 'exclude' => '' ),
+		array( 'code' => 'OR', 'label' => 'Orange Red',          'color' => '#c70003', 'exclude' => '' ),
+		array( 'code' => 'CF', 'label' => 'Carbon Fiber',        'color' => '#191f1e', 'exclude' => '' ),
+		array( 'code' => 'BP', 'label' => 'Barbie Pink',         'color' => '#ffa2ad', 'exclude' => '' ),
+		array( 'code' => 'SB', 'label' => 'Sky Blue',            'color' => '#7491b5', 'exclude' => '' ),
+		array( 'code' => 'HC', 'label' => 'Hammer Copper',       'color' => '#5f230e', 'exclude' => 'ColorBox' ),
+		array( 'code' => 'LM', 'label' => 'Light Maple',         'color' => '#e4c08b', 'exclude' => '' ),
+		array( 'code' => 'PO', 'label' => 'Pumpkin Orange',      'color' => '#ff3100', 'exclude' => '' ),
+		array( 'code' => 'AP', 'label' => 'Black Pearl',         'color' => '#201d15', 'exclude' => '' ),
+		array( 'code' => 'BW', 'label' => 'White Wood',          'color' => '#f4e5cf', 'exclude' => '' ),
+		array( 'code' => 'FG', 'label' => 'Forest Green Wood',   'color' => '#1b3823', 'exclude' => '' ),
+		array( 'code' => 'IP', 'label' => 'Ivory Pine',          'color' => '#d7c09d', 'exclude' => '' ),
+		array( 'code' => 'SW', 'label' => 'Sea Washed',          'color' => '#b4bab1', 'exclude' => '' ),
+		array( 'code' => 'MC', 'label' => 'Milk Chocolate',      'color' => '#764f28', 'exclude' => '' ),
+		array( 'code' => 'VP', 'label' => 'Vintage Pewter',      'color' => '#615c60', 'exclude' => '' ),
+		array( 'code' => 'AG', 'label' => 'Black Gold',          'color' => '#251409', 'exclude' => '' ),
+		array( 'code' => 'NS', 'label' => 'Natural Suede',       'color' => '#7b6b59', 'exclude' => '' ),
+		array( 'code' => 'SR', 'label' => 'Silver Rose Marble',  'color' => '#a2595c', 'exclude' => '' ),
+	);
+}
+
+/**
+ * Whether an edge color may be ordered with a style. Style names in the
+ * "exclude" list are compared ignoring case, spaces and punctuation, so
+ * "ColorBox" also matches a style called "Color Box".
+ */
+function prrint_edge_available( $edge, $style_label ) {
+	if ( empty( $edge['exclude'] ) ) {
+		return true;
+	}
+	$norm = function ( $s ) {
+		return strtolower( preg_replace( '/[^a-z0-9]/i', '', (string) $s ) );
+	};
+	foreach ( explode( ',', $edge['exclude'] ) as $name ) {
+		if ( '' !== $norm( $name ) && $norm( $name ) === $norm( $style_label ) ) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/** "A - Matte Black", or just the name when no code is set. */
+function prrint_edge_display_label( $edge ) {
+	return ! empty( $edge['code'] ) ? $edge['code'] . ' - ' . $edge['label'] : $edge['label'];
+}
+
+/**
+ * The placeholder lists shipped in 1.26–1.28, before the real ColorPlak
+ * lists. A store still holding exactly these (saved untouched) gets the
+ * real defaults instead; anything an admin edited is left alone.
+ */
+function prrint_legacy_placeholder_lists() {
+	return array(
+		'styles'      => array(
+			array( 'label' => 'Paper print', 'surcharge' => 0.0, 'edge' => false ),
+			array( 'label' => 'ColorLite',   'surcharge' => 0.0, 'edge' => true ),
+			array( 'label' => 'Color Box',   'surcharge' => 0.0, 'edge' => true ),
+		),
+		'edge_colors' => array(
+			array( 'label' => 'Black', 'color' => '#111111' ),
+			array( 'label' => 'White', 'color' => '#ffffff' ),
+			array( 'label' => 'Gray',  'color' => '#9ca3af' ),
+			array( 'label' => 'Red',   'color' => '#dc2626' ),
+			array( 'label' => 'Blue',  'color' => '#2563eb' ),
+		),
 	);
 }
 
@@ -357,6 +446,23 @@ function prrint_default_settings() {
  *
  * @return array
  */
+/**
+ * Loose equality for saved settings rows (numbers may come back as strings).
+ */
+function prrint_list_matches( $saved, $placeholder ) {
+	if ( ! is_array( $saved ) || count( $saved ) !== count( $placeholder ) ) {
+		return false;
+	}
+	foreach ( array_values( $saved ) as $i => $row ) {
+		foreach ( $placeholder[ $i ] as $k => $v ) {
+			if ( ! isset( $row[ $k ] ) || (string) $row[ $k ] !== (string) $v ) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 function prrint_settings() {
 	$saved = get_option( 'prrint_settings', array() );
 	if ( ! is_array( $saved ) ) {
@@ -368,6 +474,11 @@ function prrint_settings() {
 	}
 	if ( empty( $settings['papers'] ) || ! is_array( $settings['papers'] ) ) {
 		$settings['papers'] = prrint_default_papers();
+	}
+	foreach ( prrint_legacy_placeholder_lists() as $key => $placeholder ) {
+		if ( isset( $saved[ $key ] ) && prrint_list_matches( $saved[ $key ], $placeholder ) ) {
+			$settings[ $key ] = 'styles' === $key ? prrint_default_styles() : prrint_default_edge_colors();
+		}
 	}
 	return $settings;
 }

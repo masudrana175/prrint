@@ -280,3 +280,13 @@
 .prrint-color-reset {
 	vertical-align: middle;
 }
+
+.prrint-table .prrint-wide-input {
+	width: 100%;
+	min-width: 280px;
+}
+
+.prrint-table .prrint-code-input {
+	width: 64px;
+	text-transform: uppercase;
+}

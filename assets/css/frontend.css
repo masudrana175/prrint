@@ -440,6 +440,18 @@ body.prrint-modal-open {
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--prrint-accent) 18%, transparent);
 }
 
+#prrint-studio .prrint-style-desc {
+	display: block;
+	margin-top: 2px;
+	font-size: 0.8em;
+	line-height: 1.45;
+	color: var(--prrint-muted);
+}
+
+#prrint-studio .prrint-style-desc[hidden] {
+	display: none;
+}
+
 #prrint-studio .prrint-field[hidden] {
 	display: none;
 }

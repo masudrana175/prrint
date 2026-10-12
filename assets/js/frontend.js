@@ -222,11 +222,54 @@
 		return STYLES[item.styleIdx] || null;
 	}
 
+	function normName(s) {
+		return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+	}
+
+	/** Mirrors prrint_edge_available(): "exclude" lists styles a color isn't offered for. */
+	function edgeAvailable(edge, style) {
+		if (!edge || !style || !edge.exclude) { return true; }
+		var target = normName(style.label);
+		return !String(edge.exclude).split(',').some(function (n) {
+			return normName(n) !== '' && normName(n) === target;
+		});
+	}
+
+	function edgeLabel(edge) {
+		return edge.code ? edge.code + ' - ' + edge.label : edge.label;
+	}
+
+	/** Indexes of the edge colors offered for the item's current style. */
+	function availableEdgeIdxs(item) {
+		var st = currentStyle(item);
+		var out = [];
+		EDGE_COLORS.forEach(function (e, i) { if (edgeAvailable(e, st)) { out.push(i); } });
+		return out;
+	}
+
 	/** The chosen edge color, or null when the style has no colored edge. */
 	function currentEdge(item) {
 		var st = currentStyle(item);
 		if (!st || !st.edge || !EDGE_COLORS.length) { return null; }
-		return EDGE_COLORS[item.edgeIdx] || EDGE_COLORS[0];
+		var ok = availableEdgeIdxs(item);
+		if (!ok.length) { return null; }
+		if (ok.indexOf(item.edgeIdx) === -1) { item.edgeIdx = ok[0]; }
+		return EDGE_COLORS[item.edgeIdx];
+	}
+
+	/** Rebuild the Edge Color options for the item's style (some colors are style-limited). */
+	function syncEdgeOptions(item) {
+		var sel = item.card && item.card.querySelector('.prrint-edge-select');
+		if (!sel) { return; }
+		currentEdge(item);
+		sel.innerHTML = '';
+		availableEdgeIdxs(item).forEach(function (i) {
+			var opt = document.createElement('option');
+			opt.value = String(i);
+			opt.textContent = edgeLabel(EDGE_COLORS[i]);
+			sel.appendChild(opt);
+		});
+		sel.value = String(item.edgeIdx);
 	}
 
 	function itemDpi(item) {
@@ -745,7 +788,8 @@
 					'<select class="prrint-paper-select"></select></label>' +
 				(STYLES.length
 					? '<label class="prrint-field"><span>' + esc(cfg.i18n.style || 'Style') + '</span>' +
-						'<select class="prrint-style-select"></select></label>'
+						'<select class="prrint-style-select"></select>' +
+						'<small class="prrint-style-desc"></small></label>'
 					: '') +
 				(STYLES.length && EDGE_COLORS.length
 					? '<label class="prrint-field prrint-edge-field"><span>' + esc(cfg.i18n.edgeColor || 'Edge Color') + '</span>' +
@@ -799,6 +843,7 @@
 			styleSel.value = String(item.styleIdx);
 			styleSel.addEventListener('change', function () {
 				item.styleIdx = Number(this.value) || 0;
+				syncEdgeOptions(item);
 				renderCard(item);
 				updateSummary();
 			});
@@ -806,13 +851,8 @@
 
 		var edgeSel = card.querySelector('.prrint-edge-select');
 		if (edgeSel) {
-			EDGE_COLORS.forEach(function (e, i) {
-				var opt = document.createElement('option');
-				opt.value = String(i);
-				opt.textContent = e.label;
-				edgeSel.appendChild(opt);
-			});
-			edgeSel.value = String(item.edgeIdx);
+			item.card = card;
+			syncEdgeOptions(item);
 			edgeSel.addEventListener('change', function () {
 				item.edgeIdx = Number(this.value) || 0;
 				renderCard(item);
@@ -1006,6 +1046,12 @@
 		var edge = currentEdge(item);
 		canvas.classList.toggle('prrint-has-edge', !!edge);
 		canvas.style.borderColor = edge ? edge.color : '';
+		var styleDesc = card.querySelector('.prrint-style-desc');
+		if (styleDesc) {
+			var curStyle = currentStyle(item);
+			styleDesc.textContent = curStyle && curStyle.description ? curStyle.description : '';
+			styleDesc.hidden = !styleDesc.textContent;
+		}
 		var edgeField = card.querySelector('.prrint-edge-field');
 		if (edgeField) {
 			edgeField.hidden = !edge;
