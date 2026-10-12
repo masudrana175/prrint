@@ -3,7 +3,7 @@
  * Plugin Name: Prrint — Photo Print Studio for WooCommerce
  * Plugin URI:  https://github.com/masudrana175/prrint
  * Description: Turn WooCommerce products into a full photo print shop: multi-photo upload, crop/zoom/rotate editor, print sizes, paper finishes, white borders, live pricing, print-quality checks, and 300 DPI print-ready files on every order.
- * Version:     1.30.0
+ * Version:     1.31.0
  * Author:      Masud Rana
  * Author URI:  https://github.com/masudrana175
  * Text Domain: prrint
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PRRINT_VERSION', '1.30.0' );
+define( 'PRRINT_VERSION', '1.31.0' );
 define( 'PRRINT_FILE', __FILE__ );
 define( 'PRRINT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PRRINT_URL', plugin_dir_url( __FILE__ ) );
@@ -58,6 +58,8 @@ function prrint_bootstrap() {
 	require_once PRRINT_DIR . 'includes/class-prrint-cart.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-orders.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-framers.php';
+	require_once PRRINT_DIR . 'includes/class-prrint-wholesale.php';
+	require_once PRRINT_DIR . 'includes/class-prrint-framer-orders.php';
 
 	Prrint_Settings::init();
 	Prrint_Product::init();
@@ -67,6 +69,8 @@ function prrint_bootstrap() {
 	Prrint_Cart::init();
 	Prrint_Orders::init();
 	Prrint_Framers::init();
+	Prrint_Wholesale::init();
+	Prrint_Framer_Orders::init();
 }
 
 /* -------------------------------------------------------------------------
@@ -426,6 +430,7 @@ function prrint_default_settings() {
 		'upload_retention_days'         => 14,
 		'guest_library_retention_days'  => 20,
 		'framer_notify_email'           => '', // '' = the site admin email.
+		'framer_mailin_address'         => "Custom Art Services - Colorplak\n37110 Mesa Road\nTemecula, CA 92592",
 		'studio_product_id'             => 0, // 0 = use the auto-created sample product.
 		'enabled_tools'                 => prrint_toggleable_tools(),
 		'text_templates_enabled'        => prrint_text_template_ids(),

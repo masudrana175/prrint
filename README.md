@@ -40,6 +40,10 @@ print sites (Colorplak, Mpix, …) work — but inside your own WordPress store.
 - **Framer (trade) accounts** — framers apply on a Framers Corner page and
   you approve or decline them under WooCommerce → Framers (emails both ways).
   Content inside `[prrint_framers_corner]` is only shown to approved framers.
+- **Framer order form** — `[prrint_framer_order_form]`: the paper order form
+  online (sizes, styles, edge colors, print condition, mat/recut/trim, rush,
+  P.O., blind ship), priced live from the editable wholesale price sheet by
+  square inch, paid through the normal WooCommerce checkout.
 - **Brandable colors** — primary/button, button text, text, card and
   Total-bar colors set from the settings page; studio styles are scoped
   so a theme's own button styling can't override them.

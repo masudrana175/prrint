@@ -390,14 +390,32 @@ class Prrint_Framers {
 	 * Draft "Framers Corner" page, created once — also on sites that were
 	 * already running the plugin, where activation won't run again.
 	 */
+	/** Placeholder content shipped in 1.30, before the order form existed. */
+	protected static function legacy_page_content() {
+		return "[prrint_framers_corner]\n<h2>" . __( 'Welcome to the Framers Corner', 'prrint' ) . '</h2>' . "\n<p>" . __( 'Wholesale pricing, order forms and your orders will appear here.', 'prrint' ) . "</p>\n[/prrint_framers_corner]";
+	}
+
+	public static function default_page_content() {
+		return "[prrint_framers_corner]\n<h2>" . __( 'Place a wholesale order', 'prrint' ) . "</h2>\n[prrint_framer_order_form]\n\n<h2>" . __( 'Wholesale price list', 'prrint' ) . "</h2>\n[prrint_framer_price_list]\n[/prrint_framers_corner]";
+	}
+
 	public static function maybe_create_page() {
-		if ( get_option( 'prrint_framers_page' ) || ! current_user_can( 'manage_woocommerce' ) ) {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+		$existing = (int) get_option( 'prrint_framers_page' );
+		if ( $existing ) {
+			// Upgrade the untouched 1.30 placeholder to include the order form.
+			$post = get_post( $existing );
+			if ( $post && trim( $post->post_content ) === self::legacy_page_content() ) {
+				wp_update_post( array( 'ID' => $existing, 'post_content' => self::default_page_content() ) );
+			}
 			return;
 		}
 		$page_id = wp_insert_post( array(
 			'post_title'   => __( 'Framers Corner', 'prrint' ),
 			'post_name'    => 'framers-corner',
-			'post_content' => "[prrint_framers_corner]\n<h2>" . __( 'Welcome to the Framers Corner', 'prrint' ) . '</h2>' . "\n<p>" . __( 'Wholesale pricing, order forms and your orders will appear here.', 'prrint' ) . "</p>\n[/prrint_framers_corner]",
+			'post_content' => self::default_page_content(),
 			'post_status'  => 'draft',
 			'post_type'    => 'page',
 		) );
@@ -560,6 +578,13 @@ class Prrint_Framers {
 					<p class="description"><?php esc_html_e( 'Changing to Approved or Not approved emails the framer.', 'prrint' ); ?></p>
 				</td>
 			</tr>
+			<tr>
+				<th><label for="prrint_framer_discount"><?php esc_html_e( 'Wholesale discount (%)', 'prrint' ); ?></label></th>
+				<td>
+					<input type="number" min="0" max="100" step="0.5" class="small-text" id="prrint_framer_discount" name="prrint_framer_discount" value="<?php echo esc_attr( (string) get_user_meta( $user->ID, '_prrint_framer_discount', true ) ); ?>" />
+					<p class="description"><?php esc_html_e( 'Optional extra discount for this framer, taken off the Plak total of every order.', 'prrint' ); ?></p>
+				</td>
+			</tr>
 			<?php foreach ( self::fields() as $key => $label ) : ?>
 				<tr>
 					<th><label for="prrint_framer_<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label></th>
@@ -588,6 +613,8 @@ class Prrint_Framers {
 			$value = isset( $raw[ $key ] ) ? (string) $raw[ $key ] : '';
 			update_user_meta( $user_id, '_prrint_framer_' . $key, 'address' === $key ? sanitize_textarea_field( $value ) : ( 'website' === $key ? esc_url_raw( $value ) : sanitize_text_field( $value ) ) );
 		}
+		$discount = isset( $_POST['prrint_framer_discount'] ) ? (float) wp_unslash( $_POST['prrint_framer_discount'] ) : 0;
+		update_user_meta( $user_id, '_prrint_framer_discount', max( 0, min( 100, $discount ) ) );
 		$status = isset( $_POST['prrint_framer_status'] ) ? sanitize_key( wp_unslash( $_POST['prrint_framer_status'] ) ) : '';
 		if ( '' === $status ) {
 			delete_user_meta( $user_id, self::STATUS_META );

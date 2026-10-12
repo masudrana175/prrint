@@ -91,6 +91,7 @@ class Prrint_Settings {
 
 		$notify                       = isset( $input['framer_notify_email'] ) ? sanitize_email( $input['framer_notify_email'] ) : '';
 		$out['framer_notify_email'] = is_email( $notify ) ? $notify : '';
+		$out['framer_mailin_address'] = isset( $input['framer_mailin_address'] ) ? sanitize_textarea_field( $input['framer_mailin_address'] ) : $defaults['framer_mailin_address'];
 
 		$out['studio_product_id'] = isset( $input['studio_product_id'] ) ? absint( $input['studio_product_id'] ) : 0;
 
@@ -383,6 +384,17 @@ class Prrint_Settings {
 								<input type="email" class="regular-text" id="prrint_framer_notify_email" name="prrint_settings[framer_notify_email]" value="<?php echo esc_attr( $s['framer_notify_email'] ); ?>" placeholder="<?php echo esc_attr( get_option( 'admin_email' ) ); ?>" />
 								<p class="description"><?php esc_html_e( 'Leave empty to use the site admin email.', 'prrint' ); ?></p>
 							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="prrint_framer_mailin_address"><?php esc_html_e( 'Mail-in address', 'prrint' ); ?></label></th>
+							<td>
+								<textarea class="regular-text" rows="3" id="prrint_framer_mailin_address" name="prrint_settings[framer_mailin_address]"><?php echo esc_textarea( $s['framer_mailin_address'] ); ?></textarea>
+								<p class="description"><?php esc_html_e( 'Where framers send prints they mail in. Shown on the order form.', 'prrint' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><?php esc_html_e( 'Prices', 'prrint' ); ?></th>
+							<td><a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=prrint-wholesale' ) ); ?>"><?php esc_html_e( 'Edit wholesale prices', 'prrint' ); ?></a></td>
 						</tr>
 					</table>
 				</div>

@@ -290,3 +290,26 @@
 	width: 64px;
 	text-transform: uppercase;
 }
+
+/* ---------------------------------------------------- wholesale price grid */
+
+.prrint-price-grid-wrap {
+	overflow-x: auto;
+	max-width: 100%;
+}
+
+.prrint-price-grid th,
+.prrint-price-grid td {
+	white-space: nowrap;
+	padding: 4px 6px;
+}
+
+.prrint-price-grid thead th {
+	vertical-align: bottom;
+	font-size: 12px;
+}
+
+.prrint-price-input {
+	width: 78px;
+	text-align: right;
+}

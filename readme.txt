@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.30.0
+Stable tag: 1.31.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,34 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.31.0 =
+* New: online framer order form ([prrint_framer_order_form]), the web version
+  of ColorPlak's paper order form, for approved framers only. One row per
+  piece: title, length x width, quantity, product/style, edge color, print
+  condition, Mat/Colored Border (+33%), Recut ($5), Trim ($2), leather
+  lamination (prints), special instructions. Whole order: P.O. number, date
+  needed by, Rush (+50%) and Blind ship. Live prices and totals as they type,
+  "Save draft" to come back later, then normal WooCommerce checkout, so any
+  installed gateway (Stripe, PayPal…) takes payment.
+* Wood products can be mailed in (framer price sheet) or printed from an
+  uploaded file ("Digital print" — printed-by-ColorPlak prices); metal,
+  acrylic, canvas and paper are always printed from a file. Mailed-in rows
+  require a print condition and show the mail-in address.
+* Pricing follows ColorPlak's rules: a listed size is billed as itself, any
+  other size by square inch at the next size up (within 1/8"); maximum sizes
+  Wood 48x96, Metal 40x60, Acrylic 48x96, Canvas 48x96, Print only 48x96.
+  Boxing and freight come from the price sheet's per-box rules (oversized
+  freight is quoted after ordering). Optional per-framer discount %.
+* New: WooCommerce → Wholesale prices — every price from the 2025 price sheet,
+  editable per product line, plus the boxing/freight rules, with a reset to
+  the sheet. 16x24 Metal Float set to $124 as ColorPlak confirmed.
+* New: [prrint_framer_price_list] shows approved framers the price list.
+* Price sheet note: it lists 24x30 as 700 sq in (it is 720); sizes now use
+  their real square inches so a 24x30 isn't billed at 24x32.
+* Orders show the framer, P.O., needed-by date, rush and a prominent
+  BLIND SHIP flag in the admin; each line keeps all its details and the
+  uploaded file. The Framers Corner page gets the form and price list.
 
 = 1.30.0 =
 * New: framer (trade) accounts. Framers apply on a "Framers Corner" page
