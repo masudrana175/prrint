@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.31.0
+Stable tag: 1.31.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,15 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.31.1 =
+* Settings page (WooCommerce → Prrint Studio) split into tabs — Products,
+  Editor, Colors, Quality & uploads, Studio page, Framers — instead of one
+  very long page. The tab bar and Save button stay pinned at the top while
+  scrolling, the open tab is remembered after saving, and Save still saves
+  every tab at once.
+* The 33-row edge color list now scrolls inside its own box with its column
+  headers pinned.
 
 = 1.31.0 =
 * New: online framer order form ([prrint_framer_order_form]), the web version

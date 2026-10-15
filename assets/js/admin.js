@@ -16,7 +16,10 @@
 				return;
 			}
 			var table = template.previousElementSibling;
-			if (!table || !table.classList.contains('prrint-table')) {
+			if (table && !table.classList.contains('prrint-table')) {
+				table = table.querySelector('.prrint-table'); // inside a scroll wrapper
+			}
+			if (!table) {
 				return;
 			}
 			var html = template.innerHTML.replace(/__i__/g, 'new' + (counter++));
@@ -28,6 +31,7 @@
 			}
 			var firstInput = tbody.lastElementChild.querySelector('input');
 			if (firstInput) {
+				tbody.lastElementChild.scrollIntoView({ block: 'nearest' });
 				firstInput.focus();
 			}
 			return;
@@ -80,4 +84,38 @@
 		renderSwatchPreview(input);
 		input.addEventListener('input', function () { renderSwatchPreview(input); });
 	});
+
+	/* Settings page tabs: show one group of cards at a time. All cards stay
+	   in the single form, so Save always submits every setting. */
+	var tabButtons = document.querySelectorAll('[data-prrint-tab-target]');
+	if (tabButtons.length) {
+		var cards = document.querySelectorAll('[data-prrint-tab]');
+		var referer = document.querySelector('input[name="_wp_http_referer"]');
+		var keys = Array.prototype.map.call(tabButtons, function (b) { return b.dataset.prrintTabTarget; });
+
+		var showTab = function (key) {
+			if (keys.indexOf(key) === -1) { key = keys[0]; }
+			tabButtons.forEach(function (b) {
+				var on = b.dataset.prrintTabTarget === key;
+				b.classList.toggle('is-active', on);
+				b.setAttribute('aria-selected', on ? 'true' : 'false');
+			});
+			cards.forEach(function (c) { c.classList.toggle('prrint-tab-hidden', c.dataset.prrintTab !== key); });
+			var url = new URL(window.location.href);
+			url.searchParams.set('prrint_tab', key);
+			url.searchParams.delete('settings-updated');
+			window.history.replaceState(null, '', url.toString());
+			// After saving, WordPress returns to this referer: keep the tab.
+			if (referer) {
+				var ref = new URL(referer.value, window.location.origin);
+				ref.searchParams.set('prrint_tab', key);
+				referer.value = ref.pathname + ref.search;
+			}
+		};
+
+		tabButtons.forEach(function (b) {
+			b.addEventListener('click', function () { showTab(b.dataset.prrintTabTarget); });
+		});
+		showTab(new URL(window.location.href).searchParams.get('prrint_tab') || keys[0]);
+	}
 })();

@@ -270,31 +270,57 @@ class Prrint_Settings {
 			<form method="post" action="options.php">
 				<?php settings_fields( 'prrint_settings_group' ); ?>
 
-				<div class="prrint-card">
+				<?php
+				// Every tab lives in this one form, so "Save" always submits
+				// every setting (sanitize() rebuilds the whole option from the
+				// posted fields). Tabs only show/hide cards; without JS all
+				// cards stay visible.
+				$tabs = array(
+					'products'   => array( 'layers', __( 'Products', 'prrint' ) ),
+					'editor'     => array( 'toolbox', __( 'Editor', 'prrint' ) ),
+					'appearance' => array( 'sun', __( 'Colors', 'prrint' ) ),
+					'uploads'    => array( 'sliders', __( 'Quality & uploads', 'prrint' ) ),
+					'studio'     => array( 'link', __( 'Studio page', 'prrint' ) ),
+					'framers'    => array( 'bookmark', __( 'Framers', 'prrint' ) ),
+				);
+				?>
+				<div class="prrint-tabbar">
+					<nav class="prrint-tabs" role="tablist" aria-label="<?php esc_attr_e( 'Settings sections', 'prrint' ); ?>">
+						<?php foreach ( $tabs as $key => $tab ) : ?>
+							<button type="button" role="tab" class="prrint-tab" data-prrint-tab-target="<?php echo esc_attr( $key ); ?>" aria-selected="false">
+								<?php echo Prrint_Icons::get( $tab[0], 15 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+								<span><?php echo esc_html( $tab[1] ); ?></span>
+							</button>
+						<?php endforeach; ?>
+					</nav>
+					<?php submit_button( __( 'Save settings', 'prrint' ), 'primary prrint-tabbar-save', 'submit', false ); ?>
+				</div>
+
+				<div class="prrint-card" data-prrint-tab="products">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'ruler', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Print sizes', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'The sizes customers can order. Dimensions are in inches; the crop editor locks to each size\'s aspect ratio.', 'prrint' ); ?></p>
 					<?php self::render_sizes_table( 'prrint_settings[sizes]', $s['sizes'], $currency ); ?>
 				</div>
 
-				<div class="prrint-card">
+				<div class="prrint-card" data-prrint-tab="products">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'paper', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Paper & finish options', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Each paper can add a surcharge on top of the size price.', 'prrint' ); ?></p>
 					<?php self::render_papers_table( 'prrint_settings[papers]', $s['papers'], $currency ); ?>
 				</div>
 
-				<div class="prrint-card">
+				<div class="prrint-card" data-prrint-tab="products">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'layers', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Product styles', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'What the print is made into — e.g. a plain paper print, ColorLite or Color Box. Shown to customers as a "Style" dropdown under Paper, with an optional surcharge. Tick "Colored edge" for styles that have an edge, so customers can pick an Edge Color for them. Remove every row to hide the Style dropdown.', 'prrint' ); ?></p>
 					<?php self::render_styles_table( 'prrint_settings[styles]', $s['styles'], $currency ); ?>
 				</div>
 
-				<div class="prrint-card">
+				<div class="prrint-card" data-prrint-tab="products">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'square', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Edge colors', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Colors offered in the "Edge Color" dropdown for styles with a colored edge. The selected color is drawn around the customer\'s photo preview so they can see it before ordering. The code is shown with the name (e.g. "A - Matte Black") and recorded on the order. Use "Not available for" to hide a color for specific styles.', 'prrint' ); ?></p>
 					<?php self::render_edge_colors_table( 'prrint_settings[edge_colors]', $s['edge_colors'] ); ?>
 				</div>
 
-				<div class="prrint-card">
+				<div class="prrint-card" data-prrint-tab="uploads">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'sliders', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Quality & uploads', 'prrint' ); ?></h2>
 					<table class="form-table" role="presentation">
 						<tr>
@@ -340,7 +366,7 @@ class Prrint_Settings {
 					</table>
 				</div>
 
-				<div class="prrint-card">
+				<div class="prrint-card" data-prrint-tab="studio">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'link', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Standalone studio page', 'prrint' ); ?></h2>
 					<p class="description">
 						<?php
@@ -366,7 +392,7 @@ class Prrint_Settings {
 					</table>
 				</div>
 
-				<div class="prrint-card">
+				<div class="prrint-card" data-prrint-tab="framers">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'bookmark', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Framer accounts', 'prrint' ); ?></h2>
 					<p class="description">
 						<?php
@@ -399,13 +425,13 @@ class Prrint_Settings {
 					</table>
 				</div>
 
-				<div class="prrint-card">
+				<div class="prrint-card" data-prrint-tab="editor">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'toolbox', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Editor tools', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Turn tools off to simplify the editor for your store. Transform (crop & rotate) is always on.', 'prrint' ); ?></p>
 					<?php self::render_tool_checkboxes( $s['enabled_tools'] ); ?>
 				</div>
 
-				<div class="prrint-card">
+				<div class="prrint-card" data-prrint-tab="editor">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'brush', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Filters, Overlays & Shapes', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Pick which presets show inside each tool\'s panel — turn off ones your store doesn\'t want to offer. "None" is always available for Filters and Overlays so a customer can clear one they applied.', 'prrint' ); ?></p>
 					<h3><?php esc_html_e( 'Filters', 'prrint' ); ?></h3>
@@ -416,13 +442,13 @@ class Prrint_Settings {
 					<?php self::render_shape_checkboxes( $s['enabled_shapes'] ); ?>
 				</div>
 
-				<div class="prrint-card">
+				<div class="prrint-card" data-prrint-tab="editor">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'bookmark', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Text Design layouts', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Which pre-made word-art layouts show in the Text Design panel.', 'prrint' ); ?></p>
 					<?php self::render_text_template_checkboxes( $s['text_templates_enabled'] ); ?>
 				</div>
 
-				<div class="prrint-card">
+				<div class="prrint-card" data-prrint-tab="editor">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'palette', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Color palettes', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Comma-separated hex colors offered to customers in each panel. Use "transparent" for a swatch with no fill (only meaningful for backgrounds).', 'prrint' ); ?></p>
 					<table class="form-table" role="presentation">
@@ -436,7 +462,7 @@ class Prrint_Settings {
 					</table>
 				</div>
 
-				<div class="prrint-card">
+				<div class="prrint-card" data-prrint-tab="appearance">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'sun', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Studio colors', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Match the studio to your brand. These apply to the upload area, photo cards, buttons and the editor, and override your theme\'s own button colors inside the studio.', 'prrint' ); ?></p>
 					<table class="form-table" role="presentation">
@@ -451,7 +477,7 @@ class Prrint_Settings {
 				</div>
 
 				<div class="prrint-save-bar">
-					<?php submit_button( __( 'Save settings', 'prrint' ), 'primary', 'submit', false ); ?>
+					<?php submit_button( __( 'Save settings', 'prrint' ), 'primary', 'submit_bottom', false ); ?>
 				</div>
 			</form>
 		</div>
@@ -693,6 +719,7 @@ class Prrint_Settings {
 			<?php
 		};
 		?>
+		<div class="prrint-table-scroll">
 		<table class="widefat striped prrint-table" data-prrint-table="edge_colors">
 			<thead>
 				<tr>
@@ -711,6 +738,7 @@ class Prrint_Settings {
 				?>
 			</tbody>
 		</table>
+		</div>
 		<template class="prrint-row-template">
 			<?php $row( '__i__', array( 'code' => '', 'label' => '', 'color' => '#111111', 'exclude' => '' ) ); ?>
 		</template>

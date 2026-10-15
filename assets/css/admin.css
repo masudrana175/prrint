@@ -313,3 +313,100 @@
 	width: 78px;
 	text-align: right;
 }
+
+/* ------------------------------------------------------------ settings tabs */
+
+.prrint-tabbar {
+	position: sticky;
+	top: 32px; /* below the WordPress admin bar */
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin: 0 0 18px;
+	padding: 10px 12px;
+	border: 1px solid #dcdcde;
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.96);
+	box-shadow: 0 2px 10px rgba(16, 24, 40, 0.06);
+	backdrop-filter: blur(6px);
+}
+
+@media screen and (max-width: 782px) {
+	.prrint-tabbar {
+		top: 46px;
+	}
+}
+
+.prrint-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.prrint-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 8px 14px;
+	border: 1px solid transparent;
+	border-radius: 8px;
+	background: transparent;
+	color: #50575e;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.prrint-tab:hover {
+	background: #f0f0f1;
+	color: #1d2327;
+}
+
+.prrint-tab.is-active {
+	background: #2271b1;
+	color: #fff;
+}
+
+.prrint-tab:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+.prrint-tabbar .button-primary {
+	margin: 0;
+}
+
+.prrint-card.prrint-tab-hidden {
+	display: none;
+}
+
+/* Long lists (33 edge colors) scroll inside their card, header pinned. */
+.prrint-table-scroll {
+	max-width: 640px;
+	max-height: 460px;
+	margin-top: 10px;
+	overflow: auto;
+	border: 1px solid var(--prrint-a-line, #e5e7eb);
+	border-radius: 8px;
+}
+
+/* The box draws the border/rounding; overflow:hidden on the table would
+   stop the header row from sticking. */
+.prrint-table-scroll .prrint-table {
+	max-width: none;
+	margin-top: 0;
+	border: 0;
+	border-radius: 0;
+	overflow: visible;
+}
+
+.prrint-table-scroll thead th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background: #f6f7f7;
+}
