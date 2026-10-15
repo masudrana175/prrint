@@ -465,35 +465,145 @@ class Prrint_Wholesale {
 		if ( ! prrint_is_approved_framer() ) {
 			return '';
 		}
-		$catalog = self::catalog();
 		ob_start();
-		echo '<div class="prrint-price-list">';
+		self::render_price_list();
+		return Prrint_Framers::wrap( ob_get_clean() );
+	}
+
+	/**
+	 * Price list as one collapsible toggle per product line (closed by
+	 * default), plus boxing & freight. Wood shows both prices per product:
+	 * framer mails the print in / ColorPlak prints it.
+	 */
+	public static function render_price_list() {
+		$catalog = self::catalog();
+		echo '<div class="pf-accordion">';
 		foreach ( self::lines() as $key => $line ) {
 			$products = array_filter( $catalog['products'], function ( $p ) use ( $key ) {
 				return $p['line'] === $key;
 			} );
-			echo '<h3>' . esc_html( $line['label'] ) . ' <small>' . esc_html( sprintf( /* translators: 1,2: max size */ __( 'up to %1$s" x %2$s"', 'prrint' ), $line['max'][0], $line['max'][1] ) ) . '</small></h3>';
-			echo '<div class="prrint-price-list-scroll"><table><thead><tr><th>' . esc_html__( 'Size', 'prrint' ) . '</th><th>' . esc_html__( 'Sq. in.', 'prrint' ) . '</th>';
+			$min = null;
 			foreach ( $products as $product ) {
-				if ( null !== $product['supplied'] ) {
-					echo '<th>' . esc_html( $product['label'] ) . '<br><small>' . esc_html__( 'you supply image', 'prrint' ) . '</small></th>';
-				}
-				echo '<th>' . esc_html( $product['label'] ) . ( null !== $product['supplied'] ? '<br><small>' . esc_html__( 'we print', 'prrint' ) . '</small>' : '' ) . '</th>';
-			}
-			echo '</tr></thead><tbody>';
-			foreach ( $catalog['tiers'] as $t => $tier ) {
-				echo '<tr><th>' . esc_html( $tier[0] ) . '</th><td>' . (int) $tier[1] . '</td>';
-				foreach ( $products as $product ) {
-					foreach ( null !== $product['supplied'] ? array( 'supplied', 'printed' ) : array( 'printed' ) as $kind ) {
-						$v = $product[ $kind ][ $t ];
-						echo '<td>' . ( null === $v ? '—' : wp_kses_post( wc_price( $v ) ) ) . '</td>';
+				foreach ( array( 'supplied', 'printed' ) as $kind ) {
+					foreach ( (array) $product[ $kind ] as $v ) {
+						if ( null !== $v && ( null === $min || $v < $min ) ) {
+							$min = (float) $v;
+						}
 					}
 				}
-				echo '</tr>';
 			}
-			echo '</tbody></table></div>';
+			$has_mail = (bool) array_filter( $products, function ( $p ) {
+				return null !== $p['supplied'];
+			} );
+			?>
+			<details class="pf-acc">
+				<summary>
+					<span class="pf-acc-title"><?php echo esc_html( $line['label'] ); ?></span>
+					<span class="pf-acc-meta">
+						<?php echo esc_html( implode( ' · ', array_map( function ( $p ) { return $p['label']; }, $products ) ) ); ?>
+					</span>
+					<span class="pf-acc-from">
+						<?php
+						/* translators: 1: max short side, 2: max long side */
+						echo esc_html( sprintf( __( 'up to %1$s" x %2$s"', 'prrint' ), $line['max'][0], $line['max'][1] ) );
+						if ( null !== $min ) {
+							echo ' · ' . wp_kses_post( sprintf( /* translators: %s: lowest price */ __( 'from %s', 'prrint' ), wc_price( $min ) ) );
+						}
+						?>
+					</span>
+				</summary>
+				<div class="pf-acc-body">
+					<?php if ( $has_mail ) : ?>
+						<p class="pf-small"><?php esc_html_e( '"Mail in" = you send us the print; "We print" = we print it from your digital file.', 'prrint' ); ?></p>
+					<?php endif; ?>
+					<div class="pf-table-wrap">
+						<table class="pf-table pf-price-table">
+							<thead>
+								<tr>
+									<th rowspan="<?php echo $has_mail ? 2 : 1; ?>"><?php esc_html_e( 'Size', 'prrint' ); ?></th>
+									<?php foreach ( $products as $product ) : ?>
+										<th colspan="<?php echo null !== $product['supplied'] ? 2 : 1; ?>" rowspan="<?php echo $has_mail && null === $product['supplied'] ? 2 : 1; ?>"><?php echo esc_html( $product['label'] ); ?></th>
+									<?php endforeach; ?>
+								</tr>
+								<?php if ( $has_mail ) : ?>
+									<tr class="pf-subhead">
+										<?php foreach ( $products as $product ) : ?>
+											<?php if ( null !== $product['supplied'] ) : ?>
+												<th><?php esc_html_e( 'Mail in', 'prrint' ); ?></th>
+												<th><?php esc_html_e( 'We print', 'prrint' ); ?></th>
+											<?php endif; ?>
+										<?php endforeach; ?>
+									</tr>
+								<?php endif; ?>
+							</thead>
+							<tbody>
+								<?php foreach ( $catalog['tiers'] as $t => $tier ) : ?>
+									<?php
+									$any = false;
+									foreach ( $products as $product ) {
+										if ( null !== $product['printed'][ $t ] || ( null !== $product['supplied'] && null !== $product['supplied'][ $t ] ) ) {
+											$any = true;
+										}
+									}
+									if ( ! $any ) {
+										continue;
+									}
+									?>
+									<tr>
+										<th scope="row"><?php echo esc_html( $tier[0] ); ?></th>
+										<?php foreach ( $products as $product ) : ?>
+											<?php foreach ( null !== $product['supplied'] ? array( 'supplied', 'printed' ) : array( 'printed' ) as $kind ) : ?>
+												<?php $v = $product[ $kind ][ $t ]; ?>
+												<td><?php echo null === $v ? '<span class="pf-na">—</span>' : wp_kses_post( wc_price( $v ) ); ?></td>
+											<?php endforeach; ?>
+										<?php endforeach; ?>
+									</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</details>
+			<?php
 		}
+		$rules = $catalog['boxes'];
+		$prev  = 0;
+		?>
+		<details class="pf-acc">
+			<summary>
+				<span class="pf-acc-title"><?php esc_html_e( 'Boxing & freight', 'prrint' ); ?></span>
+				<span class="pf-acc-meta"><?php esc_html_e( 'Charged per box, added to every order', 'prrint' ); ?></span>
+			</summary>
+			<div class="pf-acc-body">
+				<div class="pf-table-wrap">
+					<table class="pf-table">
+						<thead><tr>
+							<th><?php esc_html_e( 'Piece size (sq. in.)', 'prrint' ); ?></th>
+							<th><?php esc_html_e( 'Pieces per box', 'prrint' ); ?></th>
+							<th><?php esc_html_e( 'Box', 'prrint' ); ?></th>
+							<th><?php esc_html_e( 'Freight per box', 'prrint' ); ?></th>
+						</tr></thead>
+						<tbody>
+							<?php foreach ( $rules as $rule ) : ?>
+								<tr>
+									<th scope="row">
+										<?php
+										echo esc_html( $rule['max_sqin'] >= 999999 ? sprintf( /* translators: %d: sq in */ __( 'Over %d (oversized)', 'prrint' ), $prev ) : sprintf( '%d – %d', $prev ? $prev + 1 : 1, $rule['max_sqin'] ) );
+										$prev = (int) $rule['max_sqin'];
+										?>
+									</th>
+									<td><?php echo (int) $rule['per_box']; ?></td>
+									<td><?php echo wp_kses_post( wc_price( $rule['box'] ) ); ?></td>
+									<td><?php echo null === $rule['freight'] ? esc_html__( 'Call for quote', 'prrint' ) : wp_kses_post( wc_price( $rule['freight'] ) ); ?></td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+				</div>
+				<p class="pf-small"><?php esc_html_e( 'Rush orders: +50% of the order total. Mat / colored border: +33% of the piece price. Recut $5, trim $2 per piece.', 'prrint' ); ?></p>
+			</div>
+		</details>
+		<?php
 		echo '</div>';
-		return ob_get_clean();
 	}
 }

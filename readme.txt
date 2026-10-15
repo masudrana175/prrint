@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.31.1
+Stable tag: 1.32.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,26 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.32.0 =
+* [prrint_framers_corner] on its own now renders the whole Framers Corner —
+  no other shortcodes needed. Visitors get a welcome header with the
+  benefits, a login box and the application form side by side; pending and
+  declined framers get a status card; approved framers get a dashboard with
+  tabs: New order, Wholesale prices, Edge colors and My orders.
+* Wholesale prices are now collapsible toggles, one per product line (Wood,
+  Metal, Acrylic, Canvas, Print only) plus Boxing & freight, each showing
+  its products, maximum size and lowest price; sizes a line isn't offered
+  in are left out.
+* Edge colors tab shows the chart as swatches (code + name, ColorBox
+  exceptions marked). My orders lists recent wholesale orders with P.O.,
+  status and total, plus the mail-in address.
+* New look for the whole Framers Corner, using the Studio colors from the
+  settings and protected against theme button/input styles.
+* The Framers Corner page is switched to the single shortcode automatically
+  if its content was never edited. Pages that put their own content inside
+  [prrint_framers_corner]…[/prrint_framers_corner] keep showing it, and the
+  order form / price list shortcodes still work on their own.
 
 = 1.31.1 =
 * Settings page (WooCommerce → Prrint Studio) split into tabs — Products,

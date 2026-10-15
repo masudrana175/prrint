@@ -106,8 +106,34 @@ class Prrint_Framers {
 		}
 	}
 
-	protected static function enqueue() {
+	public static function enqueue() {
+		if ( wp_style_is( 'prrint-framers', 'enqueued' ) ) {
+			return;
+		}
 		wp_enqueue_style( 'prrint-framers', PRRINT_URL . 'assets/css/framers.css', array(), PRRINT_VERSION );
+		wp_enqueue_script( 'prrint-framers', PRRINT_URL . 'assets/js/framers.js', array(), PRRINT_VERSION, true );
+		// Same brand colors as the photo studio (Prrint Studio → Colors).
+		$s     = prrint_settings();
+		$color = function ( $key ) use ( $s ) {
+			$v = isset( $s[ $key ] ) ? sanitize_hex_color( $s[ $key ] ) : '';
+			return $v ? $v : prrint_default_theme_colors()[ $key ];
+		};
+		wp_add_inline_style( 'prrint-framers', sprintf(
+			'#prrint-framers{--pf-accent:%1$s;--pf-accent-text:%2$s;--pf-ink:%3$s;--pf-dark:%4$s;}',
+			$color( 'color_primary' ),
+			$color( 'color_primary_text' ),
+			$color( 'color_text' ),
+			$color( 'color_summary_bg' )
+		) );
+	}
+
+	/** True while the Framers Corner wrapper is being rendered (nested shortcodes skip their own wrapper). */
+	public static $in_wrapper = false;
+
+	/** Wrap standalone output (order form / price list used on their own) in the styled container. */
+	public static function wrap( $html ) {
+		self::enqueue();
+		return self::$in_wrapper ? $html : '<div id="prrint-framers" class="prrint-framers">' . $html . '</div>';
 	}
 
 	/**
@@ -115,44 +141,243 @@ class Prrint_Framers {
 	 * Approved framers see the enclosed content; everyone else sees the
 	 * login + application form, or their application's status.
 	 */
+	/**
+	 * [prrint_framers_corner] — the whole Framers Corner: login + application
+	 * for visitors, a status card while pending/declined, and the framer
+	 * dashboard (order form, prices, edge colors, orders) once approved.
+	 * Content placed between [prrint_framers_corner]…[/prrint_framers_corner]
+	 * replaces the dashboard for approved framers (for custom pages).
+	 */
 	public static function shortcode( $atts, $content = '' ) {
 		self::enqueue();
-		$status = self::status();
+		$status          = self::status();
+		$content         = trim( (string) $content );
+		self::$in_wrapper = true;
 
 		ob_start();
-		echo '<div class="prrint-framers">';
+		echo '<div id="prrint-framers" class="prrint-framers">';
 
 		if ( 'approved' === $status ) {
-			echo do_shortcode( shortcode_unautop( (string) $content ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page content written by the site owner.
+			if ( '' !== $content ) {
+				echo do_shortcode( shortcode_unautop( $content ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page content written by the site owner.
+			} else {
+				self::render_dashboard();
+			}
 		} elseif ( 'pending' === $status ) {
-			self::notice(
-				__( 'Your framer application is being reviewed', 'prrint' ),
-				__( "Thanks for applying! We review every framer account by hand and will email you as soon as yours is approved. You'll then see wholesale pricing and ordering here.", 'prrint' )
+			self::status_card(
+				'clock',
+				__( 'Your application is being reviewed', 'prrint' ),
+				__( "Thanks for applying! We review every framer account by hand and will email you as soon as yours is approved. You'll then see wholesale pricing and ordering right here.", 'prrint' )
 			);
 		} elseif ( 'rejected' === $status ) {
-			self::notice(
+			self::status_card(
+				'lock',
 				__( 'Your framer account is not active', 'prrint' ),
 				__( "We weren't able to approve a framer account for you at this time. If you think this is a mistake, please contact us.", 'prrint' ),
 				'is-muted'
 			);
-		} elseif ( is_user_logged_in() ) {
-			echo '<h2>' . esc_html__( 'Apply for a framer account', 'prrint' ) . '</h2>';
-			echo '<p>' . esc_html__( 'Tell us about your business. Once we approve your account you will see wholesale pricing and ordering here.', 'prrint' ) . '</p>';
-			self::application_form( false );
 		} else {
-			echo '<div class="prrint-framers-grid">';
-			echo '<section class="prrint-framers-panel"><h2>' . esc_html__( 'Framer login', 'prrint' ) . '</h2>';
-			echo '<p>' . esc_html__( 'Already have an approved framer account? Log in to see wholesale pricing.', 'prrint' ) . '</p>';
-			wp_login_form( array( 'redirect' => self::current_url() ) );
-			echo '</section>';
-			echo '<section class="prrint-framers-panel"><h2>' . esc_html__( 'Apply for a framer account', 'prrint' ) . '</h2>';
-			echo '<p>' . esc_html__( 'New to ColorPlak? Apply below — we review every application and email you once your account is approved.', 'prrint' ) . '</p>';
-			self::application_form( true );
-			echo '</section></div>';
+			self::render_guest();
 		}
 
 		echo '</div>';
+		self::$in_wrapper = false;
 		return ob_get_clean();
+	}
+
+	protected static function status_card( $icon, $title, $text, $class = '' ) {
+		printf(
+			'<div class="pf-status %1$s"><span class="pf-status-icon" aria-hidden="true">%2$s</span><div><h2>%3$s</h2><p>%4$s</p><p><a class="pf-link" href="%5$s">%6$s</a></p></div></div>',
+			esc_attr( $class ),
+			'clock' === $icon ? '&#9203;' : '&#128274;',
+			esc_html( $title ),
+			esc_html( $text ),
+			esc_url( function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'myaccount' ) : home_url( '/' ) ),
+			esc_html__( 'Go to my account', 'prrint' )
+		);
+	}
+
+	/** Visitor / not-yet-framer view: intro, benefits, login, application. */
+	protected static function render_guest() {
+		$benefits = array(
+			__( 'Wholesale pricing on every product and size', 'prrint' ),
+			__( 'Order online and pay by card — or mail in your prints', 'prrint' ),
+			__( 'Blind drop-shipping straight to your customers', 'prrint' ),
+			__( 'Save draft orders and see all your orders in one place', 'prrint' ),
+		);
+		?>
+		<header class="pf-hero">
+			<span class="pf-eyebrow"><?php esc_html_e( 'For professional framers', 'prrint' ); ?></span>
+			<h2><?php esc_html_e( 'Framers Corner', 'prrint' ); ?></h2>
+			<p><?php esc_html_e( 'A trade account for framing shops: wholesale prices, online ordering and drop-shipping.', 'prrint' ); ?></p>
+			<ul class="pf-benefits">
+				<?php foreach ( $benefits as $b ) : ?>
+					<li><?php echo esc_html( $b ); ?></li>
+				<?php endforeach; ?>
+			</ul>
+		</header>
+		<?php if ( is_user_logged_in() ) : ?>
+			<section class="pf-card pf-apply-only">
+				<h3><?php esc_html_e( 'Apply for a framer account', 'prrint' ); ?></h3>
+				<p class="pf-muted"><?php esc_html_e( 'Tell us about your business. Once we approve your account, wholesale pricing and ordering appear on this page.', 'prrint' ); ?></p>
+				<?php self::application_form( false ); ?>
+			</section>
+		<?php else : ?>
+			<div class="pf-split">
+				<section class="pf-card pf-login">
+					<h3><?php esc_html_e( 'Framer login', 'prrint' ); ?></h3>
+					<p class="pf-muted"><?php esc_html_e( 'Already approved? Log in to order and see your prices.', 'prrint' ); ?></p>
+					<?php wp_login_form( array( 'redirect' => self::current_url(), 'label_username' => __( 'Email or username', 'prrint' ) ) ); ?>
+					<p class="pf-small"><a class="pf-link" href="<?php echo esc_url( wp_lostpassword_url( self::current_url() ) ); ?>"><?php esc_html_e( 'Forgot your password?', 'prrint' ); ?></a></p>
+				</section>
+				<section class="pf-card pf-apply">
+					<h3><?php esc_html_e( 'Apply for a framer account', 'prrint' ); ?></h3>
+					<p class="pf-muted"><?php esc_html_e( 'We review every application by hand and email you once your account is approved.', 'prrint' ); ?></p>
+					<?php self::application_form( true ); ?>
+				</section>
+			</div>
+		<?php endif; ?>
+		<?php
+	}
+
+	/** Approved framer: tabbed dashboard. */
+	protected static function render_dashboard() {
+		$user_id  = get_current_user_id();
+		$details  = self::get_details( $user_id );
+		$discount = class_exists( 'Prrint_Framer_Orders' ) ? Prrint_Framer_Orders::discount_percent( $user_id ) : 0;
+		$tabs     = array(
+			'order'  => __( 'New order', 'prrint' ),
+			'prices' => __( 'Wholesale prices', 'prrint' ),
+			'edges'  => __( 'Edge colors', 'prrint' ),
+			'orders' => __( 'My orders', 'prrint' ),
+		);
+		?>
+		<header class="pf-hero pf-hero-compact">
+			<div>
+				<span class="pf-eyebrow"><?php esc_html_e( 'Framers Corner', 'prrint' ); ?></span>
+				<h2>
+					<?php
+					/* translators: %s: business name */
+					echo esc_html( '' !== $details['business'] ? sprintf( __( 'Welcome back, %s', 'prrint' ), $details['business'] ) : __( 'Welcome back', 'prrint' ) );
+					?>
+				</h2>
+			</div>
+			<div class="pf-badges">
+				<span class="pf-badge is-ok"><?php esc_html_e( 'Approved framer', 'prrint' ); ?></span>
+				<?php if ( $discount > 0 ) : ?>
+					<span class="pf-badge">
+						<?php
+						/* translators: %s: discount percent */
+						echo esc_html( sprintf( __( '%s%% extra discount', 'prrint' ), wc_format_localized_decimal( $discount ) ) );
+						?>
+					</span>
+				<?php endif; ?>
+			</div>
+		</header>
+
+		<nav class="pf-tabs" role="tablist" aria-label="<?php esc_attr_e( 'Framers Corner sections', 'prrint' ); ?>">
+			<?php foreach ( $tabs as $key => $label ) : ?>
+				<a class="pf-tab" role="tab" href="#pf-<?php echo esc_attr( $key ); ?>" data-pf-tab="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></a>
+			<?php endforeach; ?>
+		</nav>
+
+		<section class="pf-panel" id="pf-order" data-pf-panel="order" role="tabpanel">
+			<?php echo Prrint_Framer_Orders::shortcode(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built. ?>
+		</section>
+
+		<section class="pf-panel" id="pf-prices" data-pf-panel="prices" role="tabpanel">
+			<div class="pf-panel-head">
+				<h3><?php esc_html_e( 'Wholesale prices', 'prrint' ); ?></h3>
+				<p class="pf-muted"><?php esc_html_e( 'Price per piece. A listed size is billed at its own price; any other size by square inch at the next size up (within 1/8"). Tap a product line to open its prices.', 'prrint' ); ?></p>
+			</div>
+			<?php Prrint_Wholesale::render_price_list(); ?>
+		</section>
+
+		<section class="pf-panel" id="pf-edges" data-pf-panel="edges" role="tabpanel">
+			<div class="pf-panel-head">
+				<h3><?php esc_html_e( 'Edge colors', 'prrint' ); ?></h3>
+				<p class="pf-muted"><?php esc_html_e( 'Available on ColorLite, ColorBox, Metal Lite and Canvas Lite. Marble and wood finishes are shown by their average tone.', 'prrint' ); ?></p>
+			</div>
+			<?php self::render_edge_colors(); ?>
+		</section>
+
+		<section class="pf-panel" id="pf-orders" data-pf-panel="orders" role="tabpanel">
+			<?php self::render_orders( $user_id ); ?>
+		</section>
+		<?php
+	}
+
+	protected static function render_edge_colors() {
+		echo '<ul class="pf-swatches">';
+		foreach ( array_values( prrint_settings()['edge_colors'] ) as $edge ) {
+			printf(
+				'<li><span class="pf-swatch" style="background:%1$s"></span><span class="pf-swatch-code">%2$s</span><span class="pf-swatch-name">%3$s</span>%4$s</li>',
+				esc_attr( (string) sanitize_hex_color( $edge['color'] ) ),
+				esc_html( isset( $edge['code'] ) ? $edge['code'] : '' ),
+				esc_html( $edge['label'] ),
+				! empty( $edge['exclude'] ) ? '<span class="pf-swatch-note">' . esc_html( sprintf( /* translators: %s: style names */ __( 'Not for %s', 'prrint' ), $edge['exclude'] ) ) . '</span>' : ''
+			);
+		}
+		echo '</ul>';
+	}
+
+	protected static function render_orders( $user_id ) {
+		$orders = array();
+		if ( function_exists( 'wc_get_orders' ) ) {
+			foreach ( wc_get_orders( array( 'customer_id' => $user_id, 'limit' => 40, 'orderby' => 'date', 'order' => 'DESC' ) ) as $order ) {
+				if ( 'yes' === $order->get_meta( '_prrint_framer_order' ) ) {
+					$orders[] = $order;
+				}
+				if ( count( $orders ) >= 15 ) {
+					break;
+				}
+			}
+		}
+		$all_url = function_exists( 'wc_get_account_endpoint_url' ) ? wc_get_account_endpoint_url( 'orders' ) : '';
+		?>
+		<div class="pf-panel-head">
+			<h3><?php esc_html_e( 'My wholesale orders', 'prrint' ); ?></h3>
+			<?php if ( $all_url ) : ?>
+				<a class="pf-link" href="<?php echo esc_url( $all_url ); ?>"><?php esc_html_e( 'All orders in my account →', 'prrint' ); ?></a>
+			<?php endif; ?>
+		</div>
+		<?php if ( ! $orders ) : ?>
+			<div class="pf-empty"><?php esc_html_e( 'No wholesale orders yet — place your first one on the New order tab.', 'prrint' ); ?></div>
+		<?php else : ?>
+			<div class="pf-table-wrap">
+				<table class="pf-table">
+					<thead><tr>
+						<th><?php esc_html_e( 'Order', 'prrint' ); ?></th>
+						<th><?php esc_html_e( 'Date', 'prrint' ); ?></th>
+						<th><?php esc_html_e( 'P.O.', 'prrint' ); ?></th>
+						<th><?php esc_html_e( 'Items', 'prrint' ); ?></th>
+						<th><?php esc_html_e( 'Status', 'prrint' ); ?></th>
+						<th><?php esc_html_e( 'Total', 'prrint' ); ?></th>
+						<th></th>
+					</tr></thead>
+					<tbody>
+						<?php foreach ( $orders as $order ) : ?>
+							<?php $date = $order->get_date_created(); ?>
+							<tr>
+								<td data-label="<?php esc_attr_e( 'Order', 'prrint' ); ?>">#<?php echo esc_html( $order->get_order_number() ); ?></td>
+								<td data-label="<?php esc_attr_e( 'Date', 'prrint' ); ?>"><?php echo esc_html( $date ? wc_format_datetime( $date ) : '—' ); ?></td>
+								<td data-label="<?php esc_attr_e( 'P.O.', 'prrint' ); ?>"><?php echo esc_html( $order->get_meta( '_prrint_framer_po' ) ? $order->get_meta( '_prrint_framer_po' ) : '—' ); ?></td>
+								<td data-label="<?php esc_attr_e( 'Items', 'prrint' ); ?>"><?php echo (int) $order->get_item_count(); ?></td>
+								<td data-label="<?php esc_attr_e( 'Status', 'prrint' ); ?>"><span class="pf-pill pf-pill-<?php echo esc_attr( $order->get_status() ); ?>"><?php echo esc_html( wc_get_order_status_name( $order->get_status() ) ); ?></span></td>
+								<td data-label="<?php esc_attr_e( 'Total', 'prrint' ); ?>"><?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></td>
+								<td><a class="pf-link" href="<?php echo esc_url( $order->get_view_order_url() ); ?>"><?php esc_html_e( 'View', 'prrint' ); ?></a></td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+		<?php endif; ?>
+		<div class="pf-card pf-mailin-card">
+			<h4><?php esc_html_e( 'Mail-in address', 'prrint' ); ?></h4>
+			<address><?php echo nl2br( esc_html( Prrint_Framer_Orders::mailin_address() ) ); ?></address>
+			<p class="pf-small"><?php esc_html_e( 'Include a copy of your order confirmation. Please do not send any image that is irreplaceable.', 'prrint' ); ?></p>
+		</div>
+		<?php
 	}
 
 	protected static function notice( $title, $text, $class = '' ) {
@@ -395,8 +620,13 @@ class Prrint_Framers {
 		return "[prrint_framers_corner]\n<h2>" . __( 'Welcome to the Framers Corner', 'prrint' ) . '</h2>' . "\n<p>" . __( 'Wholesale pricing, order forms and your orders will appear here.', 'prrint' ) . "</p>\n[/prrint_framers_corner]";
 	}
 
-	public static function default_page_content() {
+	/** 1.31 page content, before the shortcode rendered the whole dashboard. */
+	protected static function v131_page_content() {
 		return "[prrint_framers_corner]\n<h2>" . __( 'Place a wholesale order', 'prrint' ) . "</h2>\n[prrint_framer_order_form]\n\n<h2>" . __( 'Wholesale price list', 'prrint' ) . "</h2>\n[prrint_framer_price_list]\n[/prrint_framers_corner]";
+	}
+
+	public static function default_page_content() {
+		return '[prrint_framers_corner]';
 	}
 
 	public static function maybe_create_page() {
@@ -405,9 +635,9 @@ class Prrint_Framers {
 		}
 		$existing = (int) get_option( 'prrint_framers_page' );
 		if ( $existing ) {
-			// Upgrade the untouched 1.30 placeholder to include the order form.
+			// Upgrade untouched earlier default content to the single shortcode.
 			$post = get_post( $existing );
-			if ( $post && trim( $post->post_content ) === self::legacy_page_content() ) {
+			if ( $post && in_array( trim( $post->post_content ), array( self::legacy_page_content(), self::v131_page_content() ), true ) ) {
 				wp_update_post( array( 'ID' => $existing, 'post_content' => self::default_page_content() ) );
 			}
 			return;

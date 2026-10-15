@@ -1,53 +1,365 @@
-/* Framers Corner: login / application / status. Inherits the theme's fonts
-   and WooCommerce form styling; only layout and states are set here. */
-.prrint-framers {
-	max-width: 1100px;
-	margin: 0 auto;
+/* =========================================================================
+   Framers Corner — login/apply, status, dashboard, order form, price list.
+   Everything is scoped under #prrint-framers so typical theme button/input
+   rules can't restyle it. Brand colors come from Prrint Studio → Colors
+   (inline --pf-* variables); the values below are fallbacks.
+   ========================================================================= */
+
+#prrint-framers {
+	--pf-accent: #4f46e5;
+	--pf-accent-text: #ffffff;
+	--pf-ink: #1f2430;
+	--pf-dark: #111827;
+	--pf-muted: #6b7280;
+	--pf-line: #e6e8ee;
+	--pf-soft: #f6f7fb;
+	--pf-card: #ffffff;
+	--pf-radius: 16px;
+	--pf-ok: #15803d;
+	--pf-bad: #dc2626;
+
+	max-width: 1180px;
+	margin: 0 auto 48px;
+	color: var(--pf-ink);
+	font-size: 15px;
+	line-height: 1.55;
 }
 
-.prrint-framers-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-	gap: 32px;
-	align-items: start;
-}
-
-.prrint-framers-panel {
-	padding: 28px;
-	border: 1px solid #e5e7eb;
-	border-radius: 14px;
-	background: #fff;
-}
-
-.prrint-framers-panel h2 {
-	margin-top: 0;
-}
-
-.prrint-framers-form .form-row {
-	margin: 0 0 14px;
-}
-
-.prrint-framers-form label {
-	display: block;
-	margin-bottom: 4px;
-	font-weight: 600;
-}
-
-.prrint-framers-form .optional {
-	font-weight: 400;
-	opacity: 0.6;
-}
-
-.prrint-framers-form input.input-text,
-.prrint-framers-form textarea.input-text,
-.prrint-framers #loginform input[type="text"],
-.prrint-framers #loginform input[type="password"] {
-	width: 100%;
+#prrint-framers *,
+#prrint-framers *::before,
+#prrint-framers *::after {
 	box-sizing: border-box;
 }
 
-/* Spam trap: kept out of sight for people, still in the form for bots. */
-.prrint-framers .prrint-hp {
+#prrint-framers h2,
+#prrint-framers h3,
+#prrint-framers h4 {
+	margin: 0 0 6px;
+	color: var(--pf-ink);
+	line-height: 1.25;
+	letter-spacing: -0.01em;
+	text-transform: none;
+}
+
+#prrint-framers h2 { font-size: 1.75em; }
+#prrint-framers h3 { font-size: 1.2em; }
+#prrint-framers h4 { font-size: 1em; }
+
+#prrint-framers p {
+	margin: 0 0 12px;
+}
+
+/* Neutralize theme typography on controls; our own rules set the rest. */
+#prrint-framers button,
+#prrint-framers input,
+#prrint-framers select,
+#prrint-framers textarea,
+#prrint-framers .button {
+	font-family: inherit;
+	text-transform: none;
+	letter-spacing: normal;
+	text-shadow: none;
+}
+
+#prrint-framers .pf-muted,
+#prrint-framers .pf-small {
+	color: var(--pf-muted);
+}
+
+#prrint-framers .pf-small {
+	font-size: 0.86em;
+}
+
+#prrint-framers .pf-link {
+	color: var(--pf-accent);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+#prrint-framers .pf-link:hover {
+	text-decoration: underline;
+}
+
+/* ------------------------------------------------------------- cards */
+
+#prrint-framers .pf-card {
+	padding: 28px;
+	border: 1px solid var(--pf-line);
+	border-radius: var(--pf-radius);
+	background: var(--pf-card);
+	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+/* -------------------------------------------------------------- hero */
+
+#prrint-framers .pf-hero {
+	position: relative;
+	margin-bottom: 24px;
+	padding: 36px 36px 32px;
+	overflow: hidden;
+	border-radius: 20px;
+	background:
+		radial-gradient(circle at 92% 10%, color-mix(in srgb, var(--pf-accent) 55%, transparent) 0, transparent 45%),
+		linear-gradient(135deg, var(--pf-dark) 0%, color-mix(in srgb, var(--pf-dark) 75%, var(--pf-accent)) 100%);
+	color: #fff;
+}
+
+#prrint-framers .pf-hero h2,
+#prrint-framers .pf-hero p {
+	color: #fff;
+}
+
+#prrint-framers .pf-hero h2 {
+	font-size: 2.1em;
+}
+
+#prrint-framers .pf-hero p {
+	max-width: 640px;
+	opacity: 0.85;
+}
+
+#prrint-framers .pf-eyebrow {
+	display: inline-block;
+	margin-bottom: 8px;
+	font-size: 0.75em;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	opacity: 0.75;
+}
+
+#prrint-framers .pf-benefits {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+	gap: 10px 24px;
+	margin: 18px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+#prrint-framers .pf-benefits li {
+	position: relative;
+	padding-left: 28px;
+	font-size: 0.95em;
+}
+
+#prrint-framers .pf-benefits li::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 3px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: var(--pf-accent) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>') center / 11px no-repeat;
+}
+
+#prrint-framers .pf-hero-compact {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+	padding: 28px 32px;
+}
+
+#prrint-framers .pf-hero-compact h2 {
+	margin: 0;
+	font-size: 1.7em;
+}
+
+#prrint-framers .pf-badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+#prrint-framers .pf-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.1);
+	color: #fff;
+	font-size: 0.82em;
+	font-weight: 600;
+}
+
+#prrint-framers .pf-badge.is-ok::before {
+	content: "";
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: #4ade80;
+}
+
+/* ---------------------------------------------------- login + apply */
+
+#prrint-framers .pf-split {
+	display: grid;
+	grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+	gap: 24px;
+	align-items: start;
+}
+
+#prrint-framers .pf-login {
+	position: sticky;
+	top: 24px;
+}
+
+#prrint-framers .pf-apply-only {
+	max-width: 760px;
+	margin: 0 auto;
+}
+
+#prrint-framers .prrint-framers-form {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0 16px;
+	margin-top: 16px;
+}
+
+#prrint-framers .prrint-framers-form .form-row {
+	margin: 0 0 14px;
+}
+
+#prrint-framers .prrint-framers-form .form-row:has(textarea),
+#prrint-framers .prrint-framers-form > p:last-child,
+#prrint-framers .prrint-framers-form .form-row:has(#prrint_framer_email) {
+	grid-column: 1 / -1;
+}
+
+#prrint-framers label {
+	display: block;
+	margin-bottom: 5px;
+	font-size: 0.88em;
+	font-weight: 600;
+	color: var(--pf-ink);
+}
+
+#prrint-framers .required {
+	color: var(--pf-bad);
+	text-decoration: none;
+}
+
+#prrint-framers .optional {
+	font-weight: 400;
+	color: var(--pf-muted);
+}
+
+#prrint-framers input[type="text"],
+#prrint-framers input[type="email"],
+#prrint-framers input[type="tel"],
+#prrint-framers input[type="url"],
+#prrint-framers input[type="password"],
+#prrint-framers input[type="number"],
+#prrint-framers input[type="date"],
+#prrint-framers select,
+#prrint-framers textarea {
+	display: block;
+	width: 100%;
+	min-height: 0;
+	margin: 0;
+	padding: 10px 12px;
+	border: 1px solid #d5d8e0;
+	border-radius: 10px;
+	background: #fff;
+	color: var(--pf-ink);
+	font-size: 0.95em;
+	line-height: 1.4;
+	box-shadow: none;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#prrint-framers input:focus,
+#prrint-framers select:focus,
+#prrint-framers textarea:focus {
+	outline: none;
+	border-color: var(--pf-accent);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--pf-accent) 18%, transparent);
+}
+
+#prrint-framers input[type="checkbox"],
+#prrint-framers input[type="radio"] {
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	accent-color: var(--pf-accent);
+}
+
+/* Login form (wp_login_form markup). */
+#prrint-framers #loginform p {
+	margin: 0 0 14px;
+}
+
+#prrint-framers #loginform .login-remember label {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 400;
+}
+
+/* Buttons. */
+#prrint-framers .button,
+#prrint-framers #wp-submit,
+#prrint-framers .prrint-framers-form button[type="submit"] {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 0;
+	margin: 0;
+	padding: 11px 22px;
+	border: 1px solid var(--pf-line);
+	border-radius: 10px;
+	background: #fff;
+	color: var(--pf-ink);
+	font-size: 0.95em;
+	font-weight: 600;
+	line-height: 1.2;
+	cursor: pointer;
+	box-shadow: none;
+	transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+#prrint-framers .button:hover {
+	border-color: var(--pf-muted);
+	background: var(--pf-soft);
+	color: var(--pf-ink);
+}
+
+#prrint-framers #wp-submit,
+#prrint-framers .prrint-framers-form button[type="submit"],
+#prrint-framers .button.alt {
+	border-color: var(--pf-accent);
+	background: var(--pf-accent);
+	color: var(--pf-accent-text);
+}
+
+#prrint-framers #wp-submit,
+#prrint-framers .prrint-framers-form button[type="submit"] {
+	width: 100%;
+	padding: 13px 22px;
+}
+
+#prrint-framers #wp-submit:hover,
+#prrint-framers .prrint-framers-form button[type="submit"]:hover,
+#prrint-framers .button.alt:hover {
+	background: color-mix(in srgb, var(--pf-accent) 85%, #000);
+	color: var(--pf-accent-text);
+	transform: translateY(-1px);
+}
+
+#prrint-framers .button:disabled {
+	opacity: 0.6;
+	cursor: default;
+	transform: none;
+}
+
+/* Spam trap: out of sight for people, still in the form for bots. */
+#prrint-framers .prrint-hp {
 	position: absolute !important;
 	left: -9999px !important;
 	width: 1px;
@@ -55,354 +367,709 @@
 	overflow: hidden;
 }
 
-.prrint-framers-notice {
-	margin: 0 0 20px;
-	padding: 18px 22px;
-	border-left: 4px solid #2563eb;
-	border-radius: 8px;
-	background: #eff6ff;
+/* Notices + status cards. */
+#prrint-framers .prrint-framers-notice {
+	grid-column: 1 / -1;
+	margin: 0 0 18px;
+	padding: 14px 18px;
+	border-left: 4px solid var(--pf-accent);
+	border-radius: 10px;
+	background: var(--pf-soft);
 }
 
-.prrint-framers-notice p {
-	margin: 6px 0 0;
-}
-
-.prrint-framers-notice.is-muted {
-	border-left-color: #9ca3af;
-	background: #f3f4f6;
-}
-
-.prrint-framers-notice.is-error {
-	border-left-color: #dc2626;
+#prrint-framers .prrint-framers-notice.is-error {
+	border-left-color: var(--pf-bad);
 	background: #fef2f2;
 }
 
-.prrint-framers-notice ul {
+#prrint-framers .prrint-framers-notice ul {
 	margin: 0;
 	padding-left: 18px;
 }
 
-/* ------------------------------------------------------------ order form */
-
-.prrint-framer-order {
-	--fo-line: #e5e7eb;
-	--fo-muted: #6b7280;
-	--fo-accent: #2563eb;
-	display: grid;
-	gap: 18px;
-	margin: 0 0 40px;
+#prrint-framers .pf-status {
+	display: flex;
+	gap: 22px;
+	align-items: flex-start;
+	max-width: 760px;
+	margin: 24px auto;
+	padding: 36px;
+	border: 1px solid var(--pf-line);
+	border-radius: 20px;
+	background: var(--pf-card);
+	box-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
 }
 
-.prrint-fo-head {
+#prrint-framers .pf-status-icon {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-	gap: 12px 20px;
-	align-items: end;
-	padding: 18px 20px;
-	border: 1px solid var(--fo-line);
+	place-items: center;
+	flex: 0 0 56px;
+	width: 56px;
+	height: 56px;
+	border-radius: 16px;
+	background: color-mix(in srgb, var(--pf-accent) 12%, #fff);
+	font-size: 26px;
+}
+
+#prrint-framers .pf-status.is-muted .pf-status-icon {
+	background: #f3f4f6;
+}
+
+/* -------------------------------------------------------- dashboard */
+
+#prrint-framers .pf-tabs {
+	display: flex;
+	gap: 6px;
+	margin: 0 0 22px;
+	padding: 6px;
+	overflow-x: auto;
+	border: 1px solid var(--pf-line);
+	border-radius: 14px;
+	background: var(--pf-card);
+}
+
+#prrint-framers .pf-tab {
+	flex: 1 0 auto;
+	padding: 11px 18px;
+	border-radius: 10px;
+	color: var(--pf-muted);
+	font-weight: 600;
+	text-align: center;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+#prrint-framers .pf-tab:hover {
+	background: var(--pf-soft);
+	color: var(--pf-ink);
+}
+
+#prrint-framers .pf-tab.is-active {
+	background: var(--pf-accent);
+	color: var(--pf-accent-text);
+}
+
+#prrint-framers .pf-tab:focus-visible {
+	outline: 2px solid var(--pf-accent);
+	outline-offset: 2px;
+}
+
+/* Without JS every section stays visible; with it, one at a time. */
+#prrint-framers:not(.pf-has-tabs) .pf-panel + .pf-panel {
+	margin-top: 36px;
+}
+
+#prrint-framers .pf-panel[hidden] {
+	display: none;
+}
+
+#prrint-framers .pf-panel-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 6px 18px;
+	margin-bottom: 16px;
+}
+
+#prrint-framers .pf-panel-head p {
+	flex: 1 1 100%;
+	margin: 0;
+}
+
+/* Price accordion. */
+#prrint-framers .pf-accordion {
+	display: grid;
+	gap: 10px;
+}
+
+#prrint-framers .pf-acc {
+	border: 1px solid var(--pf-line);
+	border-radius: 14px;
+	background: var(--pf-card);
+	overflow: hidden;
+}
+
+#prrint-framers .pf-acc[open] {
+	box-shadow: 0 8px 24px rgba(16, 24, 40, 0.06);
+}
+
+#prrint-framers .pf-acc summary {
+	display: grid;
+	grid-template-columns: minmax(110px, auto) 1fr auto 20px;
+	align-items: center;
+	gap: 6px 18px;
+	padding: 16px 20px;
+	cursor: pointer;
+	list-style: none;
+}
+
+#prrint-framers .pf-acc summary::-webkit-details-marker {
+	display: none;
+}
+
+#prrint-framers .pf-acc summary::after {
+	content: "";
+	width: 20px;
+	height: 20px;
+	justify-self: end;
+	background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%236b7280" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>') center / 20px no-repeat;
+	transition: transform 0.2s ease;
+}
+
+#prrint-framers .pf-acc[open] summary::after {
+	transform: rotate(180deg);
+}
+
+#prrint-framers .pf-acc summary:hover {
+	background: var(--pf-soft);
+}
+
+#prrint-framers .pf-acc-title {
+	font-weight: 700;
+	font-size: 1.05em;
+}
+
+#prrint-framers .pf-acc-meta {
+	color: var(--pf-muted);
+	font-size: 0.88em;
+}
+
+#prrint-framers .pf-acc-from {
+	color: var(--pf-ink);
+	font-size: 0.88em;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+#prrint-framers .pf-acc-body {
+	padding: 0 20px 20px;
+	border-top: 1px solid var(--pf-line);
+}
+
+#prrint-framers .pf-acc-body > .pf-small {
+	margin: 12px 0;
+}
+
+/* Tables. */
+#prrint-framers .pf-table-wrap {
+	width: fit-content;
+	max-width: 100%;
+	overflow-x: auto;
+	margin-top: 12px;
+	border: 1px solid var(--pf-line);
 	border-radius: 12px;
-	background: #fff;
 }
 
-.prrint-fo-head > label:not(.prrint-fo-check),
-.prrint-fo-field {
+#prrint-framers .pf-table {
+	width: 100%;
+	margin: 0;
+	border: 0;
+	border-collapse: collapse;
+	font-size: 0.9em;
+}
+
+#prrint-framers .pf-table th,
+#prrint-framers .pf-table td {
+	padding: 9px 12px;
+	border: 0;
+	border-bottom: 1px solid var(--pf-line);
+	text-align: left;
+	white-space: nowrap;
+	background: none;
+}
+
+#prrint-framers .pf-table thead th {
+	background: var(--pf-soft);
+	color: var(--pf-muted);
+	font-size: 0.82em;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+#prrint-framers .pf-table tbody tr:last-child th,
+#prrint-framers .pf-table tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+#prrint-framers .pf-table tbody tr:hover {
+	background: color-mix(in srgb, var(--pf-accent) 5%, #fff);
+}
+
+#prrint-framers .pf-price-table {
+	width: auto;
+}
+
+#prrint-framers .pf-price-table td {
+	min-width: 96px;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+#prrint-framers .pf-price-table thead th {
+	text-align: center;
+}
+
+#prrint-framers .pf-price-table .pf-subhead th {
+	font-size: 0.72em;
+	font-weight: 600;
+}
+
+#prrint-framers .pf-price-table tbody th {
+	position: sticky;
+	left: 0;
+	background: var(--pf-card);
+	font-weight: 700;
+}
+
+#prrint-framers .pf-na {
+	color: #c4c8d0;
+}
+
+/* Edge color swatches. */
+#prrint-framers .pf-swatches {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+#prrint-framers .pf-swatches li {
+	display: grid;
+	grid-template-columns: 44px 1fr;
+	grid-template-rows: auto auto;
+	align-items: center;
+	gap: 0 12px;
+	padding: 12px;
+	border: 1px solid var(--pf-line);
+	border-radius: 12px;
+	background: var(--pf-card);
+}
+
+#prrint-framers .pf-swatch {
+	grid-row: 1 / span 3;
+	width: 44px;
+	height: 44px;
+	border-radius: 10px;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+#prrint-framers .pf-swatch-code {
+	font-weight: 800;
+	font-size: 0.85em;
+}
+
+#prrint-framers .pf-swatch-name {
+	font-size: 0.85em;
+	line-height: 1.3;
+}
+
+#prrint-framers .pf-swatch-note {
+	grid-column: 2;
+	color: var(--pf-bad);
+	font-size: 0.72em;
+	font-weight: 600;
+}
+
+/* Orders. */
+#prrint-framers .pf-empty {
+	padding: 36px;
+	border: 1px dashed #d5d8e0;
+	border-radius: 14px;
+	color: var(--pf-muted);
+	text-align: center;
+}
+
+#prrint-framers .pf-pill {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 999px;
+	background: #eef0f4;
+	font-size: 0.82em;
+	font-weight: 600;
+}
+
+#prrint-framers .pf-pill-processing { background: #dbeafe; color: #1d4ed8; }
+#prrint-framers .pf-pill-completed { background: #dcfce7; color: #15803d; }
+#prrint-framers .pf-pill-on-hold,
+#prrint-framers .pf-pill-pending { background: #fef3c7; color: #b45309; }
+#prrint-framers .pf-pill-cancelled,
+#prrint-framers .pf-pill-failed,
+#prrint-framers .pf-pill-refunded { background: #fee2e2; color: #b91c1c; }
+
+#prrint-framers .pf-mailin-card {
+	max-width: 420px;
+	margin-top: 22px;
+	padding: 20px 22px;
+}
+
+#prrint-framers address {
+	margin: 6px 0 10px;
+	font-style: normal;
+	line-height: 1.6;
+}
+
+/* ------------------------------------------------------- order form */
+
+#prrint-framers .prrint-framer-order {
+	display: grid;
+	gap: 16px;
+}
+
+#prrint-framers .prrint-fo-head {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+	gap: 14px 22px;
+	align-items: end;
+	padding: 20px 22px;
+	border: 1px solid var(--pf-line);
+	border-radius: var(--pf-radius);
+	background: var(--pf-card);
+}
+
+#prrint-framers .prrint-fo-head > label:not(.prrint-fo-check),
+#prrint-framers .prrint-fo-field {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: 5px;
 	margin: 0;
-	font-size: 0.9em;
-	font-weight: 600;
 }
 
-.prrint-fo-field > span:first-child {
-	font-size: 0.85em;
-	font-weight: 600;
-	color: var(--fo-muted);
+#prrint-framers .prrint-fo-field > span:first-child {
+	color: var(--pf-muted);
+	font-size: 0.75em;
+	font-weight: 700;
+	letter-spacing: 0.05em;
 	text-transform: uppercase;
-	letter-spacing: 0.03em;
 }
 
-.prrint-framer-order input[type="text"],
-.prrint-framer-order input[type="number"],
-.prrint-framer-order input[type="date"],
-.prrint-framer-order select,
-.prrint-framer-order textarea {
-	width: 100%;
-	box-sizing: border-box;
-	padding: 8px 10px;
-	border: 1px solid #d1d5db;
-	border-radius: 8px;
-	background: #fff;
-	font: inherit;
-	font-weight: 400;
-}
-
-.prrint-fo-check {
+#prrint-framers .prrint-fo-check {
 	display: flex;
 	align-items: flex-start;
-	gap: 6px;
+	gap: 8px;
 	margin: 0;
 	font-weight: 400;
 	cursor: pointer;
 }
 
-.prrint-fo-check input {
-	margin-top: 4px;
+#prrint-framers .prrint-fo-check input {
+	flex: 0 0 auto;
+	margin-top: 3px;
 }
 
-.prrint-fo-items {
+#prrint-framers .prrint-fo-items {
 	display: grid;
 	gap: 14px;
 }
 
-.prrint-fo-item {
-	padding: 16px 20px 14px;
-	border: 1px solid var(--fo-line);
-	border-radius: 12px;
-	background: #fff;
+#prrint-framers .prrint-fo-item {
+	padding: 18px 22px 16px;
+	border: 1px solid var(--pf-line);
+	border-left: 4px solid var(--pf-accent);
+	border-radius: var(--pf-radius);
+	background: var(--pf-card);
 }
 
-.prrint-fo-item.has-error {
-	border-color: #dc2626;
-	box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+#prrint-framers .prrint-fo-item.has-error {
+	border-color: var(--pf-bad);
+	box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
-.prrint-fo-item-head {
+#prrint-framers .prrint-fo-item-head {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	margin-bottom: 10px;
+	margin-bottom: 12px;
 }
 
-.prrint-fo-item-actions {
+#prrint-framers .prrint-fo-item-head strong {
+	font-size: 1.05em;
+}
+
+#prrint-framers .prrint-fo-item-actions {
 	display: flex;
-	gap: 14px;
+	gap: 16px;
 }
 
-.prrint-fo-item-actions button {
+#prrint-framers .prrint-fo-item-actions button {
 	padding: 0;
 	border: 0;
 	background: none;
-	color: var(--fo-accent);
-	font-size: 0.9em;
-	text-decoration: underline;
-	text-transform: none;
+	color: var(--pf-accent);
+	font-size: 0.88em;
+	font-weight: 600;
 	cursor: pointer;
 }
 
-.prrint-fo-grid {
+#prrint-framers .prrint-fo-item-actions .prrint-fo-remove {
+	color: var(--pf-muted);
+}
+
+#prrint-framers .prrint-fo-grid {
 	display: grid;
 	grid-template-columns: repeat(6, minmax(0, 1fr));
 	gap: 12px 14px;
 	margin-bottom: 12px;
 }
 
-.prrint-fo-grid > * {
-	grid-column: span 1;
-}
-
-.prrint-fo-grid > .prrint-fo-wide {
+#prrint-framers .prrint-fo-grid > .prrint-fo-wide {
 	grid-column: span 3;
 }
 
-.prrint-fo-grid > .prrint-fo-opts,
-.prrint-fo-grid > .prrint-fo-note {
+#prrint-framers .prrint-fo-grid > .prrint-fo-opts,
+#prrint-framers .prrint-fo-grid > .prrint-fo-note {
 	grid-column: 1 / -1;
 }
 
-.prrint-fo-opts {
+#prrint-framers .prrint-fo-opts {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px 22px;
+	padding: 10px 14px;
+	border-radius: 10px;
+	background: var(--pf-soft);
 }
 
-.prrint-fo-mode {
+#prrint-framers .prrint-fo-mode {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px 18px;
-	padding-top: 6px;
-	font-weight: 400;
+	gap: 8px 18px;
+	padding-top: 8px;
 }
 
-.prrint-fo-edge-wrap {
+#prrint-framers .prrint-fo-edge-wrap {
 	position: relative;
 	display: block;
 }
 
-.prrint-fo-swatch {
+#prrint-framers .prrint-fo-swatch {
 	position: absolute;
-	left: 10px;
+	left: 11px;
 	top: 50%;
-	width: 16px;
-	height: 16px;
-	margin-top: -8px;
+	width: 18px;
+	height: 18px;
+	margin-top: -9px;
 	border-radius: 50%;
 	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
 	pointer-events: none;
 }
 
-.prrint-fo-edge-wrap select {
-	padding-left: 34px !important;
+#prrint-framers .prrint-fo-edge-wrap select {
+	padding-left: 38px;
 }
 
-.prrint-fo-file-row {
+#prrint-framers .prrint-fo-file-row {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 10px;
-	font-weight: 400;
 }
 
-.prrint-fo-preview {
+#prrint-framers .prrint-fo-file-row input[type="file"] {
+	font-size: 0.9em;
+}
+
+#prrint-framers .prrint-fo-preview {
 	width: 56px;
 	height: 56px;
 	object-fit: cover;
-	border-radius: 6px;
-	border: 1px solid var(--fo-line);
+	border-radius: 8px;
+	border: 1px solid var(--pf-line);
 }
 
-.prrint-fo-file-status,
-.prrint-fo-note,
-.prrint-fo-small {
-	color: var(--fo-muted);
+#prrint-framers .prrint-fo-file-status,
+#prrint-framers .prrint-fo-note,
+#prrint-framers .prrint-fo-small {
+	color: var(--pf-muted);
 	font-size: 0.85em;
 	font-weight: 400;
 }
 
-.prrint-fo-note {
+#prrint-framers .prrint-fo-note {
 	margin: 0;
 }
 
-.prrint-fo-item-price {
-	padding-top: 10px;
-	border-top: 1px solid var(--fo-line);
-	font-weight: 600;
-}
-
-.prrint-fo-item-price.is-error {
-	color: #dc2626;
-	font-weight: 500;
-}
-
-.prrint-fo-mailin {
-	padding: 16px 20px;
-	border-left: 4px solid #d97706;
-	border-radius: 8px;
-	background: #fffbeb;
-}
-
-.prrint-fo-mailin[hidden] {
-	display: none;
-}
-
-.prrint-fo-mailin p,
-.prrint-fo-mailin address {
-	margin: 6px 0;
-	font-style: normal;
-}
-
-.prrint-fo-summary {
-	position: sticky;
-	bottom: 12px;
-	padding: 18px 22px;
-	border-radius: 12px;
-	background: #111827;
-	color: #f9fafb;
-	box-shadow: 0 10px 30px rgba(17, 24, 39, 0.3);
-}
-
-.prrint-fo-summary dl {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-	gap: 10px 18px;
-	margin: 0 0 8px;
-}
-
-.prrint-fo-summary dl > div[hidden] {
-	display: none;
-}
-
-.prrint-fo-summary dt {
-	font-size: 0.78em;
-	color: #9ca3af;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-}
-
-.prrint-fo-summary dd {
-	margin: 2px 0 0;
+#prrint-framers .prrint-fo-item-price {
+	margin-top: 4px;
+	padding-top: 12px;
+	border-top: 1px dashed var(--pf-line);
 	font-weight: 700;
 }
 
-.prrint-fo-summary .prrint-fo-grand dd {
+#prrint-framers .prrint-fo-item-price.is-error {
+	color: var(--pf-bad);
+	font-weight: 600;
+}
+
+#prrint-framers .prrint-fo-add {
+	border-style: dashed;
+	width: 100%;
+	padding: 14px;
+	color: var(--pf-accent);
+}
+
+#prrint-framers .prrint-fo-mailin {
+	padding: 16px 20px;
+	border-left: 4px solid #d97706;
+	border-radius: 12px;
+	background: #fffbeb;
+}
+
+#prrint-framers .prrint-fo-mailin[hidden] {
+	display: none;
+}
+
+#prrint-framers .prrint-fo-mailin p {
+	margin: 6px 0;
+}
+
+#prrint-framers .prrint-fo-summary {
+	position: sticky;
+	bottom: 12px;
+	z-index: 5;
+	display: grid;
+	grid-template-columns: 1fr auto;
+	align-items: center;
+	gap: 6px 24px;
+	padding: 18px 22px;
+	border-radius: var(--pf-radius);
+	background: var(--pf-dark);
+	color: #f9fafb;
+	box-shadow: 0 14px 34px rgba(17, 24, 39, 0.28);
+}
+
+#prrint-framers .prrint-fo-summary dl {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 28px;
+	margin: 0;
+}
+
+#prrint-framers .prrint-fo-summary dl > div[hidden] {
+	display: none;
+}
+
+#prrint-framers .prrint-fo-summary dt {
+	color: #9ca3af;
+	font-size: 0.72em;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+}
+
+#prrint-framers .prrint-fo-summary dd {
+	margin: 2px 0 0;
+	color: #fff;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+#prrint-framers .prrint-fo-summary .prrint-fo-grand dd {
 	font-size: 1.35em;
 }
 
-.prrint-fo-summary .prrint-fo-small {
+#prrint-framers .prrint-fo-summary .prrint-fo-small {
+	grid-column: 1;
+	margin: 0;
 	color: #9ca3af;
-	margin: 0 0 10px;
 }
 
-.prrint-fo-actions {
+#prrint-framers .prrint-fo-actions {
+	grid-column: 2;
+	grid-row: 1 / span 2;
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: flex-end;
 	gap: 10px;
 }
 
-.prrint-fo-message {
-	min-height: 1.2em;
-	margin: 8px 0 0;
-	text-align: right;
-	font-size: 0.9em;
+#prrint-framers .prrint-fo-summary .button:not(.alt) {
+	border-color: rgba(255, 255, 255, 0.25);
+	background: transparent;
+	color: #fff;
 }
 
-.prrint-fo-message.is-error {
+#prrint-framers .prrint-fo-summary .button:not(.alt):hover {
+	background: rgba(255, 255, 255, 0.08);
+}
+
+#prrint-framers .prrint-fo-message {
+	grid-column: 1 / -1;
+	min-height: 0;
+	margin: 0;
+	font-size: 0.9em;
+	text-align: right;
+}
+
+#prrint-framers .prrint-fo-message:empty {
+	display: none;
+}
+
+#prrint-framers .prrint-fo-message.is-error {
 	color: #fca5a5;
 }
 
-@media (max-width: 720px) {
-	.prrint-fo-grid {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+/* ------------------------------------------------------------ mobile */
+
+@media (max-width: 860px) {
+	#prrint-framers .pf-split {
+		grid-template-columns: minmax(0, 1fr);
 	}
-	.prrint-fo-grid > .prrint-fo-wide {
-		grid-column: 1 / -1;
-	}
-	.prrint-fo-summary {
+	#prrint-framers .pf-login {
 		position: static;
 	}
+	#prrint-framers .prrint-fo-summary {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	#prrint-framers .prrint-fo-actions {
+		grid-column: 1;
+		grid-row: auto;
+		justify-content: stretch;
+	}
+	#prrint-framers .prrint-fo-actions .button {
+		flex: 1 1 auto;
+	}
 }
 
-/* ----------------------------------------------------------- price list */
-
-.prrint-price-list h3 small {
-	font-weight: 400;
-	opacity: 0.7;
-}
-
-.prrint-price-list-scroll {
-	overflow-x: auto;
-	margin-bottom: 26px;
-}
-
-.prrint-price-list table {
-	border-collapse: collapse;
-	font-size: 0.88em;
-	white-space: nowrap;
-}
-
-.prrint-price-list th,
-.prrint-price-list td {
-	padding: 6px 10px;
-	border: 1px solid #e5e7eb;
-	text-align: right;
-}
-
-.prrint-price-list thead th {
-	background: #f3f4f6;
-	text-align: center;
-}
-
-.prrint-price-list tbody th {
-	text-align: left;
+@media (max-width: 640px) {
+	#prrint-framers .pf-hero {
+		padding: 26px 22px;
+	}
+	#prrint-framers .pf-hero h2 {
+		font-size: 1.6em;
+	}
+	#prrint-framers .pf-card,
+	#prrint-framers .pf-status {
+		padding: 20px;
+	}
+	#prrint-framers .pf-status {
+		flex-direction: column;
+	}
+	#prrint-framers .prrint-framers-form {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	#prrint-framers .pf-acc summary {
+		grid-template-columns: 1fr 20px;
+	}
+	#prrint-framers .pf-acc-meta,
+	#prrint-framers .pf-acc-from {
+		grid-column: 1;
+	}
+	#prrint-framers .pf-acc summary::after {
+		grid-column: 2;
+		grid-row: 1;
+	}
+	#prrint-framers .prrint-fo-grid {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+	#prrint-framers .prrint-fo-grid > .prrint-fo-wide {
+		grid-column: 1 / -1;
+	}
+	#prrint-framers .prrint-fo-summary {
+		position: static;
+	}
 }

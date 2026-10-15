@@ -92,7 +92,7 @@ class Prrint_Framer_Orders {
 		if ( ! prrint_is_approved_framer() ) {
 			return '';
 		}
-		wp_enqueue_style( 'prrint-framers', PRRINT_URL . 'assets/css/framers.css', array(), PRRINT_VERSION );
+		Prrint_Framers::enqueue();
 		wp_enqueue_script( 'prrint-framer-order', PRRINT_URL . 'assets/js/framer-order.js', array(), PRRINT_VERSION, true );
 
 		$settings = prrint_settings();
@@ -201,7 +201,7 @@ class Prrint_Framer_Orders {
 			</div>
 		</div>
 		<?php
-		return ob_get_clean();
+		return Prrint_Framers::wrap( ob_get_clean() );
 	}
 
 	/* --------------------------------------------------------------------
