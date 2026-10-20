@@ -3,7 +3,7 @@
  * Plugin Name: Prrint — Photo Print Studio for WooCommerce
  * Plugin URI:  https://github.com/masudrana175/prrint
  * Description: Turn WooCommerce products into a full photo print shop: multi-photo upload, crop/zoom/rotate editor, print sizes, paper finishes, white borders, live pricing, print-quality checks, and 300 DPI print-ready files on every order.
- * Version:     1.32.0
+ * Version:     1.33.0
  * Author:      Masud Rana
  * Author URI:  https://github.com/masudrana175
  * Text Domain: prrint
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PRRINT_VERSION', '1.32.0' );
+define( 'PRRINT_VERSION', '1.33.0' );
 define( 'PRRINT_FILE', __FILE__ );
 define( 'PRRINT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PRRINT_URL', plugin_dir_url( __FILE__ ) );
@@ -52,6 +52,7 @@ function prrint_bootstrap() {
 	require_once PRRINT_DIR . 'includes/class-prrint-image.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-settings.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-product.php';
+	require_once PRRINT_DIR . 'includes/class-prrint-style-products.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-frontend.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-account.php';
 	require_once PRRINT_DIR . 'includes/class-prrint-ajax.php';
@@ -63,6 +64,7 @@ function prrint_bootstrap() {
 
 	Prrint_Settings::init();
 	Prrint_Product::init();
+	Prrint_Style_Products::init();
 	Prrint_Frontend::init();
 	Prrint_Account::init();
 	Prrint_Ajax::init();
@@ -258,10 +260,43 @@ function prrint_default_papers() {
 /**
  * Product styles — what the print is made into. "edge" marks styles with a
  * colored (foil) edge, which is what makes the Edge Color dropdown appear;
- * "description" is shown to the customer under the Style dropdown.
- * Descriptions come from ColorPlak's own style sheet.
+ * "description" is shown to the customer under the Style dropdown;
+ * "product" links the style to the shop product it takes its sizes and
+ * prices from (0 = the product with the same name, -1 = none). The list is
+ * ColorPlak's own; descriptions come from their product descriptions.
  */
 function prrint_default_styles() {
+	$row = function ( $label, $edge, $description ) {
+		return array( 'label' => $label, 'surcharge' => 0, 'edge' => $edge, 'description' => $description, 'product' => 0 );
+	};
+	return array(
+		$row( 'Paper print', false, 'A print on premium photo paper only — no mounting. Frame-ready.' ),
+		$row( 'Metal only', false, 'Printed on Chromaluxe metal for vivid colors and crisp detail. Frame-ready.' ),
+		$row( 'Metal Float', false, 'Chromaluxe metal print with a 3/4" wood frame on the back that floats it off the wall. French cleat hanging system included.' ),
+		$row( 'Metal Lite', true, 'Exclusive to ColorPlak: Chromaluxe metal mounted on a 3/8" wood panel with a beveled edge in your choice of foil edge color.' ),
+		$row( 'Acrylic mount only', false, 'Printed on premium photo paper and face-mounted to 1/4" museum-grade acrylic, hung with aluminum stand-off posts.' ),
+		$row( 'Acrylic Float', false, 'Face-mounted to crystal-clear acrylic with a white DiBond back and a concealed wood frame that floats it 3/4" off the wall.' ),
+		$row( 'ColorLite', true, '3/8" board with beveled edge. Our most popular style. Recommended for sizes up to 32" x 40".' ),
+		$row( 'ColorFloat', false, 'Image mounted on 1/4" board. A 1" box frame is recessed 2" from the edge to make the frame "float". Available in sizes up to 4 feet x 8 feet.' ),
+		$row( 'ColorBox', true, 'Image mounted on 1/4" board with beveled edge which is laid on top of a 1" back frame. Available in sizes up to 4 feet x 8 feet.' ),
+		$row( 'Hi-Lite', false, 'Image is mounted on a 1/4" board and then onto a 3/8" base creating a 2" border.' ),
+		$row( 'LitePlus', false, '' ),
+		$row( 'Lam & Mount', false, 'Mounted on a 1/4" wood panel with a non-glare, UV-resistant laminate and raw wood edges. Frame-ready.' ),
+		$row( 'Unstretched Canvas', false, 'Printed on premium canvas and laminated with a UV-protective layer, shipped unstretched.' ),
+		$row( 'CanvasLite', true, 'Canvas mounted on a 3/8" wood panel with a beveled edge in your choice of foil edge color. Keyhole slot for easy hanging.' ),
+		$row( 'CanvasFloat', false, '' ),
+		$row( 'CanvasBox', false, '' ),
+		$row( 'Canvas Lam & Mount', false, 'Canvas mounted on a rigid 1/4" wood panel with a non-glare, UV-resistant laminate and raw wood edges. Frame-ready.' ),
+		$row( 'Stretched Canvas', false, 'Image is transferred to an artist\'s canvas and stretched onto a wood frame.' ),
+	);
+}
+
+/**
+ * The style list shipped in 1.29–1.32, before ColorPlak's full list. A store
+ * still holding it untouched gets today's list (see
+ * prrint_is_untouched_old_default()).
+ */
+function prrint_v130_default_styles() {
 	return array(
 		array( 'label' => 'Paper print', 'surcharge' => 0, 'edge' => false, 'description' => 'A print on photo paper only — no mounting.' ),
 		array( 'label' => 'ColorLite',   'surcharge' => 0, 'edge' => true,  'description' => '3/8" board with beveled edge. Our most popular style. Recommended for sizes up to 32" x 40".' ),
@@ -432,6 +467,7 @@ function prrint_default_settings() {
 		'framer_notify_email'           => '', // '' = the site admin email.
 		'framer_mailin_address'         => "Custom Art Services - Colorplak\n37110 Mesa Road\nTemecula, CA 92592",
 		'studio_product_id'             => 0, // 0 = use the auto-created sample product.
+		'studio_page_id'                => 0, // 0 = find it: "Create Your Print", else a page with [prrint_studio].
 		'enabled_tools'                 => prrint_toggleable_tools(),
 		'text_templates_enabled'        => prrint_text_template_ids(),
 		'enabled_filters'               => prrint_toggleable_filters(),
@@ -464,8 +500,9 @@ function prrint_retired_default_rows() {
 
 /**
  * Whether a saved styles/edge-colors list is an earlier default nobody has
- * edited: the 1.26 placeholders, or today's defaults plus rows retired
- * since. Those are swapped for the current defaults; edited lists are kept.
+ * edited: the 1.26 placeholders, the 1.29–1.32 style list (with or without
+ * the retired Classic/Deco/Empire rows), or today's defaults plus rows
+ * retired since. Those are swapped for the current defaults; edited lists are kept.
  */
 function prrint_is_untouched_old_default( $key, $saved ) {
 	$placeholders = prrint_legacy_placeholder_lists();
@@ -479,6 +516,9 @@ function prrint_is_untouched_old_default( $key, $saved ) {
 	$kept = array_values( array_filter( $saved, function ( $row ) use ( $field, $retired ) {
 		return ! ( is_array( $row ) && isset( $row[ $field ] ) && in_array( $row[ $field ], $retired, true ) );
 	} ) );
+	if ( 'styles' === $key && prrint_list_matches( $kept, prrint_v130_default_styles() ) ) {
+		return true;
+	}
 	$current = 'styles' === $key ? prrint_default_styles() : prrint_default_edge_colors();
 	return count( $kept ) < count( $saved ) && prrint_list_matches( $kept, $current );
 }

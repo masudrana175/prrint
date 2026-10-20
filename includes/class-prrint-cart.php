@@ -35,10 +35,12 @@ class Prrint_Cart {
 			'key'   => __( 'Print size', 'prrint' ),
 			'value' => sprintf( '%s (%s" × %s")', $v['size_label'], wc_format_localized_decimal( $v['w_in'] ), wc_format_localized_decimal( $v['h_in'] ) ),
 		);
-		$item_data[] = array(
-			'key'   => __( 'Paper', 'prrint' ),
-			'value' => $v['paper_label'],
-		);
+		if ( '' !== (string) $v['paper_label'] ) {
+			$item_data[] = array(
+				'key'   => __( 'Paper', 'prrint' ),
+				'value' => $v['paper_label'],
+			);
+		}
 		if ( ! empty( $v['style_label'] ) ) {
 			$item_data[] = array(
 				'key'   => __( 'Style', 'prrint' ),
@@ -177,7 +179,9 @@ class Prrint_Cart {
 			__( 'Print size', 'prrint' ),
 			sprintf( '%s (%s" × %s")', $v['size_label'], wc_format_localized_decimal( $v['w_in'] ), wc_format_localized_decimal( $v['h_in'] ) )
 		);
-		$item->add_meta_data( __( 'Paper', 'prrint' ), $v['paper_label'] );
+		if ( '' !== (string) $v['paper_label'] ) {
+			$item->add_meta_data( __( 'Paper', 'prrint' ), $v['paper_label'] );
+		}
 		if ( ! empty( $v['style_label'] ) ) {
 			$item->add_meta_data( __( 'Style', 'prrint' ), $v['style_label'] );
 		}
@@ -263,6 +267,8 @@ class Prrint_Cart {
 			'style_surcharge' => isset( $v['style_surcharge'] ) ? $v['style_surcharge'] : 0,
 			'edge_label'      => isset( $v['edge_label'] ) ? $v['edge_label'] : '',
 			'edge_color'      => isset( $v['edge_color'] ) ? $v['edge_color'] : '',
+			'style_product'   => isset( $v['style_product'] ) ? $v['style_product'] : 0,
+			'style_variation' => isset( $v['style_variation'] ) ? $v['style_variation'] : 0,
 			'orientation' => $v['orientation'],
 			'border'      => $v['border'],
 			'design'      => $design,

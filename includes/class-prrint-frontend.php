@@ -135,13 +135,22 @@ class Prrint_Frontend {
 		$preselect_paper = self::match_index( $papers, isset( $_GET['paper'] ) ? sanitize_title( wp_unslash( $_GET['paper'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$preselect_size  = self::match_index( $sizes, isset( $_GET['size'] ) ? sanitize_title( wp_unslash( $_GET['size'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
+		// Styles linked to shop products carry that product's sizes and
+		// prices; ?customize=<product>&variation=<id> (the product page's
+		// "Customize your image" button) preselects style, size and orientation.
+		$styles    = Prrint_Style_Products::styles_with_sizes( $settings['styles'] );
+		$customize = Prrint_Style_Products::preselect_from_request( $styles );
+		if ( $customize['style'] >= 0 ) {
+			$preselect_size = $customize['size'];
+		}
+
 		wp_localize_script( 'prrint-frontend', 'prrintData', array(
 			'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
 			'nonce'          => wp_create_nonce( 'prrint_studio' ),
 			'productId'      => $product_id,
 			'sizes'          => array_values( $sizes ),
 			'papers'         => array_values( $papers ),
-			'styles'         => array_values( $settings['styles'] ),
+			'styles'         => $styles,
 			'edgeColors'     => array_values( $settings['edge_colors'] ),
 			'basePrice'      => (float) $product->get_price(),
 			'maxMb'          => (int) $settings['max_mb'],
@@ -150,6 +159,8 @@ class Prrint_Frontend {
 			'borderIn'       => (float) $settings['border_in'],
 			'preselectSize'  => $preselect_size,
 			'preselectPaper' => $preselect_paper,
+			'preselectStyle' => $customize['style'],
+			'preselectOrientation' => $customize['orientation'],
 			'cartUrl'        => wc_get_cart_url(),
 			'filters'        => self::enabled_filters( $settings['enabled_filters'] ),
 			'overlays'       => self::enabled_overlays( $settings['enabled_overlays'] ),

@@ -200,36 +200,10 @@ class Prrint_Ajax {
 			return new WP_Error( 'prrint', __( 'One of your photos has expired — please re-upload it.', 'prrint' ) );
 		}
 
-		$sizes  = prrint_get_sizes( $product_id );
-		$papers = prrint_get_papers( $product_id );
-
-		$size_idx  = isset( $raw['size'] ) ? absint( $raw['size'] ) : 0;
-		$paper_idx = isset( $raw['paper'] ) ? absint( $raw['paper'] ) : 0;
-		if ( ! isset( $sizes[ $size_idx ] ) || ! isset( $papers[ $paper_idx ] ) ) {
-			return new WP_Error( 'prrint', __( 'Invalid print options selected.', 'prrint' ) );
-		}
-
-		$qty = isset( $raw['qty'] ) ? absint( $raw['qty'] ) : 1;
-		$qty = max( 1, min( 999, $qty ) );
-
-		$orientation = ( isset( $raw['orientation'] ) && 'landscape' === $raw['orientation'] ) ? 'landscape' : 'portrait';
-		$border      = ! empty( $raw['border'] );
-
-		$crop_raw = isset( $raw['crop'] ) && is_array( $raw['crop'] ) ? $raw['crop'] : null;
-		if ( ! $crop_raw ) {
-			return new WP_Error( 'prrint', __( 'A crop selection is missing — please edit that photo again.', 'prrint' ) );
-		}
-		foreach ( array( 'x', 'y', 'w', 'h' ) as $k ) {
-			if ( ! isset( $crop_raw[ $k ] ) || ! is_numeric( $crop_raw[ $k ] ) ) {
-				return new WP_Error( 'prrint', __( 'A crop selection is invalid — please edit that photo again.', 'prrint' ) );
-			}
-		}
-
-		$size  = $sizes[ $size_idx ];
-		$paper = $papers[ $paper_idx ];
-
-		// Style is required whenever the store offers any; edge color only
-		// applies to a style flagged as having one.
+		// The style comes first: a style linked to a shop product brings that
+		// product's sizes and prices (and no paper choice). Style is required
+		// whenever the store offers any; edge color only applies to a style
+		// flagged as having one.
 		$settings = prrint_settings();
 		$styles   = array_values( $settings['styles'] );
 		$edges    = array_values( $settings['edge_colors'] );
@@ -250,6 +224,42 @@ class Prrint_Ajax {
 			}
 		}
 
+		$linked = $style ? Prrint_Style_Products::product_for_style( $style ) : 0;
+		$sizes  = array_values( Prrint_Style_Products::sizes_for( $style, $product_id ) );
+		$linked = ( $linked && ! empty( $sizes[0]['prices'] ) ) ? $linked : 0;
+		$papers = prrint_get_papers( $product_id );
+
+		$size_idx  = isset( $raw['size'] ) ? absint( $raw['size'] ) : 0;
+		$paper_idx = isset( $raw['paper'] ) ? absint( $raw['paper'] ) : 0;
+		if ( ! isset( $sizes[ $size_idx ] ) || ( ! $linked && ! isset( $papers[ $paper_idx ] ) ) ) {
+			return new WP_Error( 'prrint', __( 'Invalid print options selected.', 'prrint' ) );
+		}
+
+		$qty = isset( $raw['qty'] ) ? absint( $raw['qty'] ) : 1;
+		$qty = max( 1, min( 999, $qty ) );
+
+		$orientation = ( isset( $raw['orientation'] ) && 'landscape' === $raw['orientation'] ) ? 'landscape' : 'portrait';
+		$border      = ! empty( $raw['border'] );
+
+		$crop_raw = isset( $raw['crop'] ) && is_array( $raw['crop'] ) ? $raw['crop'] : null;
+		if ( ! $crop_raw ) {
+			return new WP_Error( 'prrint', __( 'A crop selection is missing — please edit that photo again.', 'prrint' ) );
+		}
+		foreach ( array( 'x', 'y', 'w', 'h' ) as $k ) {
+			if ( ! isset( $crop_raw[ $k ] ) || ! is_numeric( $crop_raw[ $k ] ) ) {
+				return new WP_Error( 'prrint', __( 'A crop selection is invalid — please edit that photo again.', 'prrint' ) );
+			}
+		}
+
+		$size  = $sizes[ $size_idx ];
+		$paper = $linked ? array( 'label' => '', 'surcharge' => 0 ) : $papers[ $paper_idx ];
+
+		$variation = 0;
+		if ( $linked ) {
+			$key       = (float) $size['w'] === (float) $size['h'] ? 'square' : $orientation;
+			$variation = isset( $size['variations'][ $key ] ) ? (int) $size['variations'][ $key ] : 0;
+		}
+
 		$w_in = 'landscape' === $orientation ? max( $size['w'], $size['h'] ) : min( $size['w'], $size['h'] );
 		$h_in = 'landscape' === $orientation ? min( $size['w'], $size['h'] ) : max( $size['w'], $size['h'] );
 
@@ -259,7 +269,7 @@ class Prrint_Ajax {
 				'token'       => $token,
 				'file'        => $upload['file'],
 				'size_label'  => $size['label'],
-				'size_price'  => (float) $size['price'],
+				'size_price'  => Prrint_Style_Products::size_price( $size, $orientation ),
 				'w_in'        => (float) $w_in,
 				'h_in'        => (float) $h_in,
 				'paper_label' => $paper['label'],
@@ -268,6 +278,8 @@ class Prrint_Ajax {
 				'style_surcharge' => $style ? (float) $style['surcharge'] : 0.0,
 				'edge_label'      => $edge ? prrint_edge_display_label( $edge ) : '',
 				'edge_color'      => $edge ? $edge['color'] : '',
+				'style_product'   => $linked,
+				'style_variation' => $variation,
 				'orientation' => $orientation,
 				'border'      => $border,
 				'design'      => isset( $raw['design'] ) ? self::sanitize_design( $raw['design'] ) : null,

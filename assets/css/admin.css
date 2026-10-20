@@ -410,3 +410,19 @@
 	z-index: 1;
 	background: #f6f7f7;
 }
+
+/* Styles table: linked shop product */
+.prrint-table .prrint-style-product select {
+	max-width: 220px;
+}
+.prrint-table .prrint-style-link {
+	display: block;
+	margin-top: 4px;
+	max-width: 240px;
+	color: #646970;
+	line-height: 1.4;
+}
+.prrint-table-scroll-wide {
+	max-width: none;
+	max-height: 560px;
+}

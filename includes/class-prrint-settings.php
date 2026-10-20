@@ -94,6 +94,7 @@ class Prrint_Settings {
 		$out['framer_mailin_address'] = isset( $input['framer_mailin_address'] ) ? sanitize_textarea_field( $input['framer_mailin_address'] ) : $defaults['framer_mailin_address'];
 
 		$out['studio_product_id'] = isset( $input['studio_product_id'] ) ? absint( $input['studio_product_id'] ) : 0;
+		$out['studio_page_id']    = isset( $input['studio_page_id'] ) ? absint( $input['studio_page_id'] ) : 0;
 
 		$out['enabled_tools'] = array_values( array_intersect(
 			prrint_toggleable_tools(),
@@ -219,6 +220,7 @@ class Prrint_Settings {
 				'surcharge' => (float) max( 0, isset( $row['surcharge'] ) ? (float) $row['surcharge'] : 0 ),
 				'edge'        => ! empty( $row['edge'] ),
 				'description' => isset( $row['description'] ) ? sanitize_text_field( $row['description'] ) : '',
+				'product'     => isset( $row['product'] ) ? max( -1, (int) $row['product'] ) : 0,
 			);
 		}
 		return array_slice( $styles, 0, 40 );
@@ -310,7 +312,8 @@ class Prrint_Settings {
 
 				<div class="prrint-card" data-prrint-tab="products">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'layers', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Product styles', 'prrint' ); ?></h2>
-					<p class="description"><?php esc_html_e( 'What the print is made into — e.g. a plain paper print, ColorLite or Color Box. Shown to customers as a "Style" dropdown under Paper, with an optional surcharge. Tick "Colored edge" for styles that have an edge, so customers can pick an Edge Color for them. Remove every row to hide the Style dropdown.', 'prrint' ); ?></p>
+					<p class="description"><?php esc_html_e( 'What the print is made into — e.g. a plain paper print, ColorLite or Color Box. Shown to customers as the first dropdown, "Style", with an optional surcharge. Tick "Colored edge" for styles that have an edge, so customers can pick an Edge Color for them. Remove every row to hide the Style dropdown.', 'prrint' ); ?></p>
+					<p class="description"><?php esc_html_e( '"Sizes & prices from" links a style to its shop product (a variable product with a size option, and optionally an orientation option): the studio then offers exactly that product\'s sizes at its prices, no Paper choice, and the product\'s page shows "Customize your image" instead of Add to cart. "Automatic" uses the product with the same name (ignoring case and spaces, so "COLOR LITE" matches ColorLite); styles without a product use the Print sizes and Paper options above.', 'prrint' ); ?></p>
 					<?php self::render_styles_table( 'prrint_settings[styles]', $s['styles'], $currency ); ?>
 				</div>
 
@@ -381,6 +384,21 @@ class Prrint_Settings {
 						<tr>
 							<th scope="row"><label for="prrint_studio_product_id"><?php esc_html_e( 'Product', 'prrint' ); ?></label></th>
 							<td><?php self::render_studio_product_select( (int) $s['studio_product_id'] ); ?></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="prrint_studio_page_id"><?php esc_html_e( 'Studio page', 'prrint' ); ?></label></th>
+							<td>
+								<?php
+								wp_dropdown_pages( array(
+									'name'              => 'prrint_settings[studio_page_id]',
+									'id'                => 'prrint_studio_page_id',
+									'selected'          => (int) $s['studio_page_id'],
+									'show_option_none'  => __( '— Find it automatically —', 'prrint' ),
+									'option_none_value' => '0',
+								) );
+								?>
+								<p class="description"><?php esc_html_e( 'Where the "Customize your image" button on shop product pages sends customers. Automatic: the "Create Your Print" page if it\'s published, else the first published page with [prrint_studio].', 'prrint' ); ?></p>
+							</td>
 						</tr>
 						<?php $preview_url = self::studio_preview_url(); ?>
 						<?php if ( $preview_url ) : ?>
@@ -667,7 +685,11 @@ class Prrint_Settings {
 	}
 
 	public static function render_styles_table( $name, $styles, $currency ) {
-		$row = function ( $i, $style ) use ( $name ) {
+		$products = array();
+		foreach ( (array) wc_get_products( array( 'type' => 'variable', 'status' => 'publish', 'limit' => -1, 'orderby' => 'title', 'order' => 'ASC', 'return' => 'ids' ) ) as $pid ) {
+			$products[ (int) $pid ] = get_the_title( $pid ) . ' (#' . $pid . ')';
+		}
+		$row = function ( $i, $style ) use ( $name, $products ) {
 			$n = esc_attr( $name ) . '[' . $i . ']';
 			?>
 			<tr>
@@ -675,11 +697,25 @@ class Prrint_Settings {
 				<td><input type="number" step="0.01" min="0" name="<?php echo $n; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>[surcharge]" value="<?php echo esc_attr( $style['surcharge'] ); ?>" /></td>
 				<td><label><input type="checkbox" name="<?php echo $n; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>[edge]" value="1" <?php checked( ! empty( $style['edge'] ) ); ?> /> <?php esc_html_e( 'Yes', 'prrint' ); ?></label></td>
 				<td><input type="text" class="prrint-wide-input" name="<?php echo $n; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>[description]" value="<?php echo esc_attr( isset( $style['description'] ) ? $style['description'] : '' ); ?>" /></td>
+				<td class="prrint-style-product">
+					<?php $current = isset( $style['product'] ) ? (int) $style['product'] : 0; ?>
+					<select name="<?php echo $n; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>[product]">
+						<option value="0" <?php selected( $current, 0 ); ?>><?php esc_html_e( 'Automatic (same name)', 'prrint' ); ?></option>
+						<option value="-1" <?php selected( $current, -1 ); ?>><?php esc_html_e( 'None — use Print sizes', 'prrint' ); ?></option>
+						<?php foreach ( $products as $pid => $title ) : ?>
+							<option value="<?php echo (int) $pid; ?>" <?php selected( $current, $pid ); ?>><?php echo esc_html( $title ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<?php if ( '' !== $style['label'] ) : ?>
+						<small class="prrint-style-link"><?php echo esc_html( self::style_link_summary( $style ) ); ?></small>
+					<?php endif; ?>
+				</td>
 				<td class="prrint-col-actions"><button type="button" class="button-link-delete prrint-remove-row" aria-label="<?php esc_attr_e( 'Remove row', 'prrint' ); ?>">✕</button></td>
 			</tr>
 			<?php
 		};
 		?>
+		<div class="prrint-table-scroll prrint-table-scroll-wide">
 		<table class="widefat striped prrint-table" data-prrint-table="styles">
 			<thead>
 				<tr>
@@ -687,6 +723,7 @@ class Prrint_Settings {
 					<th><?php printf( /* translators: %s currency symbol */ esc_html__( 'Surcharge (%s)', 'prrint' ), esc_html( $currency ) ); ?></th>
 					<th><?php esc_html_e( 'Colored edge', 'prrint' ); ?></th>
 					<th><?php esc_html_e( 'Description (shown to customers)', 'prrint' ); ?></th>
+					<th><?php esc_html_e( 'Sizes & prices from', 'prrint' ); ?></th>
 					<th class="prrint-col-actions"></th>
 				</tr>
 			</thead>
@@ -698,11 +735,37 @@ class Prrint_Settings {
 				?>
 			</tbody>
 		</table>
+		</div>
 		<template class="prrint-row-template">
-			<?php $row( '__i__', array( 'label' => '', 'surcharge' => '', 'edge' => false, 'description' => '' ) ); ?>
+			<?php $row( '__i__', array( 'label' => '', 'surcharge' => '', 'edge' => false, 'description' => '', 'product' => 0 ) ); ?>
 		</template>
 		<p><button type="button" class="button prrint-add-row"><?php esc_html_e( '+ Add style', 'prrint' ); ?></button></p>
 		<?php
+	}
+
+	/**
+	 * "ColorLite (#12) · 24 sizes · from $53.60", or why a style isn't linked.
+	 */
+	protected static function style_link_summary( $style ) {
+		$pid = Prrint_Style_Products::product_for_style( $style );
+		if ( ! $pid ) {
+			return isset( $style['product'] ) && -1 === (int) $style['product']
+				? __( 'Uses Print sizes & Paper options.', 'prrint' )
+				: __( 'No product with this name — uses Print sizes & Paper options.', 'prrint' );
+		}
+		$sizes = Prrint_Style_Products::product_sizes( $pid );
+		if ( ! $sizes ) {
+			/* translators: %s: product name */
+			return sprintf( __( '%s has no sizes this can read (a size like 8x10 in a variation option) — uses Print sizes.', 'prrint' ), get_the_title( $pid ) );
+		}
+		$min = min( array_map( function ( $size ) { return min( $size['prices'] ); }, $sizes ) );
+		return sprintf(
+			/* translators: 1: product name, 2: number of sizes, 3: lowest price */
+			_n( '%1$s · %2$d size · from %3$s', '%1$s · %2$d sizes · from %3$s', count( $sizes ), 'prrint' ),
+			get_the_title( $pid ),
+			count( $sizes ),
+			html_entity_decode( wp_strip_all_tags( wc_price( $min ) ), ENT_QUOTES, 'UTF-8' )
+		);
 	}
 
 	public static function render_edge_colors_table( $name, $colors ) {

@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.32.0
+Stable tag: 1.33.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,29 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.33.0 =
+* Style dropdown now lists ColorPlak's full range: Metal only, Metal Float,
+  Metal Lite, Acrylic mount only, Acrylic Float, ColorLite, ColorFloat,
+  ColorBox, Hi-Lite, LitePlus, Lam & Mount, Unstretched Canvas, CanvasLite,
+  CanvasFloat, CanvasBox, Canvas Lam & Mount and Stretched Canvas (after
+  Paper print). Edge colors are offered on ColorLite, ColorBox, Metal Lite
+  and CanvasLite. Stores still on the old untouched list get the new one.
+* Styles take their sizes and prices from the matching shop product: a
+  style is linked to the variable product of the same name ("COLOR LITE" =
+  ColorLite), or one picked under Settings → Product styles → "Sizes &
+  prices from". The studio then shows exactly that product's sizes at its
+  prices (per orientation), so a ColorLite 8x10 costs the same in the
+  studio and on the product page. Paper is hidden for linked styles; the
+  server re-prices from the product, and the order line records the
+  product and variation. Unlinked styles keep the Print sizes and Paper.
+* Linked product pages show "Customize your image" instead of quantity +
+  Add to cart. It unlocks once the customer picks the options and opens the
+  studio with that style, size and orientation already chosen.
+* Style is now the first dropdown on each photo; the editor's size grid
+  follows the photo's style.
+* New "Studio page" setting chooses where "Customize your image" goes
+  (automatic: the Create Your Print page, else a page with [prrint_studio]).
 
 = 1.32.0 =
 * [prrint_framers_corner] on its own now renders the whole Framers Corner —

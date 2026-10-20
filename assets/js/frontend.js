@@ -201,25 +201,78 @@
 	}
 
 	function printDims(item) {
-		var s = cfg.sizes[item.sizeIdx];
+		var s = currentSize(item);
 		var lo = Math.min(s.w, s.h);
 		var hi = Math.max(s.w, s.h);
 		return item.orientation === 'landscape' ? { w: hi, h: lo } : { w: lo, h: hi };
 	}
 
 	function unitPrice(item) {
-		var s = cfg.sizes[item.sizeIdx];
-		var p = cfg.papers[item.paperIdx];
 		var st = currentStyle(item);
-		var base = s.price > 0 ? s.price : cfg.basePrice;
-		return base + p.surcharge + (st ? st.surcharge : 0);
+		var base = sizePrice(currentSize(item), item.orientation);
+		var paper = isLinked(item) ? 0 : cfg.papers[item.paperIdx].surcharge;
+		return base + paper + (st ? st.surcharge : 0);
 	}
 
 	var STYLES = cfg.styles || [];
 	var EDGE_COLORS = cfg.edgeColors || [];
+	var defaultStyle = cfg.preselectStyle >= 0 && STYLES[cfg.preselectStyle] ? cfg.preselectStyle : 0;
 
 	function currentStyle(item) {
 		return STYLES[item.styleIdx] || null;
+	}
+
+	/** Whether the item's style takes its sizes and prices from a shop product. */
+	function isLinked(item) {
+		var st = currentStyle(item);
+		return !!(st && st.linked && st.sizes && st.sizes.length);
+	}
+
+	/** Sizes offered for the item's style: its product's, else the studio's. */
+	function sizesFor(item) {
+		return isLinked(item) ? currentStyle(item).sizes : cfg.sizes;
+	}
+
+	function currentSize(item) {
+		var list = sizesFor(item);
+		return list[item.sizeIdx] || list[0];
+	}
+
+	/** Mirrors Prrint_Style_Products::size_price(): price per orientation when the product has one. */
+	function sizePrice(s, orientation) {
+		var key = s.w === s.h ? 'square' : (orientation === 'landscape' ? 'landscape' : 'portrait');
+		var price = s.prices && s.prices[key] !== undefined ? s.prices[key] : s.price;
+		return price > 0 ? price : cfg.basePrice;
+	}
+
+	/** Index in `list` of the size matching `s` (either way round), else the closest by area. */
+	function closestSizeIdx(list, s) {
+		if (!s) { return 0; }
+		var lo = Math.min(s.w, s.h), hi = Math.max(s.w, s.h);
+		var best = 0, bestDiff = Infinity;
+		for (var i = 0; i < list.length; i++) {
+			var l = Math.min(list[i].w, list[i].h), h = Math.max(list[i].w, list[i].h);
+			if (l === lo && h === hi) { return i; }
+			var diff = Math.abs(l * h - lo * hi);
+			if (diff < bestDiff) { bestDiff = diff; best = i; }
+		}
+		return best;
+	}
+
+	/** (Re)fill the card's Size dropdown for the item's style, priced for its orientation. */
+	function fillSizeOptions(item) {
+		var sel = item.card && item.card.querySelector('.prrint-size-select');
+		if (!sel) { return; }
+		sel.innerHTML = '';
+		sizesFor(item).forEach(function (s, i) {
+			var opt = document.createElement('option');
+			opt.value = String(i);
+			opt.textContent = s.label + ' — ' + formatPrice(sizePrice(s, item.orientation));
+			sel.appendChild(opt);
+		});
+		sel.value = String(item.sizeIdx);
+		var paperField = item.card.querySelector('.prrint-paper-field');
+		if (paperField) { paperField.hidden = isLinked(item); }
 	}
 
 	function normName(s) {
@@ -782,15 +835,15 @@
 				'<button type="button" class="prrint-edit-btn">' + esc(cfg.i18n.edit) + '</button>' +
 			'</div>' +
 			'<div class="prrint-item-fields">' +
-				'<label class="prrint-field"><span>' + esc(cfg.i18n.size) + '</span>' +
-					'<select class="prrint-size-select"></select></label>' +
-				'<label class="prrint-field"><span>' + esc(cfg.i18n.paper) + '</span>' +
-					'<select class="prrint-paper-select"></select></label>' +
 				(STYLES.length
 					? '<label class="prrint-field"><span>' + esc(cfg.i18n.style || 'Style') + '</span>' +
 						'<select class="prrint-style-select"></select>' +
 						'<small class="prrint-style-desc"></small></label>'
 					: '') +
+				'<label class="prrint-field"><span>' + esc(cfg.i18n.size) + '</span>' +
+					'<select class="prrint-size-select"></select></label>' +
+				'<label class="prrint-field prrint-paper-field"><span>' + esc(cfg.i18n.paper) + '</span>' +
+					'<select class="prrint-paper-select"></select></label>' +
 				(STYLES.length && EDGE_COLORS.length
 					? '<label class="prrint-field prrint-edge-field"><span>' + esc(cfg.i18n.edgeColor || 'Edge Color') + '</span>' +
 						'<span class="prrint-edge-select-wrap"><i class="prrint-edge-swatch" aria-hidden="true"></i>' +
@@ -814,13 +867,8 @@
 			'</div>';
 
 		var sizeSel = card.querySelector('.prrint-size-select');
-		cfg.sizes.forEach(function (s, i) {
-			var opt = document.createElement('option');
-			opt.value = String(i);
-			opt.textContent = s.label + ' — ' + formatPrice(s.price > 0 ? s.price : cfg.basePrice);
-			sizeSel.appendChild(opt);
-		});
-		sizeSel.value = String(item.sizeIdx);
+		item.card = card;
+		fillSizeOptions(item);
 
 		var paperSel = card.querySelector('.prrint-paper-select');
 		cfg.papers.forEach(function (p, i) {
@@ -842,7 +890,11 @@
 			});
 			styleSel.value = String(item.styleIdx);
 			styleSel.addEventListener('change', function () {
+				var before = currentSize(item);
 				item.styleIdx = Number(this.value) || 0;
+				item.sizeIdx = closestSizeIdx(sizesFor(item), before);
+				fillSizeOptions(item);
+				refitCrop(item);
 				syncEdgeOptions(item);
 				renderCard(item);
 				updateSummary();
@@ -926,8 +978,9 @@
 	 */
 	function duplicateItemForNewSize(source) {
 		var newSizeIdx = source.sizeIdx;
-		if (cfg.sizes.length > 1) {
-			newSizeIdx = (source.sizeIdx + 1) % cfg.sizes.length;
+		var sizeList = sizesFor(source);
+		if (sizeList.length > 1) {
+			newSizeIdx = (source.sizeIdx + 1) % sizeList.length;
 		}
 		var item = {
 			id: nextId++,
@@ -1148,10 +1201,10 @@
 				natW: img.naturalWidth,
 				natH: img.naturalHeight,
 				rot: 0,
-				orientation: img.naturalWidth >= img.naturalHeight ? 'landscape' : 'portrait',
+				orientation: cfg.preselectOrientation || (img.naturalWidth >= img.naturalHeight ? 'landscape' : 'portrait'),
 				sizeIdx: defaultSize,
 				paperIdx: defaultPaper,
-				styleIdx: 0,
+				styleIdx: defaultStyle,
 				edgeIdx: 0,
 				qty: 1,
 				design: newDesign(),
@@ -1159,6 +1212,7 @@
 				ready: true,
 				card: null
 			};
+			if (!sizesFor(item)[item.sizeIdx]) { item.sizeIdx = 0; }
 			item.crop = centeredCrop(item);
 			items.push(item);
 			buildCard(item);
@@ -1404,7 +1458,8 @@
 	}
 
 	function edPrintDims() {
-		var s = cfg.sizes[ed.sizeIdx];
+		var list = sizesFor(ed.item);
+		var s = list[ed.sizeIdx] || list[0];
 		var lo = Math.min(s.w, s.h);
 		var hi = Math.max(s.w, s.h);
 		return ed.orientation === 'landscape' ? { w: hi, h: lo } : { w: lo, h: hi };
@@ -1886,21 +1941,22 @@
 	}
 
 	/**
-	 * The "Common" grid: every configured print size, once per orientation
-	 * (a square size only once). Icon size grows with the print size, as in
-	 * the reference; picking one sets the print size + orientation.
+	 * The "Common" grid: every print size offered for the item's style, once
+	 * per orientation (a square size only once). Icon size grows with the
+	 * print size, as in the reference; picking one sets the print size +
+	 * orientation. Rebuilt each time the editor opens, as styles differ.
 	 */
-	function buildPresetGrid() {
+	function buildPresetGrid(sizes) {
 		if (!els.presetGrid) { return; }
-		var his = cfg.sizes.map(function (s) { return Math.max(s.w, s.h); });
+		var his = sizes.map(function (s) { return Math.max(s.w, s.h); });
 		var minHi = Math.min.apply(null, his);
 		var maxHi = Math.max.apply(null, his);
-		var squares = cfg.sizes.filter(function (s) { return s.w === s.h; }).length;
+		var squares = sizes.filter(function (s) { return s.w === s.h; }).length;
 		var html = '';
-		cfg.sizes.forEach(function (s, i) {
+		sizes.forEach(function (s, i) {
 			var lo = Math.min(s.w, s.h), hi = Math.max(s.w, s.h);
 			var L = 22 + 30 * (hi - minHi) / ((maxHi - minHi) || 1);
-			var price = formatPrice(s.price > 0 ? s.price : cfg.basePrice);
+
 			var variants = lo === hi
 				? [{ o: '', w: L, h: L, label: squares === 1 ? (cfg.i18n.square || 'Square') : fmtInches(lo) + ' X ' + fmtInches(hi) }]
 				: [
@@ -1908,6 +1964,7 @@
 					{ o: 'portrait', w: L * lo / hi, h: L, label: fmtInches(lo) + ' X ' + fmtInches(hi) }
 				];
 			variants.forEach(function (v) {
+				var price = formatPrice(sizePrice(s, v.o));
 				html += '<button type="button" class="prrint-preset" role="option" data-idx="' + i + '" data-orient="' + v.o + '" title="' + esc(s.label + ' — ' + price) + '">' +
 					'<span class="prrint-preset-icon"><i style="width:' + Math.round(v.w) + 'px;height:' + Math.round(v.h) + 'px"></i></span>' +
 					'<span class="prrint-preset-label">' + esc(v.label) + '</span></button>';
@@ -1925,7 +1982,7 @@
 		});
 	}
 
-	buildPresetGrid();
+	buildPresetGrid(cfg.sizes);
 	if (els.presetGrid) {
 		els.presetGrid.addEventListener('click', function (e) {
 			var b = e.target.closest('.prrint-preset');
@@ -2917,6 +2974,7 @@
 		ed.rot = item.rot;
 		ed.orientation = item.orientation;
 		ed.sizeIdx = item.sizeIdx;
+		buildPresetGrid(sizesFor(item));
 		ed.design = cloneDesign(item.design);
 		ed.selectedLayerId = null;
 		ed.history = [];
@@ -2985,8 +3043,8 @@
 		item.orientation = ed.orientation;
 		item.sizeIdx = ed.sizeIdx;
 		item.crop = edExportCrop();
-		var cardSize = item.card && item.card.querySelector('.prrint-size-select');
-		if (cardSize) { cardSize.value = String(item.sizeIdx); }
+		fillSizeOptions(item); // the orientation may have changed, and with it the price
+
 		ed.design.drawing = ed.hasDrawing ? { dataUrl: ed.drawCanvas.toDataURL('image/png') } : null;
 		item.design = cloneDesign(ed.design);
 

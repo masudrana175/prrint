@@ -491,12 +491,14 @@ class Prrint_Account {
 			echo '</td>';
 
 			echo '<td>';
-			$style_meta = (string) $item->get_meta( __( 'Style', 'prrint' ) );
+			$options = array_filter( array(
+				(string) $item->get_meta( __( 'Paper', 'prrint' ) ),
+				(string) $item->get_meta( __( 'Style', 'prrint' ) ),
+			), 'strlen' );
 			printf(
-				'%s<br />%s%s ×%d',
+				'%s<br />%s ×%d',
 				esc_html( $item->get_meta( __( 'Print size', 'prrint' ) ) ),
-				esc_html( $item->get_meta( __( 'Paper', 'prrint' ) ) ),
-				'' !== $style_meta ? esc_html( ' · ' . $style_meta ) : '',
+				esc_html( implode( ' · ', $options ) ),
 				(int) $item->get_quantity()
 			);
 			echo '</td>';
@@ -613,6 +615,8 @@ class Prrint_Account {
 			'style_surcharge' => isset( $snapshot['style_surcharge'] ) ? (float) $snapshot['style_surcharge'] : 0.0,
 			'edge_label'      => isset( $snapshot['edge_label'] ) ? sanitize_text_field( $snapshot['edge_label'] ) : '',
 			'edge_color'      => isset( $snapshot['edge_color'] ) ? (string) sanitize_hex_color( $snapshot['edge_color'] ) : '',
+			'style_product'   => isset( $snapshot['style_product'] ) ? absint( $snapshot['style_product'] ) : 0,
+			'style_variation' => isset( $snapshot['style_variation'] ) ? absint( $snapshot['style_variation'] ) : 0,
 			'orientation' => 'landscape' === $snapshot['orientation'] ? 'landscape' : 'portrait',
 			'border'      => ! empty( $snapshot['border'] ),
 			'design'      => isset( $snapshot['design'] ) && is_array( $snapshot['design'] ) ? $snapshot['design'] : null,
