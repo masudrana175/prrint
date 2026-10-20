@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.33.0
+Stable tag: 1.33.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,14 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.33.1 =
+* The download button on each photo now saves the customized image —
+  crop, rotation, flips, filters, text, stickers, drawing, overlay and
+  white border — as a JPEG at the photo's own resolution, instead of the
+  original upload. Named after the size and style, e.g.
+  print-8x10-colorlite.jpg. The edge color isn't part of the file (it's
+  the product's side, not the print).
 
 = 1.33.0 =
 * Style dropdown now lists ColorPlak's full range: Metal only, Metal Float,

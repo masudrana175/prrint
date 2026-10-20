@@ -236,6 +236,7 @@ class Prrint_Frontend {
 				'invertColors'  => __( 'Invert', 'prrint' ),
 				'noTextDesign'  => __( 'Choose a layout first.', 'prrint' ),
 				'download'      => __( 'Download', 'prrint' ),
+				'downloadDesign' => __( 'Download your customized image', 'prrint' ),
 				'usePhoto'      => __( 'Use this photo', 'prrint' ),
 				'confirmDeletePhoto' => __( 'Remove this photo from your saved photos? This cannot be undone.', 'prrint' ),
 				'photoDeleted'  => __( 'Photo deleted.', 'prrint' ),

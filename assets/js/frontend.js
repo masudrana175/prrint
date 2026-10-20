@@ -831,7 +831,7 @@
 			'<div class="prrint-thumb">' +
 				'<canvas class="prrint-thumb-canvas"></canvas>' +
 				'<span class="prrint-dpi-dot" title=""></span>' +
-				'<a class="prrint-download-btn" href="' + esc(item.img.src) + '" download title="' + esc(cfg.i18n.download) + '">' + cfg.icons.download + '</a>' +
+				'<a class="prrint-download-btn" href="' + esc(item.img.src) + '" download title="' + esc(cfg.i18n.downloadDesign || cfg.i18n.download) + '">' + cfg.icons.download + '</a>' +
 				'<button type="button" class="prrint-edit-btn">' + esc(cfg.i18n.edit) + '</button>' +
 			'</div>' +
 			'<div class="prrint-item-fields">' +
@@ -960,6 +960,10 @@
 		card.querySelector('.prrint-edit-btn').addEventListener('click', function () {
 			openEditor(item);
 		});
+		card.querySelector('.prrint-download-btn').addEventListener('click', function (e) {
+			e.preventDefault();
+			downloadItem(item);
+		});
 		card.querySelector('.prrint-thumb-canvas').addEventListener('click', function () {
 			openEditor(item);
 		});
@@ -1020,14 +1024,13 @@
 	 * Redraw one card: thumbnail canvas (photo + filter/adjust + border +
 	 * text layers), price, dpi dot.
 	 */
-	function renderCard(item) {
-		var card = item.card;
-		if (!card) { return; }
-
-		var canvas = card.querySelector('.prrint-thumb-canvas');
+	/**
+	 * Draw the item as it will print — crop, rotation, flips, filters, focus,
+	 * overlay, border and design layers — onto `canvas`, whose long side
+	 * becomes LONG px. Used for the card preview and the Download button.
+	 */
+	function paintItem(canvas, item, LONG) {
 		var p = printDims(item);
-		// Backing store sized for the large row preview (long side 1200px).
-		var LONG = 1200;
 		var TW = p.w >= p.h ? LONG : Math.round(LONG * p.w / p.h);
 		var TH = Math.round(TW * p.h / p.w);
 		canvas.width = TW;
@@ -1093,6 +1096,52 @@
 
 		var drawingSource = (item._drawingImg && item._drawingImg.complete) ? item._drawingImg : null;
 		drawDesignOverlay(c, item.design, frame, drawingSource);
+	}
+
+	/**
+	 * Download the customized print — what the card shows, at the photo's
+	 * own resolution for the crop (capped to a size every browser's canvas
+	 * handles) — as a JPEG. Falls back to the original upload if the browser
+	 * can't export the canvas.
+	 */
+	function downloadItem(item) {
+		var MAX_LONG = 8000, MAX_AREA = 16000000;
+		var p = printDims(item);
+		var aspect = Math.max(p.w, p.h) / Math.min(p.w, p.h);
+		var long = Math.round(Math.max(item.crop.w, item.crop.h));
+		long = Math.max(1200, Math.min(MAX_LONG, long, Math.floor(Math.sqrt(MAX_AREA * aspect))));
+		var save = function (href, name) {
+			var a = document.createElement('a');
+			a.href = href;
+			a.download = name;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+		};
+		var st = currentStyle(item);
+		var name = ['print', currentSize(item).label.replace(/[^0-9a-z.]+/gi, 'x'), st ? st.label.replace(/[^0-9a-z]+/gi, '-') : '']
+			.filter(Boolean).join('-').toLowerCase() + '.jpg';
+		try {
+			var canvas = document.createElement('canvas');
+			paintItem(canvas, item, long);
+			canvas.toBlob(function (blob) {
+				if (!blob) { save(item.img.src, ''); return; }
+				var url = URL.createObjectURL(blob);
+				save(url, name);
+				setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+			}, 'image/jpeg', 0.92);
+		} catch (err) {
+			save(item.img.src, '');
+		}
+	}
+
+	function renderCard(item) {
+		var card = item.card;
+		if (!card) { return; }
+
+		var canvas = card.querySelector('.prrint-thumb-canvas');
+		// Backing store sized for the large row preview (long side 1200px).
+		paintItem(canvas, item, 1200);
 
 		// The edge is the physical product's side, not part of the printed
 		// image, so it's shown as a frame around the canvas, never drawn on it.
