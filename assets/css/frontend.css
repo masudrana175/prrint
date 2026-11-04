@@ -1214,6 +1214,37 @@ body.prrint-modal-open {
 	white-space: nowrap;
 }
 
+/* "Custom" tile: a dashed outline, and its width × height inputs below. */
+#prrint-studio .prrint-preset-custom .prrint-preset-icon i {
+	background: transparent;
+	border: 2px dashed #77777f;
+}
+
+#prrint-studio .prrint-preset-custom.is-active .prrint-preset-icon i {
+	background: transparent;
+	border-color: var(--prrint-dark-accent);
+}
+
+#prrint-studio .prrint-preset-custom-box {
+	margin-top: 12px;
+}
+
+#prrint-studio .prrint-preset-custom-box[hidden] {
+	display: none;
+}
+
+#prrint-studio .prrint-ed-custom-hint {
+	display: block;
+	margin-top: 8px;
+	font-size: 0.78em;
+	line-height: 1.45;
+	color: var(--prrint-dark-muted);
+}
+
+#prrint-studio .prrint-ed-custom-hint.is-error {
+	color: #fca5a5;
+}
+
 /* ---------------------------------------------- crop bar under the photo */
 
 #prrint-studio .prrint-crop-bar {

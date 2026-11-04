@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.34.0
+Stable tag: 1.35.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,14 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.35.0 =
+* Custom size in the image editor: the Common size grid ends with a
+  "Custom" tile. It opens width × height inputs (inches, to 1/8") that
+  reshape the crop box as the customer types, with the size, price and the
+  style's maximum shown underneath. Same limits and pricing as the photo
+  card; Done carries the custom size back to the card, Undo/Redo and Reset
+  include it.
 
 = 1.34.0 =
 * Custom sizes: the Size dropdown ends with "Custom size…", where the

@@ -1642,7 +1642,8 @@
 		hasDrawing: false,
 		brushColor: '#000000',
 		brushSize: 4,
-		history: [],            // JSON snapshots of {design, rot, fineRot, orientation, sizeIdx}
+		custom: null,           // { w, h } inches while a custom size is picked (sizeIdx -1)
+		history: [],            // JSON snapshots of {design, rot, fineRot, orientation, sizeIdx, custom}
 		historyIndex: -1
 	};
 
@@ -1680,7 +1681,7 @@
 
 	function edPrintDims() {
 		var list = sizesFor(ed.item);
-		var s = ed.sizeIdx === -1 && ed.item.custom ? ed.item.custom : (list[ed.sizeIdx] || list[0]);
+		var s = ed.sizeIdx === -1 && ed.custom ? ed.custom : (list[ed.sizeIdx] || list[0]);
 		var lo = Math.min(s.w, s.h);
 		var hi = Math.max(s.w, s.h);
 		return ed.orientation === 'landscape' ? { w: hi, h: lo } : { w: lo, h: hi };
@@ -2191,16 +2192,107 @@
 					'<span class="prrint-preset-label">' + esc(v.label) + '</span></button>';
 			});
 		});
+		if (CUSTOM.enabled) {
+			html += '<button type="button" class="prrint-preset prrint-preset-custom" role="option" data-idx="custom" title="' + esc(cfg.i18n.customSize || 'Custom size…') + '">' +
+				'<span class="prrint-preset-icon"><i style="width:34px;height:24px"></i></span>' +
+				'<span class="prrint-preset-label">' + esc(cfg.i18n.customTile || 'Custom') + '</span></button>';
+		}
 		els.presetGrid.innerHTML = html;
+	}
+
+	/*
+	 * Custom size inside the editor: the "Custom" tile opens width × height
+	 * inputs (inches) under the grid. Same limits and pricing as the card's
+	 * Custom size; applied to the photo when the customer clicks Done.
+	 */
+	var edCustomBox = null;
+	if (els.presetGrid && CUSTOM.enabled) {
+		edCustomBox = document.createElement('div');
+		edCustomBox.className = 'prrint-preset-custom-box';
+		edCustomBox.hidden = true;
+		edCustomBox.innerHTML =
+			'<p class="prrint-crop-size-title">' + esc(cfg.i18n.customSizeLabel || 'Custom size (inches)') + '</p>' +
+			'<div class="prrint-crop-size-row">' +
+				'<label class="prrint-crop-size-field"><input type="number" class="prrint-ed-custom-w" min="1" step="0.125" inputmode="decimal" aria-label="' + esc(cfg.i18n.width || 'Width') + '" /><span>W</span></label>' +
+				'<span class="prrint-crop-size-x" aria-hidden="true">x</span>' +
+				'<label class="prrint-crop-size-field"><input type="number" class="prrint-ed-custom-h" min="1" step="0.125" inputmode="decimal" aria-label="' + esc(cfg.i18n.height || 'Height') + '" /><span>H</span></label>' +
+			'</div>' +
+			'<small class="prrint-ed-custom-hint"></small>';
+		els.presetGrid.parentNode.insertBefore(edCustomBox, els.presetGrid.nextSibling);
+	}
+
+	/** Size + price line under the editor's custom inputs. */
+	function edCustomSummary() {
+		var row = customRow(ed.item, ed.custom, ed.orientation);
+		var max = customMax(ed.item);
+		return row.label + ' — ' + formatPrice(sizePrice(row, ed.orientation)) + ' · ' +
+			(cfg.i18n.customMaxShort || 'max %1$s" × %2$s"').replace('%1$s', fmtIn(max[0])).replace('%2$s', fmtIn(max[1]));
+	}
+
+	function syncEdCustomBox() {
+		if (!edCustomBox) { return; }
+		var on = ed.sizeIdx === -1 && !!ed.custom && !!ed.item;
+		edCustomBox.hidden = !on;
+		if (!on) { return; }
+		var wIn = edCustomBox.querySelector('.prrint-ed-custom-w'), hIn = edCustomBox.querySelector('.prrint-ed-custom-h');
+		if (document.activeElement !== wIn) { wIn.value = fmtIn(ed.custom.w); }
+		if (document.activeElement !== hIn) { hIn.value = fmtIn(ed.custom.h); }
+		var hint = edCustomBox.querySelector('.prrint-ed-custom-hint');
+		hint.classList.remove('is-error');
+		hint.textContent = edCustomSummary();
+	}
+
+	/** Use custom dims { w, h } in the editor; false when outside the limits. */
+	function edSetCustom(w, h) {
+		w = Math.round(w * 8) / 8;
+		h = Math.round(h * 8) / 8;
+		if (customError(ed.item, w, h)) { return false; }
+		ed.custom = { w: w, h: h };
+		ed.sizeIdx = -1;
+		if (w !== h) { ed.orientation = w > h ? 'landscape' : 'portrait'; }
+		edFit();
+		edDraw();
+		edUpdateDpi();
+		syncPresetUI();
+		return true;
+	}
+
+	if (edCustomBox) {
+		var edApplyCustom = function (final) {
+			var w = Number(edCustomBox.querySelector('.prrint-ed-custom-w').value);
+			var h = Number(edCustomBox.querySelector('.prrint-ed-custom-h').value);
+			var err = customError(ed.item, w, h);
+			var hint = edCustomBox.querySelector('.prrint-ed-custom-hint');
+			if (err) {
+				if (final) {
+					syncEdCustomBox();
+					err += ' ' + (cfg.i18n.customKept || 'Keeping %s.').replace('%s', fmtIn(ed.custom.w) + '×' + fmtIn(ed.custom.h));
+				}
+				hint.textContent = err;
+				hint.classList.add('is-error');
+				return;
+			}
+			var before = ed.custom.w + 'x' + ed.custom.h;
+			if (before !== Math.round(w * 8) / 8 + 'x' + Math.round(h * 8) / 8) { edSetCustom(w, h); }
+			syncEdCustomBox();
+			if (final) { pushHistory(); }
+		};
+		edCustomBox.querySelectorAll('input').forEach(function (input) {
+			input.addEventListener('input', function () { edApplyCustom(false); });
+			input.addEventListener('change', function () { edApplyCustom(true); });
+		});
 	}
 
 	function syncPresetUI() {
 		if (!els.presetGrid) { return; }
 		els.presetGrid.querySelectorAll('.prrint-preset').forEach(function (b) {
-			var on = Number(b.dataset.idx) === ed.sizeIdx && (!b.dataset.orient || b.dataset.orient === ed.orientation);
+			var on = b.dataset.idx === 'custom'
+				? ed.sizeIdx === -1
+				: Number(b.dataset.idx) === ed.sizeIdx && (!b.dataset.orient || b.dataset.orient === ed.orientation);
 			b.classList.toggle('is-active', on);
 			b.setAttribute('aria-selected', on ? 'true' : 'false');
 		});
+		syncEdCustomBox();
 	}
 
 	buildPresetGrid(cfg.sizes);
@@ -2208,6 +2300,16 @@
 		els.presetGrid.addEventListener('click', function (e) {
 			var b = e.target.closest('.prrint-preset');
 			if (!b || !ed.item) { return; }
+			if (b.dataset.idx === 'custom') {
+				// Start from the size on screen, as it's oriented now.
+				var p = edPrintDims();
+				var start = ed.custom || { w: p.w, h: p.h };
+				if (!edSetCustom(start.w, start.h)) { edSetCustom(Math.max(p.w, CUSTOM.min), Math.max(p.h, CUSTOM.min)); }
+				pushHistory();
+				var wIn = edCustomBox && edCustomBox.querySelector('.prrint-ed-custom-w');
+				if (wIn) { wIn.focus(); wIn.select(); }
+				return;
+			}
 			ed.sizeIdx = Number(b.dataset.idx) || 0;
 			if (b.dataset.orient) { ed.orientation = b.dataset.orient; }
 			edFit();
@@ -3048,7 +3150,7 @@
 	// Undo also steps back through crop-box moves. Capped at 50 steps.
 
 	function snapshotState() {
-		return JSON.stringify({ design: ed.design, rot: ed.rot, fineRot: ed.fineRot, orientation: ed.orientation, sizeIdx: ed.sizeIdx, crop: edExportCrop() });
+		return JSON.stringify({ design: ed.design, rot: ed.rot, fineRot: ed.fineRot, orientation: ed.orientation, sizeIdx: ed.sizeIdx, custom: ed.custom, crop: edExportCrop() });
 	}
 
 	function updateUndoRedoButtons() {
@@ -3074,6 +3176,7 @@
 		ed.fineRot = state.fineRot || 0;
 		ed.orientation = state.orientation;
 		ed.sizeIdx = state.sizeIdx;
+		ed.custom = state.custom || null;
 		ed.selectedLayerId = null;
 		syncPanelUI();
 		syncPresetUI();
@@ -3195,6 +3298,7 @@
 		ed.rot = item.rot;
 		ed.orientation = item.orientation;
 		ed.sizeIdx = item.sizeIdx;
+		ed.custom = item.custom ? { w: item.custom.w, h: item.custom.h } : null;
 		buildPresetGrid(sizesFor(item));
 		ed.design = cloneDesign(item.design);
 		ed.selectedLayerId = null;
@@ -3263,6 +3367,7 @@
 		item.rot = ed.rot;
 		item.orientation = ed.orientation;
 		item.sizeIdx = ed.sizeIdx;
+		if (ed.sizeIdx === -1 && ed.custom) { item.custom = { w: ed.custom.w, h: ed.custom.h }; }
 		item.crop = edExportCrop();
 		fillSizeOptions(item); // the orientation may have changed, and with it the price
 
@@ -3534,6 +3639,7 @@
 			ed.rot = 0;
 			ed.fineRot = 0;
 			ed.sizeIdx = item.sizeIdx;
+			ed.custom = item.custom ? { w: item.custom.w, h: item.custom.h } : null;
 			ed.orientation = item.orientation;
 			ed.design.flipH = false;
 			ed.design.flipV = false;

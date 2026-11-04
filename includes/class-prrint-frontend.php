@@ -244,6 +244,9 @@ class Prrint_Frontend {
 				'customSize'      => __( 'Custom size…', 'prrint' ),
 				'customSizeLabel' => __( 'Custom size (inches)', 'prrint' ),
 				'customTag'       => __( '(custom)', 'prrint' ),
+				'customTile'      => __( 'Custom', 'prrint' ),
+				/* translators: 1: short side, 2: long side, in inches */
+				'customMaxShort'  => __( 'max %1$s" × %2$s"', 'prrint' ),
 				'width'           => __( 'Width', 'prrint' ),
 				'height'          => __( 'Height', 'prrint' ),
 				'customEnter'     => __( 'Enter a width and height in inches.', 'prrint' ),
