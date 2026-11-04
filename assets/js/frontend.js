@@ -234,8 +234,95 @@
 	}
 
 	function currentSize(item) {
+		if (item.sizeIdx === -1 && item.custom) { return customRow(item, item.custom, item.orientation); }
 		var list = sizesFor(item);
 		return list[item.sizeIdx] || list[0];
+	}
+
+	/* ---------------------------------------------------- custom sizes */
+
+	var CUSTOM = cfg.custom || { enabled: false, min: 4 };
+
+	function fmtIn(n) {
+		return String(Math.round(n * 1000) / 1000);
+	}
+
+	/** Largest custom size for the item's style, short side first. */
+	function customMax(item) {
+		var st = currentStyle(item);
+		return st && st.maxCustom ? st.maxCustom : [48, 96];
+	}
+
+	/**
+	 * Mirrors Prrint_Style_Products::custom_price(): a listed size (within
+	 * 1/8") costs its own price; any other size the next listed size up by
+	 * square inches; past the largest, its price per square inch.
+	 */
+	function customPrice(sizes, lo, hi, orientation) {
+		var area = lo * hi, best = null, big = null;
+		for (var i = 0; i < sizes.length; i++) {
+			var s = sizes[i];
+			var slo = Math.min(s.w, s.h), shi = Math.max(s.w, s.h), sarea = slo * shi;
+			if (Math.abs(slo - lo) <= 0.125 && Math.abs(shi - hi) <= 0.125) { return sizePrice(s, orientation); }
+			if (sarea >= area && (!best || sarea < best.a || (sarea === best.a && sizePrice(s, orientation) < sizePrice(best.s, orientation)))) {
+				best = { a: sarea, s: s };
+			}
+			if (!big || sarea > big.a) { big = { a: sarea, s: s }; }
+		}
+		if (best) { return sizePrice(best.s, orientation); }
+		if (!big || big.a <= 0) { return cfg.basePrice; }
+		return Math.round(sizePrice(big.s, orientation) * area / big.a * 100) / 100;
+	}
+
+	/** A size row for custom dims { w, h } (as entered, width × height). */
+	function customRow(item, dims, orientation) {
+		var lo = Math.min(dims.w, dims.h), hi = Math.max(dims.w, dims.h);
+		return {
+			label: fmtIn(dims.w) + '×' + fmtIn(dims.h) + ' ' + (cfg.i18n.customTag || '(custom)'),
+			w: lo,
+			h: hi,
+			price: customPrice(sizesFor(item), lo, hi, orientation),
+			custom: true
+		};
+	}
+
+	/** Error text for custom dims on the item's style, '' when they're fine. */
+	function customError(item, w, h) {
+		if (!(w > 0) || !(h > 0)) { return cfg.i18n.customEnter || 'Enter a width and height.'; }
+		var lo = Math.min(w, h), hi = Math.max(w, h), max = customMax(item);
+		if (lo < CUSTOM.min) { return (cfg.i18n.customMin || 'At least %s" on each side.').replace('%s', fmtIn(CUSTOM.min)); }
+		if (lo > max[0] || hi > max[1]) {
+			return (cfg.i18n.customMax || 'Up to %1$s" × %2$s".').replace('%1$s', fmtIn(max[0])).replace('%2$s', fmtIn(max[1]));
+		}
+		return '';
+	}
+
+	/** Apply custom dims to an item; false (and nothing changed) when invalid. */
+	function setCustomSize(item, w, h) {
+		w = Math.round(w * 8) / 8;
+		h = Math.round(h * 8) / 8;
+		if (customError(item, w, h)) { return false; }
+		item.custom = { w: w, h: h };
+		item.sizeIdx = -1;
+		if (w !== h) { item.orientation = w > h ? 'landscape' : 'portrait'; }
+		return true;
+	}
+
+	/** Show the custom fields (and their limits) when the item uses a custom size. */
+	function syncCustomFields(item) {
+		var box = item.card && item.card.querySelector('.prrint-custom-size');
+		if (!box) { return; }
+		var on = item.sizeIdx === -1 && !!item.custom;
+		box.hidden = !on;
+		if (!on) { return; }
+		var wIn = box.querySelector('.prrint-custom-w'), hIn = box.querySelector('.prrint-custom-h');
+		if (document.activeElement !== wIn) { wIn.value = fmtIn(item.custom.w); }
+		if (document.activeElement !== hIn) { hIn.value = fmtIn(item.custom.h); }
+		var max = customMax(item);
+		var hint = box.querySelector('.prrint-custom-hint');
+		hint.classList.remove('is-error');
+		hint.textContent = (cfg.i18n.customRange || '%1$s" to %2$s" × %3$s" · priced at the next size up')
+			.replace('%1$s', fmtIn(CUSTOM.min)).replace('%2$s', fmtIn(max[0])).replace('%3$s', fmtIn(max[1]));
 	}
 
 	/** Mirrors Prrint_Style_Products::size_price(): price per orientation when the product has one. */
@@ -270,7 +357,16 @@
 			opt.textContent = s.label + ' — ' + formatPrice(sizePrice(s, item.orientation));
 			sel.appendChild(opt);
 		});
-		sel.value = String(item.sizeIdx);
+		if (CUSTOM.enabled) {
+			var custom = document.createElement('option');
+			custom.value = 'custom';
+			custom.textContent = item.sizeIdx === -1 && item.custom
+				? currentSize(item).label + ' — ' + formatPrice(sizePrice(currentSize(item), item.orientation))
+				: (cfg.i18n.customSize || 'Custom size…');
+			sel.appendChild(custom);
+		}
+		sel.value = item.sizeIdx === -1 ? 'custom' : String(item.sizeIdx);
+		syncCustomFields(item);
 		var paperField = item.card.querySelector('.prrint-paper-field');
 		if (paperField) { paperField.hidden = isLinked(item); }
 	}
@@ -842,6 +938,17 @@
 					: '') +
 				'<label class="prrint-field"><span>' + esc(cfg.i18n.size) + '</span>' +
 					'<select class="prrint-size-select"></select></label>' +
+				(CUSTOM.enabled
+					? '<div class="prrint-field prrint-custom-size" hidden>' +
+						'<span>' + esc(cfg.i18n.customSizeLabel || 'Custom size (inches)') + '</span>' +
+						'<span class="prrint-custom-inputs">' +
+							'<input type="number" class="prrint-custom-w" min="1" step="0.125" inputmode="decimal" aria-label="' + esc(cfg.i18n.width || 'Width') + '" placeholder="' + esc(cfg.i18n.width || 'Width') + '" />' +
+							'<span class="prrint-custom-x">×</span>' +
+							'<input type="number" class="prrint-custom-h" min="1" step="0.125" inputmode="decimal" aria-label="' + esc(cfg.i18n.height || 'Height') + '" placeholder="' + esc(cfg.i18n.height || 'Height') + '" />' +
+						'</span>' +
+						'<small class="prrint-custom-hint"></small>' +
+					'</div>'
+					: '') +
 				'<label class="prrint-field prrint-paper-field"><span>' + esc(cfg.i18n.paper) + '</span>' +
 					'<select class="prrint-paper-select"></select></label>' +
 				(STYLES.length && EDGE_COLORS.length
@@ -892,7 +999,17 @@
 			styleSel.addEventListener('change', function () {
 				var before = currentSize(item);
 				item.styleIdx = Number(this.value) || 0;
-				item.sizeIdx = closestSizeIdx(sizesFor(item), before);
+				if (item.sizeIdx === -1 && item.custom) {
+					// Keep the custom size, shrunk to the new style's limit if needed.
+					var max = customMax(item), c = item.custom, land = c.w >= c.h;
+					var lo = Math.min(Math.min(c.w, c.h), max[0]), hi = Math.min(Math.max(c.w, c.h), max[1]);
+					if (lo !== Math.min(c.w, c.h) || hi !== Math.max(c.w, c.h)) {
+						setCustomSize(item, land ? hi : lo, land ? lo : hi);
+						toast(cfg.i18n.customShrunk || 'Size reduced to this style\'s maximum.');
+					}
+				} else {
+					item.sizeIdx = closestSizeIdx(sizesFor(item), before);
+				}
 				fillSizeOptions(item);
 				refitCrop(item);
 				syncEdgeOptions(item);
@@ -913,11 +1030,55 @@
 
 		/* events */
 		sizeSel.addEventListener('change', function () {
-			item.sizeIdx = Number(this.value) || 0;
+			if (this.value === 'custom') {
+				// Start from the current size, as it's oriented now.
+				var p = printDims(item);
+				if (!item.custom) { item.custom = { w: p.w, h: p.h }; }
+				if (!setCustomSize(item, item.custom.w, item.custom.h)) { setCustomSize(item, Math.max(p.w, CUSTOM.min), Math.max(p.h, CUSTOM.min)); }
+				item.sizeIdx = -1;
+			} else {
+				item.sizeIdx = Number(this.value) || 0;
+			}
+			fillSizeOptions(item);
 			refitCrop(item);
 			renderCard(item);
 			updateSummary();
+			if (this.value === 'custom') {
+				var wIn = card.querySelector('.prrint-custom-w');
+				if (wIn) { wIn.focus(); wIn.select(); }
+			}
 		});
+		var customBox = card.querySelector('.prrint-custom-size');
+		if (customBox) {
+			var applyCustom = function (final) {
+				var w = Number(customBox.querySelector('.prrint-custom-w').value);
+				var h = Number(customBox.querySelector('.prrint-custom-h').value);
+				var err = customError(item, w, h);
+				var hint = customBox.querySelector('.prrint-custom-hint');
+				if (err) {
+					if (final) {
+						// Put the fields back to the size still on order, and say so.
+						syncCustomFields(item);
+						err += ' ' + (cfg.i18n.customKept || 'Keeping %s.').replace('%s', fmtIn(item.custom.w) + '×' + fmtIn(item.custom.h));
+					}
+					hint.textContent = err;
+					hint.classList.add('is-error');
+					return;
+				}
+				var before = item.custom ? item.custom.w + 'x' + item.custom.h : '';
+				setCustomSize(item, w, h);
+				if (before !== item.custom.w + 'x' + item.custom.h) {
+					refitCrop(item);
+					renderCard(item);
+					updateSummary();
+				}
+				fillSizeOptions(item);
+			};
+			customBox.querySelectorAll('input').forEach(function (input) {
+				input.addEventListener('input', function () { applyCustom(false); });
+				input.addEventListener('change', function () { applyCustom(true); });
+			});
+		}
 		paperSel.addEventListener('change', function () {
 			item.paperIdx = Number(this.value) || 0;
 			renderCard(item);
@@ -994,7 +1155,8 @@
 			natH: source.natH,
 			rot: source.rot,
 			orientation: source.orientation,
-			sizeIdx: newSizeIdx,
+			sizeIdx: newSizeIdx === -1 ? 0 : newSizeIdx,
+			custom: null,
 			paperIdx: source.paperIdx,
 			styleIdx: source.styleIdx,
 			edgeIdx: source.edgeIdx,
@@ -1262,9 +1424,19 @@
 				card: null
 			};
 			if (!sizesFor(item)[item.sizeIdx]) { item.sizeIdx = 0; }
+			// "Need a custom size?" on a product page: the first photo opens on Custom size.
+			var startCustom = cfg.preselectCustom && CUSTOM.enabled && !items.length;
+			if (startCustom) {
+				var pd = printDims(item);
+				setCustomSize(item, pd.w, pd.h);
+			}
 			item.crop = centeredCrop(item);
 			items.push(item);
 			buildCard(item);
+			if (startCustom && item.card) {
+				var cw = item.card.querySelector('.prrint-custom-w');
+				if (cw) { cw.focus(); cw.select(); }
+			}
 			updateSummary();
 			if (item.card && item.card.scrollIntoView) {
 				item.card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1508,7 +1680,7 @@
 
 	function edPrintDims() {
 		var list = sizesFor(ed.item);
-		var s = list[ed.sizeIdx] || list[0];
+		var s = ed.sizeIdx === -1 && ed.item.custom ? ed.item.custom : (list[ed.sizeIdx] || list[0]);
 		var lo = Math.min(s.w, s.h);
 		var hi = Math.max(s.w, s.h);
 		return ed.orientation === 'landscape' ? { w: hi, h: lo } : { w: lo, h: hi };
@@ -3452,7 +3624,8 @@
 		var payload = ready.map(function (it) {
 			return {
 				token: it.token,
-				size: it.sizeIdx,
+				size: it.sizeIdx === -1 ? 0 : it.sizeIdx,
+				custom: it.sizeIdx === -1 && it.custom ? { w: it.custom.w, h: it.custom.h } : null,
 				paper: it.paperIdx,
 				style: STYLES.length ? it.styleIdx : -1,
 				edge: currentEdge(it) ? it.edgeIdx : -1,

@@ -261,6 +261,101 @@ class Prrint_Style_Products {
 		return isset( $size['price'] ) ? (float) $size['price'] : 0.0;
 	}
 
+	/* ------------------------------------------------------ custom sizes */
+
+	/**
+	 * Largest custom size for a style, short side first. The style's own
+	 * "max" setting (e.g. "48x96") wins; otherwise ColorPlak's limits from
+	 * the price sheet: metal 40x60, Hi-Lite 20x30, everything else 48x96.
+	 */
+	public static function style_max( $style ) {
+		$dims = ! empty( $style['max'] ) ? self::parse_dims( $style['max'] ) : null;
+		if ( $dims ) {
+			return array( min( $dims ), max( $dims ) );
+		}
+		$norm = self::norm( isset( $style['label'] ) ? $style['label'] : '' );
+		if ( false !== strpos( $norm, 'metal' ) ) {
+			return array( 40.0, 60.0 );
+		}
+		if ( 'hilite' === $norm ) {
+			return array( 20.0, 30.0 );
+		}
+		return array( 48.0, 96.0 );
+	}
+
+	/** Smallest custom side in inches. */
+	public static function custom_min() {
+		$min = (float) prrint_settings()['custom_min_in'];
+		return $min > 0 ? $min : 4.0;
+	}
+
+	/**
+	 * Price of a custom size, the way ColorPlak's price sheet prices them:
+	 * a listed size (within 1/8") costs its own price; any other size costs
+	 * the next listed size up by square inches; beyond the largest listed
+	 * size, the largest size's price per square inch.
+	 *
+	 * @return array { price: float, basis: size row used }
+	 */
+	public static function custom_price( $sizes, $lo, $hi, $orientation ) {
+		$area  = $lo * $hi;
+		$best  = null;
+		$big   = null;
+		foreach ( $sizes as $size ) {
+			$slo = min( $size['w'], $size['h'] );
+			$shi = max( $size['w'], $size['h'] );
+			if ( abs( $slo - $lo ) <= 0.125 && abs( $shi - $hi ) <= 0.125 ) {
+				return array( 'price' => self::size_price( $size, $orientation ), 'basis' => $size );
+			}
+			$sarea = $slo * $shi;
+			if ( $sarea >= $area && ( ! $best || $sarea < $best[0] || ( $sarea === $best[0] && self::size_price( $size, $orientation ) < self::size_price( $best[1], $orientation ) ) ) ) {
+				$best = array( $sarea, $size );
+			}
+			if ( ! $big || $sarea > $big[0] ) {
+				$big = array( $sarea, $size );
+			}
+		}
+		if ( $best ) {
+			return array( 'price' => self::size_price( $best[1], $orientation ), 'basis' => $best[1] );
+		}
+		if ( ! $big || $big[0] <= 0 ) {
+			return array( 'price' => 0.0, 'basis' => null );
+		}
+		return array( 'price' => round( self::size_price( $big[1], $orientation ) * $area / $big[0], 2 ), 'basis' => $big[1] );
+	}
+
+	/**
+	 * Validate a customer's custom size for a style: both sides at least the
+	 * minimum, within the style's maximum (either way round), rounded to
+	 * 1/8". Returns [ short, long ] or a WP_Error.
+	 */
+	public static function validate_custom( $style, $w, $h ) {
+		if ( empty( prrint_settings()['custom_sizes'] ) ) {
+			return new WP_Error( 'prrint', __( 'Custom sizes are not available.', 'prrint' ) );
+		}
+		$w = round( (float) $w * 8 ) / 8;
+		$h = round( (float) $h * 8 ) / 8;
+		$lo  = min( $w, $h );
+		$hi  = max( $w, $h );
+		$min = self::custom_min();
+		list( $max_lo, $max_hi ) = self::style_max( $style );
+		if ( $lo < $min ) {
+			/* translators: %s: minimum side in inches */
+			return new WP_Error( 'prrint', sprintf( __( 'Custom sizes must be at least %s" on each side.', 'prrint' ), self::fmt( $min ) ) );
+		}
+		if ( $lo > $max_lo || $hi > $max_hi ) {
+			/* translators: 1: style, 2: short side, 3: long side */
+			return new WP_Error( 'prrint', sprintf( __( '%1$s is available up to %2$s" x %3$s".', 'prrint' ), $style ? $style['label'] : '', self::fmt( $max_lo ), self::fmt( $max_hi ) ) );
+		}
+		return array( $lo, $hi );
+	}
+
+	/** "48×13" style label for a custom size, as entered (width × height). */
+	public static function custom_label( $w, $h ) {
+		/* translators: %s: size such as 48×13 */
+		return sprintf( __( '%s (custom)', 'prrint' ), self::fmt( $w ) . '×' . self::fmt( $h ) );
+	}
+
 	/**
 	 * Studio styles with their linked product and sizes: adds "linked"
 	 * (product id, 0 = not linked) and, when linked, "sizes".
@@ -271,6 +366,7 @@ class Prrint_Style_Products {
 			$pid   = self::product_for_style( $style );
 			$sizes = $pid ? self::product_sizes( $pid ) : array();
 			$style['linked'] = $sizes ? $pid : 0;
+			$style['maxCustom'] = self::style_max( $style );
 			if ( $sizes ) {
 				$style['sizes'] = $sizes;
 			}
@@ -387,6 +483,13 @@ class Prrint_Style_Products {
 			esc_html__( 'Customize your image', 'prrint' )
 		);
 		echo '<p class="prrint-customize-hint">' . esc_html__( 'Upload your photo, choose an edge color and see a preview before adding it to your cart.', 'prrint' ) . '</p>';
+		if ( ! empty( prrint_settings()['custom_sizes'] ) ) {
+			printf(
+				'<p class="prrint-customize-custom"><a href="%1$s">%2$s</a></p>',
+				esc_url( add_query_arg( 'custom', 1, $url ) ),
+				esc_html__( 'Need a custom size? Enter any size here →', 'prrint' )
+			);
+		}
 	}
 
 	/**
@@ -405,7 +508,8 @@ class Prrint_Style_Products {
 			'.prrint-customize-product form.variations_form .quantity{display:none!important}' .
 			'.prrint-customize-product .prrint-customize-btn{display:inline-block}' .
 			'.prrint-customize-product .prrint-customize-btn.disabled{opacity:.5;cursor:not-allowed}' .
-			'.prrint-customize-hint{margin:.6em 0 0;font-size:.9em;opacity:.8}'
+			'.prrint-customize-hint{margin:.6em 0 0;font-size:.9em;opacity:.8}' .
+			'.prrint-customize-custom{margin:.4em 0 0;font-size:.95em;font-weight:600}'
 		);
 		wp_enqueue_script( 'wc-add-to-cart-variation' );
 		wp_add_inline_script( 'wc-add-to-cart-variation', self::product_page_js() );

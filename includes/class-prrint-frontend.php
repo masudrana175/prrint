@@ -161,6 +161,11 @@ class Prrint_Frontend {
 			'preselectPaper' => $preselect_paper,
 			'preselectStyle' => $customize['style'],
 			'preselectOrientation' => $customize['orientation'],
+			'preselectCustom' => ! empty( $settings['custom_sizes'] ) && ! empty( $_GET['custom'] ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			'custom'         => array(
+				'enabled' => ! empty( $settings['custom_sizes'] ),
+				'min'     => Prrint_Style_Products::custom_min(),
+			),
 			'cartUrl'        => wc_get_cart_url(),
 			'filters'        => self::enabled_filters( $settings['enabled_filters'] ),
 			'overlays'       => self::enabled_overlays( $settings['enabled_overlays'] ),
@@ -236,6 +241,21 @@ class Prrint_Frontend {
 				'invertColors'  => __( 'Invert', 'prrint' ),
 				'noTextDesign'  => __( 'Choose a layout first.', 'prrint' ),
 				'download'      => __( 'Download', 'prrint' ),
+				'customSize'      => __( 'Custom size…', 'prrint' ),
+				'customSizeLabel' => __( 'Custom size (inches)', 'prrint' ),
+				'customTag'       => __( '(custom)', 'prrint' ),
+				'width'           => __( 'Width', 'prrint' ),
+				'height'          => __( 'Height', 'prrint' ),
+				'customEnter'     => __( 'Enter a width and height in inches.', 'prrint' ),
+				/* translators: %s: smallest side in inches */
+				'customMin'       => __( 'Custom sizes must be at least %s" on each side.', 'prrint' ),
+				/* translators: 1: short side, 2: long side, in inches */
+				'customMax'       => __( 'This style is available up to %1$s" × %2$s".', 'prrint' ),
+				/* translators: 1: smallest side, 2: max short side, 3: max long side, in inches */
+				'customRange'     => __( 'From %1$s" up to %2$s" × %3$s" · any size, to 1/8"', 'prrint' ),
+				/* translators: %s: the custom size still on order, e.g. 48×13 */
+				'customKept'      => __( 'Keeping %s.', 'prrint' ),
+				'customShrunk'    => __( 'Your custom size was reduced to this style\'s largest size.', 'prrint' ),
 				'downloadDesign' => __( 'Download your customized image', 'prrint' ),
 				'usePhoto'      => __( 'Use this photo', 'prrint' ),
 				'confirmDeletePhoto' => __( 'Remove this photo from your saved photos? This cannot be undone.', 'prrint' ),

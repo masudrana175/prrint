@@ -95,6 +95,8 @@ class Prrint_Settings {
 
 		$out['studio_product_id'] = isset( $input['studio_product_id'] ) ? absint( $input['studio_product_id'] ) : 0;
 		$out['studio_page_id']    = isset( $input['studio_page_id'] ) ? absint( $input['studio_page_id'] ) : 0;
+		$out['custom_sizes']      = ! empty( $input['custom_sizes'] );
+		$out['custom_min_in']     = max( 1, min( 24, isset( $input['custom_min_in'] ) ? (float) $input['custom_min_in'] : $defaults['custom_min_in'] ) );
 
 		$out['enabled_tools'] = array_values( array_intersect(
 			prrint_toggleable_tools(),
@@ -221,9 +223,19 @@ class Prrint_Settings {
 				'edge'        => ! empty( $row['edge'] ),
 				'description' => isset( $row['description'] ) ? sanitize_text_field( $row['description'] ) : '',
 				'product'     => isset( $row['product'] ) ? max( -1, (int) $row['product'] ) : 0,
+				'max'         => self::sanitize_max( isset( $row['max'] ) ? $row['max'] : '' ),
 			);
 		}
 		return array_slice( $styles, 0, 40 );
+	}
+
+	/** "48x96" (short side first) from what was typed, '' for automatic. */
+	protected static function sanitize_max( $value ) {
+		$dims = Prrint_Style_Products::parse_dims( sanitize_text_field( (string) $value ) );
+		if ( ! $dims ) {
+			return '';
+		}
+		return ( 0 + round( min( $dims ), 3 ) ) . 'x' . ( 0 + round( max( $dims ), 3 ) );
 	}
 
 	public static function sanitize_edge_colors( $rows ) {
@@ -317,6 +329,20 @@ class Prrint_Settings {
 					<?php self::render_styles_table( 'prrint_settings[styles]', $s['styles'], $currency ); ?>
 				</div>
 
+				<div class="prrint-card" data-prrint-tab="products">
+					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'ruler', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Custom sizes', 'prrint' ); ?></h2>
+					<p class="description"><?php esc_html_e( 'Lets customers type any print size (e.g. ColorBox 48 x 13) in the Size dropdown. Priced like the wholesale sheet: a listed size costs its own price; any other size costs the next listed size up by square inches; above the largest listed size, its price per square inch. Each style\'s largest size is set in the styles table above ("Max custom size"; automatic: metal 40x60, Hi-Lite 20x30, others 48x96).', 'prrint' ); ?></p>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th scope="row"><?php esc_html_e( 'Custom sizes', 'prrint' ); ?></th>
+							<td><label><input type="checkbox" name="prrint_settings[custom_sizes]" value="1" <?php checked( ! empty( $s['custom_sizes'] ) ); ?> /> <?php esc_html_e( 'Offer "Custom size…" in the studio', 'prrint' ); ?></label></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="prrint_custom_min_in"><?php esc_html_e( 'Smallest side', 'prrint' ); ?></label></th>
+							<td><input type="number" id="prrint_custom_min_in" name="prrint_settings[custom_min_in]" value="<?php echo esc_attr( $s['custom_min_in'] ); ?>" min="1" max="24" step="0.125" class="small-text" /> <?php esc_html_e( 'inches', 'prrint' ); ?></td>
+						</tr>
+					</table>
+				</div>
 				<div class="prrint-card" data-prrint-tab="products">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'square', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Edge colors', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Colors offered in the "Edge Color" dropdown for styles with a colored edge. The selected color is drawn around the customer\'s photo preview so they can see it before ordering. The code is shown with the name (e.g. "A - Matte Black") and recorded on the order. Use "Not available for" to hide a color for specific styles.', 'prrint' ); ?></p>
@@ -710,6 +736,14 @@ class Prrint_Settings {
 						<small class="prrint-style-link"><?php echo esc_html( self::style_link_summary( $style ) ); ?></small>
 					<?php endif; ?>
 				</td>
+				<td>
+					<?php
+					$auto = Prrint_Style_Products::style_max( array( 'label' => $style['label'] ) );
+					/* translators: 1: short side, 2: long side */
+					$placeholder = '' !== $style['label'] ? sprintf( __( 'Auto: %1$sx%2$s', 'prrint' ), 0 + $auto[0], 0 + $auto[1] ) : '48x96';
+					?>
+					<input type="text" class="prrint-max-input" name="<?php echo $n; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>[max]" value="<?php echo esc_attr( isset( $style['max'] ) ? $style['max'] : '' ); ?>" placeholder="<?php echo esc_attr( $placeholder ); ?>" />
+				</td>
 				<td class="prrint-col-actions"><button type="button" class="button-link-delete prrint-remove-row" aria-label="<?php esc_attr_e( 'Remove row', 'prrint' ); ?>">✕</button></td>
 			</tr>
 			<?php
@@ -724,6 +758,7 @@ class Prrint_Settings {
 					<th><?php esc_html_e( 'Colored edge', 'prrint' ); ?></th>
 					<th><?php esc_html_e( 'Description (shown to customers)', 'prrint' ); ?></th>
 					<th><?php esc_html_e( 'Sizes & prices from', 'prrint' ); ?></th>
+					<th><?php esc_html_e( 'Max custom size', 'prrint' ); ?></th>
 					<th class="prrint-col-actions"></th>
 				</tr>
 			</thead>
@@ -737,7 +772,7 @@ class Prrint_Settings {
 		</table>
 		</div>
 		<template class="prrint-row-template">
-			<?php $row( '__i__', array( 'label' => '', 'surcharge' => '', 'edge' => false, 'description' => '', 'product' => 0 ) ); ?>
+			<?php $row( '__i__', array( 'label' => '', 'surcharge' => '', 'edge' => false, 'description' => '', 'product' => 0, 'max' => '' ) ); ?>
 		</template>
 		<p><button type="button" class="button prrint-add-row"><?php esc_html_e( '+ Add style', 'prrint' ); ?></button></p>
 		<?php

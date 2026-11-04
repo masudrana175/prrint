@@ -426,3 +426,6 @@
 	max-width: none;
 	max-height: 560px;
 }
+.prrint-table .prrint-max-input {
+	width: 110px;
+}

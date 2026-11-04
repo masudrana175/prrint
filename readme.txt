@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.33.1
+Stable tag: 1.34.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,26 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.34.0 =
+* Custom sizes: the Size dropdown ends with "Custom size…", where the
+  customer types any width × height in inches (to 1/8"), e.g. ColorBox
+  48 x 13. The preview, crop and editor take that exact shape, and the
+  order line reads "48×13 (custom)".
+* Priced the way ColorPlak's price sheet prices custom sizes: a listed
+  size costs its own price; any other size costs the next listed size up
+  by square inches; above the largest listed size, that size's price per
+  square inch. The server re-checks and re-prices every custom size.
+* Limits per style: at least 4" a side (setting), up to each style's
+  maximum — automatic: metal 40x60, Hi-Lite 20x30, others 48x96 — or a
+  "Max custom size" set per style in the styles table. Switching to a
+  smaller style shrinks the size to fit; out-of-range entries show an
+  error and keep the last valid size.
+* Product pages with "Customize your image" also get "Need a custom size?
+  Enter any size here", which opens the studio on that style with Custom
+  size selected.
+* New Settings → Products → Custom sizes card: turn custom sizes on/off and
+  set the smallest side.
 
 = 1.33.1 =
 * The download button on each photo now saves the customized image —

@@ -3,7 +3,7 @@
  * Plugin Name: Prrint — Photo Print Studio for WooCommerce
  * Plugin URI:  https://github.com/masudrana175/prrint
  * Description: Turn WooCommerce products into a full photo print shop: multi-photo upload, crop/zoom/rotate editor, print sizes, paper finishes, white borders, live pricing, print-quality checks, and 300 DPI print-ready files on every order.
- * Version:     1.33.1
+ * Version:     1.34.0
  * Author:      Masud Rana
  * Author URI:  https://github.com/masudrana175
  * Text Domain: prrint
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PRRINT_VERSION', '1.33.1' );
+define( 'PRRINT_VERSION', '1.34.0' );
 define( 'PRRINT_FILE', __FILE__ );
 define( 'PRRINT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PRRINT_URL', plugin_dir_url( __FILE__ ) );
@@ -467,6 +467,8 @@ function prrint_default_settings() {
 		'framer_notify_email'           => '', // '' = the site admin email.
 		'framer_mailin_address'         => "Custom Art Services - Colorplak\n37110 Mesa Road\nTemecula, CA 92592",
 		'studio_product_id'             => 0, // 0 = use the auto-created sample product.
+		'custom_sizes'                  => true, // customers may enter their own print size
+		'custom_min_in'                 => 4,    // smallest custom side, inches
 		'studio_page_id'                => 0, // 0 = find it: "Create Your Print", else a page with [prrint_studio].
 		'enabled_tools'                 => prrint_toggleable_tools(),
 		'text_templates_enabled'        => prrint_text_template_ids(),

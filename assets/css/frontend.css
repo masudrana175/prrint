@@ -405,7 +405,7 @@ body.prrint-modal-open {
 	margin: 0 !important;
 }
 
-#prrint-studio .prrint-field > span:not(.prrint-edge-select-wrap) {
+#prrint-studio .prrint-field > span:not(.prrint-edge-select-wrap):not(.prrint-custom-inputs) {
 	font-size: 0.78em;
 	font-weight: 700;
 	letter-spacing: 0.04em;
@@ -438,6 +438,48 @@ body.prrint-modal-open {
 	border-color: var(--prrint-accent);
 	box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--prrint-accent) 18%, transparent);
+}
+
+/* Custom size: width × height inputs under the Size dropdown. */
+#prrint-studio .prrint-custom-inputs {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+#prrint-studio .prrint-custom-inputs input {
+	flex: 1 1 0;
+	min-width: 0;
+	width: 100%;
+	padding: 9px 12px;
+	border: 1px solid var(--prrint-line);
+	border-radius: 9px;
+	background: #fff;
+	color: var(--prrint-ink);
+	font-size: 0.96em;
+	-moz-appearance: textfield;
+}
+
+#prrint-studio .prrint-custom-inputs input:focus {
+	outline: none;
+	border-color: var(--prrint-accent);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--prrint-accent) 18%, transparent);
+}
+
+#prrint-studio .prrint-custom-x {
+	color: var(--prrint-muted);
+	font-weight: 600;
+}
+
+#prrint-studio .prrint-custom-hint {
+	display: block;
+	font-size: 0.8em;
+	line-height: 1.45;
+	color: var(--prrint-muted);
+}
+
+#prrint-studio .prrint-custom-hint.is-error {
+	color: #b91c1c;
 }
 
 #prrint-studio .prrint-style-desc {

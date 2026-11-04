@@ -229,9 +229,11 @@ class Prrint_Ajax {
 		$linked = ( $linked && ! empty( $sizes[0]['prices'] ) ) ? $linked : 0;
 		$papers = prrint_get_papers( $product_id );
 
+		// A custom size ({ w, h } in inches, as entered) replaces the size index.
+		$custom    = isset( $raw['custom'] ) && is_array( $raw['custom'] ) ? $raw['custom'] : null;
 		$size_idx  = isset( $raw['size'] ) ? absint( $raw['size'] ) : 0;
 		$paper_idx = isset( $raw['paper'] ) ? absint( $raw['paper'] ) : 0;
-		if ( ! isset( $sizes[ $size_idx ] ) || ( ! $linked && ! isset( $papers[ $paper_idx ] ) ) ) {
+		if ( ( ! $custom && ! isset( $sizes[ $size_idx ] ) ) || ( ! $linked && ! isset( $papers[ $paper_idx ] ) ) ) {
 			return new WP_Error( 'prrint', __( 'Invalid print options selected.', 'prrint' ) );
 		}
 
@@ -251,11 +253,34 @@ class Prrint_Ajax {
 			}
 		}
 
-		$size  = $sizes[ $size_idx ];
 		$paper = $linked ? array( 'label' => '', 'surcharge' => 0 ) : $papers[ $paper_idx ];
 
 		$variation = 0;
-		if ( $linked ) {
+		if ( $custom ) {
+			$cw   = isset( $custom['w'] ) && is_numeric( $custom['w'] ) ? (float) $custom['w'] : 0;
+			$ch   = isset( $custom['h'] ) && is_numeric( $custom['h'] ) ? (float) $custom['h'] : 0;
+			$dims = Prrint_Style_Products::validate_custom( $style, $cw, $ch );
+			if ( is_wp_error( $dims ) ) {
+				return $dims;
+			}
+			// The entered width/height decide the orientation (a square keeps the client's).
+			$cw = round( $cw * 8 ) / 8;
+			$ch = round( $ch * 8 ) / 8;
+			if ( $cw !== $ch ) {
+				$orientation = $cw > $ch ? 'landscape' : 'portrait';
+			}
+			$quote = Prrint_Style_Products::custom_price( $sizes, $dims[0], $dims[1], $orientation );
+			$size  = array(
+				'label'  => Prrint_Style_Products::custom_label( $cw, $ch ),
+				'w'      => $dims[0],
+				'h'      => $dims[1],
+				'price'  => $quote['price'],
+				'custom' => true,
+			);
+		} else {
+			$size = $sizes[ $size_idx ];
+		}
+		if ( $linked && empty( $size['custom'] ) ) {
 			$key       = (float) $size['w'] === (float) $size['h'] ? 'square' : $orientation;
 			$variation = isset( $size['variations'][ $key ] ) ? (int) $size['variations'][ $key ] : 0;
 		}
@@ -270,6 +295,7 @@ class Prrint_Ajax {
 				'file'        => $upload['file'],
 				'size_label'  => $size['label'],
 				'size_price'  => Prrint_Style_Products::size_price( $size, $orientation ),
+				'custom_size' => ! empty( $size['custom'] ),
 				'w_in'        => (float) $w_in,
 				'h_in'        => (float) $h_in,
 				'paper_label' => $paper['label'],
