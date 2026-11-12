@@ -285,13 +285,14 @@ class Prrint_Frontend {
 			$c[ $key ] = $value ? $value : $default;
 		}
 		return sprintf(
-			'#prrint-studio{--prrint-accent:%1$s;--prrint-accent-dark:%2$s;--prrint-accent-text:%3$s;--prrint-ink:%4$s;--prrint-card-bg:%5$s;--prrint-summary-bg:%6$s;}',
+			'#prrint-studio{--prrint-accent:%1$s;--prrint-accent-dark:%2$s;--prrint-accent-text:%3$s;--prrint-ink:%4$s;--prrint-card-bg:%5$s;--prrint-summary-bg:%6$s;--prrint-photo-bg:%7$s;}',
 			$c['color_primary'],
 			self::shade_hex( $c['color_primary'], 0.85 ),
 			$c['color_primary_text'],
 			$c['color_text'],
 			$c['color_card_bg'],
-			$c['color_summary_bg']
+			$c['color_summary_bg'],
+			$c['color_photo_bg']
 		);
 	}
 

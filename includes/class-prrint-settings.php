@@ -516,6 +516,7 @@ class Prrint_Settings {
 						self::render_color_field( 'color_text', __( 'Text', 'prrint' ), $s['color_text'] );
 						self::render_color_field( 'color_card_bg', __( 'Photo card background', 'prrint' ), $s['color_card_bg'] );
 						self::render_color_field( 'color_summary_bg', __( 'Total / Add to cart bar', 'prrint' ), $s['color_summary_bg'] );
+						self::render_color_field( 'color_photo_bg', __( 'Photo preview background', 'prrint' ), $s['color_photo_bg'] );
 						?>
 					</table>
 				</div>

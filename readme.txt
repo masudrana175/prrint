@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.36.1
+Stable tag: 1.37.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,11 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.37.0 =
+* The photo preview area (and My Photos thumbnails) use a solid background
+  instead of the checkerboard pattern: light grey by default, editable
+  under Settings → Colors → "Photo preview background".
 
 = 1.36.1 =
 * A crop that fills the photo keeps filling it when the print size or
