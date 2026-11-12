@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.40.0
+Stable tag: 1.41.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,15 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.41.0 =
+* New Settings → Shipping tab with a one-click "Set up Colorplak shipping"
+  button: creates a "United States" zone (or uses the zone already covering
+  the US) and adds Colorplak Box Shipping (default settings) and "Local
+  Pickup – Temecula" (free). Only what's missing is added, so it's safe to
+  run again; existing methods and settings are kept. The tab also shows
+  where the method is active (with Edit zone links) and the box chart.
+* `wp prrint shipping-setup` does the same from the command line.
 
 = 1.40.0 =
 * New shipping method "Colorplak Box Shipping" (WooCommerce → Settings →

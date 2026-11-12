@@ -25,8 +25,9 @@ defined( 'ABSPATH' ) || exit;
 
 class Prrint_Shipping {
 
-	const METHOD_ID  = 'prrint_box_shipping';
-	const LOG_SOURCE = 'prrint-shipping';
+	const METHOD_ID    = 'prrint_box_shipping';
+	const LOG_SOURCE   = 'prrint-shipping';
+	const SETUP_ACTION = 'prrint_shipping_setup';
 
 	/** Product ids already logged as "no size" this request. */
 	protected static $logged = array();
@@ -36,9 +37,11 @@ class Prrint_Shipping {
 		add_filter( 'woocommerce_shipping_methods', array( __CLASS__, 'register_method' ) );
 		add_action( 'woocommerce_check_cart_items', array( __CLASS__, 'check_cart_items' ) );
 		add_action( 'woocommerce_cart_totals_before_order_total', array( __CLASS__, 'cart_estimate_row' ) );
+		add_action( 'admin_post_' . self::SETUP_ACTION, array( __CLASS__, 'handle_setup' ) );
 
 		if ( defined( 'WP_CLI' ) && WP_CLI && class_exists( 'WP_CLI' ) ) {
 			WP_CLI::add_command( 'prrint shipping-test', array( __CLASS__, 'cli_test' ) );
+			WP_CLI::add_command( 'prrint shipping-setup', array( __CLASS__, 'cli_setup' ) );
 		}
 	}
 
@@ -390,7 +393,136 @@ class Prrint_Shipping {
 		);
 	}
 
+	/* ------------------------------------------------------ one-click setup */
+
+	/** Nonce-protected link for the settings page's "Set up shipping" button. */
+	public static function setup_url() {
+		return wp_nonce_url( admin_url( 'admin-post.php?action=' . self::SETUP_ACTION ), self::SETUP_ACTION );
+	}
+
+	public static function handle_setup() {
+		check_admin_referer( self::SETUP_ACTION );
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! class_exists( 'WC_Shipping_Zone' ) ) {
+			wp_die( esc_html__( 'You are not allowed to do that.', 'prrint' ) );
+		}
+		$result = self::run_setup();
+		wp_safe_redirect( add_query_arg(
+			array(
+				'page'        => 'prrint-settings',
+				'prrint_tab'  => 'shipping',
+				'prrint_ship' => $result['added'] ? 'done' : 'exists',
+			),
+			admin_url( 'admin.php' )
+		) );
+		exit;
+	}
+
+	/**
+	 * Sets up shipping the way ColorPlak needs it, adding only what's
+	 * missing (safe to run again): a "United States" zone (or the existing
+	 * zone covering the US) with Colorplak Box Shipping at its defaults and
+	 * "Local Pickup – Temecula" at no charge.
+	 *
+	 * @return array { zone_id, added: list of 'zone' | 'box' | 'pickup' }
+	 */
+	public static function run_setup() {
+		$added = array();
+		$zone  = self::find_us_zone();
+		if ( ! $zone ) {
+			$zone = new WC_Shipping_Zone();
+			$zone->set_zone_name( __( 'United States', 'prrint' ) );
+			$zone->add_location( 'US', 'country' );
+			$zone->save();
+			$added[] = 'zone';
+		}
+		$have = array();
+		foreach ( $zone->get_shipping_methods() as $method ) {
+			$have[] = $method->id;
+		}
+		if ( ! in_array( self::METHOD_ID, $have, true ) ) {
+			$instance_id = $zone->add_shipping_method( self::METHOD_ID );
+			if ( $instance_id ) {
+				update_option( 'woocommerce_' . self::METHOD_ID . '_' . $instance_id . '_settings', self::default_settings() );
+				$added[] = 'box';
+			}
+		}
+		if ( ! in_array( 'local_pickup', $have, true ) ) {
+			$instance_id = $zone->add_shipping_method( 'local_pickup' );
+			if ( $instance_id ) {
+				update_option( 'woocommerce_local_pickup_' . $instance_id . '_settings', array(
+					'title'      => __( 'Local Pickup – Temecula', 'prrint' ),
+					'tax_status' => 'none',
+					'cost'       => '',
+				) );
+				$added[] = 'pickup';
+			}
+		}
+		return array( 'zone_id' => $zone->get_id(), 'added' => $added );
+	}
+
+	/** The shipping zone that covers the whole United States, if any. */
+	protected static function find_us_zone() {
+		foreach ( WC_Shipping_Zones::get_zones() as $row ) {
+			$zone = WC_Shipping_Zones::get_zone( $row['id'] );
+			if ( ! $zone ) {
+				continue;
+			}
+			foreach ( $zone->get_zone_locations() as $location ) {
+				if ( 'country' === $location->type && 'US' === $location->code ) {
+					return $zone;
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Where Colorplak Box Shipping is used, for the settings page.
+	 *
+	 * @return array[] list of { zone_id, zone, enabled, settings }
+	 */
+	public static function setup_status() {
+		$out = array();
+		if ( ! class_exists( 'WC_Shipping_Zones' ) ) {
+			return $out;
+		}
+		foreach ( WC_Shipping_Zones::get_zones() as $row ) {
+			$zone = WC_Shipping_Zones::get_zone( $row['id'] );
+			if ( ! $zone ) {
+				continue;
+			}
+			foreach ( $zone->get_shipping_methods() as $method ) {
+				if ( self::METHOD_ID === $method->id ) {
+					$out[] = array(
+						'zone_id'  => $zone->get_id(),
+						'zone'     => $zone->get_zone_name(),
+						'enabled'  => 'yes' === $method->enabled,
+						'settings' => self::clean_settings( $method->instance_settings ),
+					);
+				}
+			}
+		}
+		return $out;
+	}
+
 	/* ------------------------------------------------------------- WP-CLI */
+
+	/**
+	 * Creates the United States zone with Colorplak Box Shipping and Local
+	 * Pickup – Temecula (only what's missing).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp prrint shipping-setup
+	 */
+	public static function cli_setup() {
+		$result = self::run_setup();
+		if ( ! $result['added'] ) {
+			WP_CLI::success( sprintf( 'Shipping was already set up (zone #%d). Nothing changed.', $result['zone_id'] ) );
+			return;
+		}
+		WP_CLI::success( sprintf( 'Shipping set up in zone #%d. Added: %s.', $result['zone_id'], implode( ', ', $result['added'] ) ) );
+	}
 
 	/**
 	 * Runs the shipping test cases against the live tier table.

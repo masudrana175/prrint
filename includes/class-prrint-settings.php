@@ -296,6 +296,7 @@ class Prrint_Settings {
 					'uploads'    => array( 'sliders', __( 'Quality & uploads', 'prrint' ) ),
 					'studio'     => array( 'link', __( 'Studio page', 'prrint' ) ),
 					'framers'    => array( 'bookmark', __( 'Framers', 'prrint' ) ),
+					'shipping'   => array( 'truck', __( 'Shipping', 'prrint' ) ),
 				);
 				?>
 				<div class="prrint-tabbar">
@@ -469,6 +470,8 @@ class Prrint_Settings {
 					</table>
 				</div>
 
+				<?php self::render_shipping_card(); ?>
+
 				<div class="prrint-card" data-prrint-tab="editor">
 					<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'toolbox', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Editor tools', 'prrint' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Turn tools off to simplify the editor for your store. Transform (crop & rotate) is always on.', 'prrint' ); ?></p>
@@ -539,6 +542,84 @@ class Prrint_Settings {
 			return '';
 		}
 		return get_permalink( $page_id );
+	}
+
+	/**
+	 * Shipping tab: where Colorplak Box Shipping is active, the box chart, and
+	 * the one-click setup button. The button is a nonce link to admin-post
+	 * (this card sits inside the settings form, which can't hold another form).
+	 */
+	protected static function render_shipping_card() {
+		$status = Prrint_Shipping::setup_status();
+		$result = isset( $_GET['prrint_ship'] ) ? sanitize_key( wp_unslash( $_GET['prrint_ship'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display only.
+		$modes  = array(
+			'upgrade'  => __( 'upgrade whole order', 'prrint' ),
+			'separate' => __( 'separate boxes per tier', 'prrint' ),
+		);
+		?>
+		<div class="prrint-card" data-prrint-tab="shipping">
+			<h2><span class="prrint-card-icon" aria-hidden="true"><?php echo Prrint_Icons::get( 'truck', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span> <?php esc_html_e( 'Shipping', 'prrint' ); ?></h2>
+
+			<?php if ( 'done' === $result ) : ?>
+				<div class="notice notice-success inline"><p><?php esc_html_e( 'Shipping is set up: the United States zone now has Colorplak Box Shipping and Local Pickup – Temecula.', 'prrint' ); ?></p></div>
+			<?php elseif ( 'exists' === $result ) : ?>
+				<div class="notice notice-info inline"><p><?php esc_html_e( 'Shipping was already set up — nothing needed to change.', 'prrint' ); ?></p></div>
+			<?php endif; ?>
+
+			<p class="description"><?php esc_html_e( '"Colorplak Box Shipping" prices shipping from each print\'s size (square inches) and the number of prints, using the box chart below. Customers see it in the cart as e.g. "Standard Shipping (2 boxes)".', 'prrint' ); ?></p>
+
+			<?php if ( $status ) : ?>
+				<ul class="prrint-ship-status">
+					<?php foreach ( $status as $row ) : ?>
+						<li>
+							<span class="prrint-ship-dot <?php echo $row['enabled'] ? 'is-on' : 'is-off'; ?>" aria-hidden="true"></span>
+							<strong><?php echo esc_html( $row['zone'] ); ?></strong> —
+							<?php
+							echo esc_html( $row['enabled']
+								/* translators: 1: method title, 2: calculation mode */
+								? sprintf( __( 'active as "%1$s", %2$s', 'prrint' ), $row['settings']['title'], $modes[ $row['settings']['mode'] ] )
+								: __( 'added but turned off', 'prrint' ) );
+							?>
+							<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=shipping&zone_id=' . (int) $row['zone_id'] ) ); ?>"><?php esc_html_e( 'Edit zone', 'prrint' ); ?></a>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			<?php else : ?>
+				<p><strong><?php esc_html_e( 'Not set up yet — customers currently don\'t get Colorplak box shipping rates.', 'prrint' ); ?></strong></p>
+			<?php endif; ?>
+
+			<p>
+				<a class="button <?php echo $status ? '' : 'button-primary'; ?>" href="<?php echo esc_url( Prrint_Shipping::setup_url() ); ?>"><?php echo esc_html( $status ? __( 'Run shipping setup again', 'prrint' ) : __( 'Set up Colorplak shipping', 'prrint' ) ); ?></a>
+				<a class="button-link" href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=shipping' ) ); ?>"><?php esc_html_e( 'All shipping zones', 'prrint' ); ?></a>
+			</p>
+			<p class="description"><?php esc_html_e( 'Creates a "United States" zone (or uses the zone that already covers the US) and adds Colorplak Box Shipping and "Local Pickup – Temecula" (free) to it. Only what\'s missing is added, so it\'s safe to run again; existing methods and their settings are left alone.', 'prrint' ); ?></p>
+
+			<h3><?php esc_html_e( 'Box chart', 'prrint' ); ?></h3>
+			<table class="widefat striped prrint-table prrint-ship-chart">
+				<thead><tr><th><?php esc_html_e( 'Tier', 'prrint' ); ?></th><th><?php esc_html_e( 'Square inches', 'prrint' ); ?></th><th><?php esc_html_e( 'Box', 'prrint' ); ?></th><th><?php esc_html_e( 'Freight', 'prrint' ); ?></th><th><?php esc_html_e( 'Prints per box', 'prrint' ); ?></th></tr></thead>
+				<tbody>
+					<?php
+					$from = 0;
+					foreach ( Prrint_Shipping::tiers() as $i => $tier ) :
+						$range = null === $tier['max_sqin']
+							/* translators: %s: square inches */
+							? sprintf( __( 'over %s', 'prrint' ), number_format_i18n( $from - 1 ) )
+							: number_format_i18n( $from ) . ' – ' . number_format_i18n( $tier['max_sqin'] );
+						$from  = null === $tier['max_sqin'] ? $from : (int) $tier['max_sqin'] + 1;
+						?>
+						<tr>
+							<td><?php echo (int) ( $i + 1 ); ?></td>
+							<td><?php echo esc_html( $range ); ?></td>
+							<td><?php echo wp_kses_post( wc_price( $tier['box'] ) ); ?></td>
+							<td><?php echo null === $tier['freight'] ? esc_html__( 'quote', 'prrint' ) : wp_kses_post( wc_price( $tier['freight'] ) ); ?></td>
+							<td><?php echo (int) $tier['per_box']; ?></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+			<p class="description"><?php esc_html_e( 'Developers can change these prices with the prrint_shipping_tiers filter. Check the setup on the live site with: wp prrint shipping-test', 'prrint' ); ?></p>
+		</div>
+		<?php
 	}
 
 	/**

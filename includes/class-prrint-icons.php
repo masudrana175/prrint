@@ -25,6 +25,7 @@ class Prrint_Icons {
 		'link'        => '<path d="M9 15l6-6"/><path d="M11 6l1-1a4 4 0 0 1 5.5 5.5l-1.5 1.5"/><path d="M13 18l-1 1a4 4 0 0 1-5.5-5.5l1.5-1.5"/>',
 		'toolbox'     => '<rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M8 9V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v3"/><line x1="3" y1="13" x2="21" y2="13"/><line x1="11" y1="12" x2="13" y2="12"/>',
 		'brush'       => '<path d="M19 3l2 2-9 9-2-2z"/><path d="M12 10l-1.5 5.5L5 17c-1 2 .5 4 2.5 3l1.5-5.5"/>',
+		'truck'       => '<path d="M2 6h11v10H2z"/><path d="M13 9h4l4 4v3h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
 		'bookmark'    => '<path d="M6 3h12a1 1 0 0 1 1 1v16l-7-4-7 4V4a1 1 0 0 1 1-1z"/>',
 		'palette'     => '<path d="M12 3a9 9 0 1 0 0 18c1 0 1.6-.5 1.6-1.4 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.7 1.8-1.7H16a4 4 0 0 0 4-4c0-4.4-3.6-8.5-8-8.5z"/><circle cx="7.5" cy="10.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="7" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="7.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="17" cy="11" r="1.1" fill="currentColor" stroke="none"/>',
 		'crop'        => '<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>',

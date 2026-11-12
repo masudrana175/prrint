@@ -429,3 +429,30 @@
 .prrint-table .prrint-max-input {
 	width: 110px;
 }
+
+/* Shipping tab */
+.prrint-ship-status {
+	margin: 12px 0;
+}
+.prrint-ship-status li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.prrint-ship-dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: #c3c4c7;
+}
+.prrint-ship-dot.is-on {
+	background: #00a32a;
+}
+.prrint-ship-chart {
+	max-width: 640px;
+}
+.prrint-card .button + .button-link {
+	margin-left: 10px;
+	vertical-align: middle;
+}
