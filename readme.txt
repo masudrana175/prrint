@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.39.1
+Stable tag: 1.40.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,28 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.40.0 =
+* New shipping method "Colorplak Box Shipping" (WooCommerce → Settings →
+  Shipping → a zone → Add shipping method). Prices shipping from each
+  print's size in square inches and the number of prints, using the box
+  chart: up to 224 sq in $8 box + $14 freight (10 per box); 225–600 $17 +
+  $19.50 (6); 601–1200 $24 + $28 (4); 1201–1728 $34 + $55 (2); over 1728
+  oversized ($45 box, freight quoted). The table is filterable
+  (prrint_shipping_tiers).
+* Sizes come from the "Size" variation attribute (pa_size or a custom
+  "size"; 8x12, 8 x 12, 8×12, decimals) or from the print size of items
+  made in "Customize your image" (custom sizes included). Virtual,
+  downloadable, "Custom Design" and framer wholesale lines are skipped;
+  other items with no size ship as the smallest box and are logged
+  (WooCommerce → Status → Logs, source "prrint-shipping").
+* Per method: title (rate reads "Standard Shipping (2 boxes)"), calculation
+  (upgrade the whole order to the largest print's box — default — or
+  separate boxes per size tier), oversized prints (block checkout with a
+  "contact us for a freight quote" notice — default — or charge the $45
+  box only) and an optional free shipping threshold.
+* The cart shows a "Shipping estimate" line before an address is entered.
+* `wp prrint shipping-test` runs the shipping test cases on the live site.
 
 = 1.39.1 =
 * Fix: the remove (trash) button under each photo was invisible on themes
