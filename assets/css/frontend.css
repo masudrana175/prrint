@@ -233,6 +233,25 @@ body.prrint-modal-open {
 	cursor: default;
 }
 
+#prrint-studio .prrint-library-use.is-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	opacity: 0.85;
+	cursor: progress;
+}
+
+#prrint-studio .prrint-btn-spinner {
+	width: 15px;
+	height: 15px;
+	flex: 0 0 15px;
+	border: 2px solid currentColor;
+	border-right-color: transparent;
+	border-radius: 50%;
+	animation: prrint-spin 0.7s linear infinite;
+}
+
 #prrint-studio .prrint-library-tile-actions {
 	display: flex;
 	align-items: center;
@@ -325,7 +344,7 @@ body.prrint-modal-open {
 #prrint-studio .prrint-item-fields {
 	border-left: 1px solid var(--prrint-line);
 	align-self: stretch;
-	justify-content: center;
+	justify-content: flex-start;
 }
 
 #prrint-studio .prrint-thumb-canvas {
@@ -455,8 +474,19 @@ body.prrint-modal-open {
 #prrint-studio .prrint-item-fields {
 	display: flex;
 	flex-direction: column;
-	gap: 14px;
-	padding: 24px;
+	gap: 16px;
+	padding: 22px 24px 20px;
+}
+
+/* "Print options" heading at the top of the panel. */
+#prrint-studio .prrint-fields-head {
+	margin: 0 0 2px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid var(--prrint-line);
+	color: var(--prrint-ink);
+	font-size: 1em;
+	font-weight: 700;
+	letter-spacing: -0.01em;
 }
 
 #prrint-studio .prrint-field {
@@ -545,10 +575,14 @@ body.prrint-modal-open {
 
 #prrint-studio .prrint-style-desc {
 	display: block;
-	margin-top: 2px;
-	font-size: 0.8em;
-	line-height: 1.45;
+	margin-top: 4px;
+	padding: 8px 10px;
+	border-left: 3px solid var(--prrint-accent);
+	border-radius: 6px;
+	background: var(--prrint-bg);
 	color: var(--prrint-muted);
+	font-size: 0.8em;
+	line-height: 1.5;
 }
 
 #prrint-studio .prrint-style-desc[hidden] {
@@ -598,6 +632,9 @@ body.prrint-modal-open {
 	justify-content: space-between;
 	gap: 10px;
 	flex-wrap: wrap;
+	padding: 10px 12px;
+	border: 1px solid var(--prrint-line);
+	border-radius: 10px;
 }
 
 #prrint-studio .prrint-border-label {
@@ -605,8 +642,17 @@ body.prrint-modal-open {
 	align-items: center;
 	gap: 6px;
 	margin: 0 !important;
+	color: var(--prrint-ink);
 	font-size: 0.9em;
+	font-weight: 500;
 	cursor: pointer;
+}
+
+#prrint-studio .prrint-border-label input {
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	accent-color: var(--prrint-accent);
 }
 
 #prrint-studio .prrint-qty {
@@ -656,19 +702,35 @@ body.prrint-modal-open {
 	margin: 0;
 }
 
+/* Footer pinned to the bottom of the panel: line total + actions. */
 #prrint-studio .prrint-item-footer {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
-	padding-top: 12px;
+	margin-top: auto;
+	padding-top: 14px;
 	border-top: 1px solid var(--prrint-line);
 }
 
 #prrint-studio .prrint-item-price {
-	font-weight: 700;
-	font-size: 1.1em;
+	display: flex;
+	flex-direction: column;
+	line-height: 1.15;
 	color: var(--prrint-ink);
+}
+
+#prrint-studio .prrint-price-total {
+	font-size: 1.35em;
+	font-weight: 800;
+	letter-spacing: -0.01em;
+}
+
+#prrint-studio .prrint-price-unit {
+	margin-top: 2px;
+	color: var(--prrint-muted);
+	font-size: 0.78em;
+	font-weight: 500;
 }
 
 #prrint-studio .prrint-remove-btn {

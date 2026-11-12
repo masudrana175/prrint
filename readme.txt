@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.38.0
+Stable tag: 1.39.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,15 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.39.0 =
+* Redesigned the options panel next to each photo: a "Print options"
+  heading, fields starting at the top, the style description in a soft
+  info box, White border + quantity in one bordered row, and the line total
+  (with "2 × $53.60" underneath) pinned to the bottom with Add size/remove.
+* "Use this photo" (My Photos) now shows a spinner and "Adding photo…",
+  ignores extra clicks, and a "Preparing your photo…" card appears where
+  the photo will land until it's ready.
 
 = 1.38.0 =
 * Customers can change the background behind their photo previews: a small

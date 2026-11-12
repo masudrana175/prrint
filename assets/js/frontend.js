@@ -1019,6 +1019,7 @@
 				bgPickerHtml() +
 			'</div>' +
 			'<div class="prrint-item-fields">' +
+				'<div class="prrint-fields-head">' + esc(cfg.i18n.printOptions || 'Print options') + '</div>' +
 				(STYLES.length
 					? '<label class="prrint-field"><span>' + esc(cfg.i18n.style || 'Style') + '</span>' +
 						'<select class="prrint-style-select"></select>' +
@@ -1399,10 +1400,10 @@
 
 		// Price line.
 		var unit = unitPrice(item);
-		card.querySelector('.prrint-item-price').textContent =
-			item.qty > 1
-				? item.qty + ' × ' + formatPrice(unit) + ' = ' + formatPrice(unit * item.qty)
-				: formatPrice(unit) + ' ' + cfg.i18n.each;
+		// Line total first, with what it's made of underneath.
+		card.querySelector('.prrint-item-price').innerHTML =
+			'<strong class="prrint-price-total">' + esc(formatPrice(unit * item.qty)) + '</strong>' +
+			'<small class="prrint-price-unit">' + esc(item.qty > 1 ? item.qty + ' × ' + formatPrice(unit) : cfg.i18n.each) + '</small>';
 
 		// DPI dot.
 		var dot = card.querySelector('.prrint-dpi-dot');
@@ -1474,10 +1475,11 @@
 	 * "Use this photo" on a saved library photo (which returns the exact
 	 * same shape, just pointing at the library's own permanent file).
 	 */
-	function createItemFromUpload(data, placeholder) {
+	function createItemFromUpload(data, placeholder, done) {
 		var img = new Image();
 		img.onload = function () {
 			if (placeholder) { placeholder.remove(); }
+			if (done) { done(); }
 
 			var item = {
 				id: nextId++,
@@ -1518,9 +1520,24 @@
 		};
 		img.onerror = function () {
 			if (placeholder) { placeholder.remove(); }
+			if (done) { done(); }
 			toast(cfg.i18n.uploadError, true);
 		};
 		img.src = data.url;
+	}
+
+	/** A loading card in the photo list (spinner, optional progress bar). */
+	function loadingCard(text, withProgress) {
+		var ph = document.createElement('div');
+		ph.className = 'prrint-item prrint-item-loading';
+		ph.innerHTML =
+			'<div class="prrint-loading-box">' +
+				'<div class="prrint-spinner"></div>' +
+				(withProgress ? '<div class="prrint-progress"><div class="prrint-progress-bar"></div></div>' : '') +
+				'<span class="prrint-loading-text">' + esc(text) + '</span>' +
+			'</div>';
+		els.items.appendChild(ph);
+		return ph;
 	}
 
 	function handleFiles(fileList) {
@@ -1541,15 +1558,7 @@
 		}
 
 		// Placeholder card with progress.
-		var ph = document.createElement('div');
-		ph.className = 'prrint-item prrint-item-loading';
-		ph.innerHTML =
-			'<div class="prrint-loading-box">' +
-				'<div class="prrint-spinner"></div>' +
-				'<div class="prrint-progress"><div class="prrint-progress-bar"></div></div>' +
-				'<span class="prrint-loading-text">' + esc(cfg.i18n.uploading) + '</span>' +
-			'</div>';
-		els.items.appendChild(ph);
+		var ph = loadingCard(cfg.i18n.uploading, true);
 		var bar = ph.querySelector('.prrint-progress-bar');
 
 		var fd = new FormData();
@@ -1632,13 +1641,28 @@
 		els.libraryGrid.addEventListener('click', function (e) {
 			var useBtn = e.target.closest('.prrint-library-use');
 			if (useBtn) {
+				if (useBtn.disabled) { return; }
+				// Busy button + a loading card where the photo will appear, until
+				// the photo has actually loaded into the studio.
+				var label = useBtn.textContent;
 				useBtn.disabled = true;
+				useBtn.classList.add('is-loading');
+				useBtn.setAttribute('aria-busy', 'true');
+				useBtn.innerHTML = '<span class="prrint-btn-spinner" aria-hidden="true"></span>' + esc(cfg.i18n.addingPhoto || 'Adding photo…');
+				var ph = loadingCard(cfg.i18n.preparingPhoto || 'Preparing your photo…');
+				if (ph.scrollIntoView) { ph.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+				var reset = function () {
+					useBtn.disabled = false;
+					useBtn.classList.remove('is-loading');
+					useBtn.removeAttribute('aria-busy');
+					useBtn.textContent = label;
+				};
 				postAjax('prrint_use_library_photo', { id: useBtn.dataset.id }, function (data) {
-					createItemFromUpload(data, null);
-					useBtn.disabled = false;
+					createItemFromUpload(data, ph, reset);
 				}, function (message) {
+					ph.remove();
+					reset();
 					toast(message || cfg.i18n.uploadError, true);
-					useBtn.disabled = false;
 				});
 				return;
 			}
