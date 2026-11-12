@@ -44,6 +44,7 @@
 
 #prrint-studio button {
 	margin: 0;
+	padding: 0; /* every studio button sets its own; theme padding would stretch fixed-size icon buttons */
 	box-shadow: none;
 	text-decoration: none;
 }

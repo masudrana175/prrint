@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.35.1
+Stable tag: 1.36.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,25 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.36.0 =
+* Fix: a print size could be billed wrongly if a shop variation sold out
+  (or came back) while a customer was designing. The studio now sends the
+  size's dimensions with it and the server matches by dimensions; a size
+  that's no longer sold is refused with a message instead.
+* Fix: typing a custom size no longer shrinks the crop. Custom sizes apply
+  when the customer leaves the field (Tab/Enter), not per keystroke, and a
+  size change keeps the crop's zoom instead of its width.
+* No more red "at least 4"" errors flashing while a number is being typed.
+* Theme button padding can no longer stretch the studio's icon buttons
+  (editor tools, My Photos icons): one reset for every studio button.
+* Product size caches are only cleared when a product a style uses (or
+  could use) changes, or a page is saved — not on every sale or post
+  deletion. Publishing the studio page now shows "Customize your image"
+  right away.
+* Downloads of custom sizes are named like print-48x13-colorbox.jpg.
+* The card and editor custom size inputs share one implementation, and
+  inch values use one formatter.
 
 = 1.35.1 =
 * My Photos: the download and delete icons under each saved photo are now

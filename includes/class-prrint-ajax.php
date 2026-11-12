@@ -233,7 +233,7 @@ class Prrint_Ajax {
 		$custom    = isset( $raw['custom'] ) && is_array( $raw['custom'] ) ? $raw['custom'] : null;
 		$size_idx  = isset( $raw['size'] ) ? absint( $raw['size'] ) : 0;
 		$paper_idx = isset( $raw['paper'] ) ? absint( $raw['paper'] ) : 0;
-		if ( ( ! $custom && ! isset( $sizes[ $size_idx ] ) ) || ( ! $linked && ! isset( $papers[ $paper_idx ] ) ) ) {
+		if ( ! $linked && ! isset( $papers[ $paper_idx ] ) ) {
 			return new WP_Error( 'prrint', __( 'Invalid print options selected.', 'prrint' ) );
 		}
 
@@ -278,7 +278,13 @@ class Prrint_Ajax {
 				'custom' => true,
 			);
 		} else {
-			$size = $sizes[ $size_idx ];
+			// The index is checked against the size the customer actually saw:
+			// a linked product's list shrinks or grows as variations sell out
+			// or come back, so an index alone could name a different size.
+			$size = self::match_size( $sizes, $size_idx, isset( $raw['dims'] ) ? $raw['dims'] : null );
+			if ( ! $size ) {
+				return new WP_Error( 'prrint', __( 'One of your print sizes is no longer available — please choose the size again.', 'prrint' ) );
+			}
 		}
 		if ( $linked && empty( $size['custom'] ) ) {
 			$key       = (float) $size['w'] === (float) $size['h'] ? 'square' : $orientation;
@@ -319,6 +325,32 @@ class Prrint_Ajax {
 				),
 			),
 		);
+	}
+
+	/**
+	 * The size row a cart item means: the row at $idx when its dimensions
+	 * match those the customer chose ($dims { w, h }, either way round),
+	 * else the row with those dimensions, else null. Without $dims (an older
+	 * page), the row at $idx.
+	 */
+	protected static function match_size( $sizes, $idx, $dims ) {
+		if ( ! is_array( $dims ) || ! isset( $dims['w'], $dims['h'] ) || ! is_numeric( $dims['w'] ) || ! is_numeric( $dims['h'] ) ) {
+			return isset( $sizes[ $idx ] ) ? $sizes[ $idx ] : null;
+		}
+		$lo   = min( (float) $dims['w'], (float) $dims['h'] );
+		$hi   = max( (float) $dims['w'], (float) $dims['h'] );
+		$same = function ( $size ) use ( $lo, $hi ) {
+			return abs( min( $size['w'], $size['h'] ) - $lo ) < 0.01 && abs( max( $size['w'], $size['h'] ) - $hi ) < 0.01;
+		};
+		if ( isset( $sizes[ $idx ] ) && $same( $sizes[ $idx ] ) ) {
+			return $sizes[ $idx ];
+		}
+		foreach ( $sizes as $size ) {
+			if ( $same( $size ) ) {
+				return $size;
+			}
+		}
+		return null;
 	}
 
 	/**

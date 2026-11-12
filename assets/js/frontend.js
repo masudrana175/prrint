@@ -243,10 +243,6 @@
 
 	var CUSTOM = cfg.custom || { enabled: false, min: 4 };
 
-	function fmtIn(n) {
-		return String(Math.round(n * 1000) / 1000);
-	}
-
 	/** Largest custom size for the item's style, short side first. */
 	function customMax(item) {
 		var st = currentStyle(item);
@@ -278,7 +274,7 @@
 	function customRow(item, dims, orientation) {
 		var lo = Math.min(dims.w, dims.h), hi = Math.max(dims.w, dims.h);
 		return {
-			label: fmtIn(dims.w) + '×' + fmtIn(dims.h) + ' ' + (cfg.i18n.customTag || '(custom)'),
+			label: fmtInches(dims.w) + '×' + fmtInches(dims.h) + ' ' + (cfg.i18n.customTag || '(custom)'),
 			w: lo,
 			h: hi,
 			price: customPrice(sizesFor(item), lo, hi, orientation),
@@ -290,9 +286,9 @@
 	function customError(item, w, h) {
 		if (!(w > 0) || !(h > 0)) { return cfg.i18n.customEnter || 'Enter a width and height.'; }
 		var lo = Math.min(w, h), hi = Math.max(w, h), max = customMax(item);
-		if (lo < CUSTOM.min) { return (cfg.i18n.customMin || 'At least %s" on each side.').replace('%s', fmtIn(CUSTOM.min)); }
+		if (lo < CUSTOM.min) { return (cfg.i18n.customMin || 'At least %s" on each side.').replace('%s', fmtInches(CUSTOM.min)); }
 		if (lo > max[0] || hi > max[1]) {
-			return (cfg.i18n.customMax || 'Up to %1$s" × %2$s".').replace('%1$s', fmtIn(max[0])).replace('%2$s', fmtIn(max[1]));
+			return (cfg.i18n.customMax || 'Up to %1$s" × %2$s".').replace('%1$s', fmtInches(max[0])).replace('%2$s', fmtInches(max[1]));
 		}
 		return '';
 	}
@@ -308,21 +304,50 @@
 		return true;
 	}
 
+	/**
+	 * Wire a width × height pair of custom-size inputs (the photo card's and
+	 * the editor's). A size is applied on change (Enter, Tab or leaving the
+	 * field), never per keystroke: partial numbers would otherwise flash
+	 * errors and reshape the crop mid-typing. An out-of-range entry puts the
+	 * fields back to the size still on order and says so.
+	 *   o.box, o.w, o.h, o.hint: container + selectors
+	 *   o.item(): the item whose style sets the limits
+	 *   o.current(): { w, h } on order now
+	 *   o.apply(w, h): use a valid new size
+	 *   o.sync(force): refresh the fields and hint from the current size
+	 */
+	function bindCustomInputs(o) {
+		var wIn = o.box.querySelector(o.w), hIn = o.box.querySelector(o.h), hint = o.box.querySelector(o.hint);
+		function onChange() {
+			var w = Number(wIn.value), h = Number(hIn.value), cur = o.current();
+			var err = customError(o.item(), w, h);
+			if (err) {
+				o.sync(true);
+				hint.textContent = err + ' ' + (cfg.i18n.customKept || 'Keeping %s.').replace('%s', fmtInches(cur.w) + '×' + fmtInches(cur.h));
+				hint.classList.add('is-error');
+				return;
+			}
+			if (Math.round(w * 8) / 8 !== cur.w || Math.round(h * 8) / 8 !== cur.h) { o.apply(w, h); }
+			o.sync(true);
+		}
+		[wIn, hIn].forEach(function (input) { input.addEventListener('change', onChange); });
+	}
+
 	/** Show the custom fields (and their limits) when the item uses a custom size. */
-	function syncCustomFields(item) {
+	function syncCustomFields(item, force) {
 		var box = item.card && item.card.querySelector('.prrint-custom-size');
 		if (!box) { return; }
 		var on = item.sizeIdx === -1 && !!item.custom;
 		box.hidden = !on;
 		if (!on) { return; }
 		var wIn = box.querySelector('.prrint-custom-w'), hIn = box.querySelector('.prrint-custom-h');
-		if (document.activeElement !== wIn) { wIn.value = fmtIn(item.custom.w); }
-		if (document.activeElement !== hIn) { hIn.value = fmtIn(item.custom.h); }
+		if (force || document.activeElement !== wIn) { wIn.value = fmtInches(item.custom.w); }
+		if (force || document.activeElement !== hIn) { hIn.value = fmtInches(item.custom.h); }
 		var max = customMax(item);
 		var hint = box.querySelector('.prrint-custom-hint');
 		hint.classList.remove('is-error');
 		hint.textContent = (cfg.i18n.customRange || '%1$s" to %2$s" × %3$s" · priced at the next size up')
-			.replace('%1$s', fmtIn(CUSTOM.min)).replace('%2$s', fmtIn(max[0])).replace('%3$s', fmtIn(max[1]));
+			.replace('%1$s', fmtInches(CUSTOM.min)).replace('%2$s', fmtInches(max[0])).replace('%3$s', fmtInches(max[1]));
 	}
 
 	/** Mirrors Prrint_Style_Products::size_price(): price per orientation when the product has one. */
@@ -459,7 +484,9 @@
 		var r = edBoundingBox(d.w, d.h, fineRot * Math.PI / 180);
 		var cx = item.crop.x + item.crop.w / 2;
 		var cy = item.crop.y + item.crop.h / 2;
-		var sw = Math.min(item.crop.w, r.w, r.h * aspect);
+		// Keep the crop's area (the customer's zoom) rather than its width, so a
+		// portrait ↔ landscape flip doesn't shrink it a little more every time.
+		var sw = Math.min(Math.sqrt(item.crop.w * item.crop.h * aspect), r.w, r.h * aspect);
 		var sh = sw / aspect;
 		if (sh > r.h) { sh = r.h; sw = sh * aspect; }
 		var x = Math.max(0, Math.min(cx - sw / 2, r.w - sw));
@@ -1050,33 +1077,18 @@
 		});
 		var customBox = card.querySelector('.prrint-custom-size');
 		if (customBox) {
-			var applyCustom = function (final) {
-				var w = Number(customBox.querySelector('.prrint-custom-w').value);
-				var h = Number(customBox.querySelector('.prrint-custom-h').value);
-				var err = customError(item, w, h);
-				var hint = customBox.querySelector('.prrint-custom-hint');
-				if (err) {
-					if (final) {
-						// Put the fields back to the size still on order, and say so.
-						syncCustomFields(item);
-						err += ' ' + (cfg.i18n.customKept || 'Keeping %s.').replace('%s', fmtIn(item.custom.w) + '×' + fmtIn(item.custom.h));
-					}
-					hint.textContent = err;
-					hint.classList.add('is-error');
-					return;
-				}
-				var before = item.custom ? item.custom.w + 'x' + item.custom.h : '';
-				setCustomSize(item, w, h);
-				if (before !== item.custom.w + 'x' + item.custom.h) {
+			bindCustomInputs({
+				box: customBox, w: '.prrint-custom-w', h: '.prrint-custom-h', hint: '.prrint-custom-hint',
+				item: function () { return item; },
+				current: function () { return item.custom; },
+				apply: function (w, h) {
+					setCustomSize(item, w, h);
 					refitCrop(item);
+					fillSizeOptions(item);
 					renderCard(item);
 					updateSummary();
-				}
-				fillSizeOptions(item);
-			};
-			customBox.querySelectorAll('input').forEach(function (input) {
-				input.addEventListener('input', function () { applyCustom(false); });
-				input.addEventListener('change', function () { applyCustom(true); });
+				},
+				sync: function (force) { syncCustomFields(item, force); }
 			});
 		}
 		paperSel.addEventListener('change', function () {
@@ -1281,7 +1293,7 @@
 			a.remove();
 		};
 		var st = currentStyle(item);
-		var name = ['print', currentSize(item).label.replace(/[^0-9a-z.]+/gi, 'x'), st ? st.label.replace(/[^0-9a-z]+/gi, '-') : '']
+		var name = ['print', fmtInches(p.w) + 'x' + fmtInches(p.h), st ? st.label.replace(/[^0-9a-z]+/gi, '-') : '']
 			.filter(Boolean).join('-').toLowerCase() + '.jpg';
 		try {
 			var canvas = document.createElement('canvas');
@@ -2159,7 +2171,7 @@
 	/* ------------------------------------------------------ size presets */
 
 	function fmtInches(v) {
-		return String(Math.round(v * 100) / 100);
+		return String(Math.round(v * 1000) / 1000);
 	}
 
 	/**
@@ -2226,17 +2238,17 @@
 		var row = customRow(ed.item, ed.custom, ed.orientation);
 		var max = customMax(ed.item);
 		return row.label + ' — ' + formatPrice(sizePrice(row, ed.orientation)) + ' · ' +
-			(cfg.i18n.customMaxShort || 'max %1$s" × %2$s"').replace('%1$s', fmtIn(max[0])).replace('%2$s', fmtIn(max[1]));
+			(cfg.i18n.customMaxShort || 'max %1$s" × %2$s"').replace('%1$s', fmtInches(max[0])).replace('%2$s', fmtInches(max[1]));
 	}
 
-	function syncEdCustomBox() {
+	function syncEdCustomBox(force) {
 		if (!edCustomBox) { return; }
 		var on = ed.sizeIdx === -1 && !!ed.custom && !!ed.item;
 		edCustomBox.hidden = !on;
 		if (!on) { return; }
 		var wIn = edCustomBox.querySelector('.prrint-ed-custom-w'), hIn = edCustomBox.querySelector('.prrint-ed-custom-h');
-		if (document.activeElement !== wIn) { wIn.value = fmtIn(ed.custom.w); }
-		if (document.activeElement !== hIn) { hIn.value = fmtIn(ed.custom.h); }
+		if (force || document.activeElement !== wIn) { wIn.value = fmtInches(ed.custom.w); }
+		if (force || document.activeElement !== hIn) { hIn.value = fmtInches(ed.custom.h); }
 		var hint = edCustomBox.querySelector('.prrint-ed-custom-hint');
 		hint.classList.remove('is-error');
 		hint.textContent = edCustomSummary();
@@ -2258,28 +2270,12 @@
 	}
 
 	if (edCustomBox) {
-		var edApplyCustom = function (final) {
-			var w = Number(edCustomBox.querySelector('.prrint-ed-custom-w').value);
-			var h = Number(edCustomBox.querySelector('.prrint-ed-custom-h').value);
-			var err = customError(ed.item, w, h);
-			var hint = edCustomBox.querySelector('.prrint-ed-custom-hint');
-			if (err) {
-				if (final) {
-					syncEdCustomBox();
-					err += ' ' + (cfg.i18n.customKept || 'Keeping %s.').replace('%s', fmtIn(ed.custom.w) + '×' + fmtIn(ed.custom.h));
-				}
-				hint.textContent = err;
-				hint.classList.add('is-error');
-				return;
-			}
-			var before = ed.custom.w + 'x' + ed.custom.h;
-			if (before !== Math.round(w * 8) / 8 + 'x' + Math.round(h * 8) / 8) { edSetCustom(w, h); }
-			syncEdCustomBox();
-			if (final) { pushHistory(); }
-		};
-		edCustomBox.querySelectorAll('input').forEach(function (input) {
-			input.addEventListener('input', function () { edApplyCustom(false); });
-			input.addEventListener('change', function () { edApplyCustom(true); });
+		bindCustomInputs({
+			box: edCustomBox, w: '.prrint-ed-custom-w', h: '.prrint-ed-custom-h', hint: '.prrint-ed-custom-hint',
+			item: function () { return ed.item; },
+			current: function () { return ed.custom; },
+			apply: function (w, h) { edSetCustom(w, h); pushHistory(); },
+			sync: syncEdCustomBox
 		});
 	}
 
@@ -3731,6 +3727,7 @@
 			return {
 				token: it.token,
 				size: it.sizeIdx === -1 ? 0 : it.sizeIdx,
+				dims: it.sizeIdx === -1 ? null : { w: currentSize(it).w, h: currentSize(it).h },
 				custom: it.sizeIdx === -1 && it.custom ? { w: it.custom.w, h: it.custom.h } : null,
 				paper: it.paperIdx,
 				style: STYLES.length ? it.styleIdx : -1,

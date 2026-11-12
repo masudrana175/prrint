@@ -23,20 +23,26 @@ class Prrint_Style_Products {
 	protected static $sizes = array();
 
 	public static function init() {
+		// Cached sizes only go stale when a product a style uses (or could use,
+		// by name) changes, so ordinary sales of other products and edits to
+		// other posts leave the cache alone. Pages count too: publishing or
+		// trashing one can change where "Customize your image" goes.
 		foreach ( array(
 			'woocommerce_update_product',
 			'woocommerce_new_product',
 			'woocommerce_update_product_variation',
 			'woocommerce_new_product_variation',
-			'woocommerce_delete_product_variation',
 			'woocommerce_product_set_stock_status',
 			'woocommerce_variation_set_stock_status',
 			'trashed_post',
 			'untrashed_post',
-			'deleted_post',
+			'before_delete_post',
+			'save_post_page',
 		) as $hook ) {
-			add_action( $hook, array( __CLASS__, 'flush' ) );
+			add_action( $hook, array( __CLASS__, 'flush_if_relevant' ) );
 		}
+		// Fires after the variation is gone, when its parent can't be looked up.
+		add_action( 'woocommerce_delete_product_variation', array( __CLASS__, 'flush' ) );
 
 		add_filter( 'body_class', array( __CLASS__, 'body_class' ) );
 		add_action( 'woocommerce_after_add_to_cart_button', array( __CLASS__, 'render_customize_button' ) );
@@ -46,6 +52,33 @@ class Prrint_Style_Products {
 	public static function flush() {
 		self::$sizes = array();
 		update_option( self::VERSION_OPTION, (int) get_option( self::VERSION_OPTION, 0 ) + 1, false );
+	}
+
+	/**
+	 * Flush when $post_id is a page, or a product/variation that a style is
+	 * linked to or whose name matches a style (it could become linked).
+	 */
+	public static function flush_if_relevant( $post_id ) {
+		$post_id = (int) $post_id;
+		$type    = $post_id ? get_post_type( $post_id ) : '';
+		if ( 'page' === $type ) {
+			self::flush();
+			return;
+		}
+		if ( 'product_variation' === $type ) {
+			$post_id = (int) wp_get_post_parent_id( $post_id );
+			$type    = 'product';
+		}
+		if ( 'product' !== $type || ! $post_id ) {
+			return;
+		}
+		$norm = self::norm( get_the_title( $post_id ) );
+		foreach ( prrint_settings()['styles'] as $style ) {
+			if ( $post_id === self::product_for_style( $style ) || ( '' !== $norm && self::norm( $style['label'] ) === $norm ) ) {
+				self::flush();
+				return;
+			}
+		}
 	}
 
 	protected static function cache_key( $what ) {
