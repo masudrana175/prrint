@@ -484,9 +484,13 @@
 		var r = edBoundingBox(d.w, d.h, fineRot * Math.PI / 180);
 		var cx = item.crop.x + item.crop.w / 2;
 		var cy = item.crop.y + item.crop.h / 2;
-		// Keep the crop's area (the customer's zoom) rather than its width, so a
-		// portrait ↔ landscape flip doesn't shrink it a little more every time.
-		var sw = Math.min(Math.sqrt(item.crop.w * item.crop.h * aspect), r.w, r.h * aspect);
+		// A crop that filled the photo keeps filling it; otherwise keep its
+		// area (the customer's zoom) rather than its width, so a portrait ↔
+		// landscape flip doesn't shrink it a little more every time.
+		var wasFull = item.crop.w >= Math.min(r.w, r.h * item.crop.w / item.crop.h) - 1;
+		var sw = wasFull
+			? Math.min(r.w, r.h * aspect)
+			: Math.min(Math.sqrt(item.crop.w * item.crop.h * aspect), r.w, r.h * aspect);
 		var sh = sw / aspect;
 		if (sh > r.h) { sh = r.h; sw = sh * aspect; }
 		var x = Math.max(0, Math.min(cx - sw / 2, r.w - sw));

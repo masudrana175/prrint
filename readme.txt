@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.36.0
+Stable tag: 1.36.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,11 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.36.1 =
+* A crop that fills the photo keeps filling it when the print size or
+  custom size changes (e.g. typing 48 then 13 now gives the full-width
+  48x13 crop); a zoomed-in crop keeps its zoom.
 
 = 1.36.0 =
 * Fix: a print size could be billed wrongly if a shop variation sold out
