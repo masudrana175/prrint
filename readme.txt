@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.35.0
+Stable tag: 1.35.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,12 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.35.1 =
+* My Photos: the download and delete icons under each saved photo are now
+  matching circles. The theme's button padding was stretching the delete
+  button into an oval; the "Use this photo" button is also protected from
+  theme button styles.
 
 = 1.35.0 =
 * Custom size in the image editor: the Common size grid ends with a
