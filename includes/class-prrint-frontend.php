@@ -245,6 +245,9 @@ class Prrint_Frontend {
 				'customSizeLabel' => __( 'Custom size (inches)', 'prrint' ),
 				'customTag'       => __( '(custom)', 'prrint' ),
 				'customTile'      => __( 'Custom', 'prrint' ),
+				'previewBg'       => __( 'Preview background (not printed)', 'prrint' ),
+				'bgDefault'       => __( 'Default background', 'prrint' ),
+				'bgCustom'        => __( 'Pick any background color', 'prrint' ),
 				/* translators: 1: short side, 2: long side, in inches */
 				'customMaxShort'  => __( 'max %1$s" × %2$s"', 'prrint' ),
 				'width'           => __( 'Width', 'prrint' ),

@@ -947,6 +947,62 @@
 		return { bx: Math.max(0, bx), by: Math.max(0, by), color: design.border.color || '#ffffff' };
 	}
 
+	/* -------------------------------------------- preview background */
+
+	// The customer's choice of background behind the photo previews: a
+	// viewing aid only (it is never printed), one choice for every photo,
+	// remembered on this device. '' = the store's color from the settings.
+	var BG_KEY = 'prrint_photo_bg';
+	var BG_SWATCHES = ['', '#ffffff', '#e7e5e4', '#9ca3af', '#1f2937', '#000000'];
+	var storeBg = (window.getComputedStyle(root).getPropertyValue('--prrint-photo-bg') || '').trim() || '#f3f4f6';
+	var photoBg = '';
+	try { photoBg = window.localStorage.getItem(BG_KEY) || ''; } catch (e) { photoBg = ''; }
+	if (!/^#[0-9a-f]{6}$/i.test(photoBg)) { photoBg = ''; }
+
+	function bgPickerHtml() {
+		var t = cfg.i18n;
+		return '<div class="prrint-bg-picker" role="group" aria-label="' + esc(t.previewBg || 'Preview background (not printed)') + '" title="' + esc(t.previewBg || 'Preview background (not printed)') + '">' +
+			BG_SWATCHES.map(function (c) {
+				return '<button type="button" class="prrint-bg-swatch" data-bg="' + c + '" style="background:' + (c || storeBg) + '" aria-label="' + esc(c ? c : (t.bgDefault || 'Default')) + '"></button>';
+			}).join('') +
+			'<label class="prrint-bg-custom" title="' + esc(t.bgCustom || 'Pick any color') + '"><input type="color" value="' + (photoBg || storeBg) + '" aria-label="' + esc(t.bgCustom || 'Pick any color') + '" /></label>' +
+		'</div>';
+	}
+
+	function applyPhotoBg() {
+		if (photoBg) { root.style.setProperty('--prrint-photo-bg', photoBg); } else { root.style.removeProperty('--prrint-photo-bg'); }
+		root.querySelectorAll('.prrint-bg-picker').forEach(function (picker) {
+			var custom = photoBg && BG_SWATCHES.indexOf(photoBg.toLowerCase()) === -1;
+			picker.querySelectorAll('.prrint-bg-swatch').forEach(function (b) {
+				var on = b.dataset.bg === photoBg.toLowerCase();
+				b.classList.toggle('is-active', on);
+				b.setAttribute('aria-pressed', on ? 'true' : 'false');
+			});
+			var label = picker.querySelector('.prrint-bg-custom');
+			label.classList.toggle('is-active', !!custom);
+			if (custom) { label.querySelector('input').value = photoBg; }
+		});
+	}
+
+	function setPhotoBg(color) {
+		photoBg = /^#[0-9a-f]{6}$/i.test(color || '') ? color.toLowerCase() : '';
+		try {
+			if (photoBg) { window.localStorage.setItem(BG_KEY, photoBg); } else { window.localStorage.removeItem(BG_KEY); }
+		} catch (e) { /* private mode: the choice just isn't remembered */ }
+		applyPhotoBg();
+	}
+
+	if (els.items) {
+		els.items.addEventListener('click', function (e) {
+			var sw = e.target.closest('.prrint-bg-swatch');
+			if (sw) { setPhotoBg(sw.dataset.bg); }
+		});
+		els.items.addEventListener('input', function (e) {
+			if (e.target.closest('.prrint-bg-custom')) { setPhotoBg(e.target.value); }
+		});
+	}
+	applyPhotoBg();
+
 	/* --------------------------------------------------- item cards ui */
 
 	function buildCard(item) {
@@ -960,6 +1016,7 @@
 				'<span class="prrint-dpi-dot" title=""></span>' +
 				'<a class="prrint-download-btn" href="' + esc(item.img.src) + '" download title="' + esc(cfg.i18n.downloadDesign || cfg.i18n.download) + '">' + cfg.icons.download + '</a>' +
 				'<button type="button" class="prrint-edit-btn">' + esc(cfg.i18n.edit) + '</button>' +
+				bgPickerHtml() +
 			'</div>' +
 			'<div class="prrint-item-fields">' +
 				(STYLES.length
@@ -1147,6 +1204,7 @@
 
 		item.card = card;
 		els.items.appendChild(card);
+		applyPhotoBg();
 		renderCard(item);
 	}
 

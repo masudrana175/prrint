@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.37.0
+Stable tag: 1.38.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,13 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.38.0 =
+* Customers can change the background behind their photo previews: a small
+  swatch bar at the bottom-left of each photo offers the store's default,
+  white, light grey, grey, charcoal, black, or any color from the rainbow
+  picker. It's a viewing aid only (never printed or sent with the order),
+  applies to every photo, and is remembered on that device.
 
 = 1.37.0 =
 * The photo preview area (and My Photos thumbnails) use a solid background
