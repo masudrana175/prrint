@@ -245,6 +245,7 @@ class Prrint_Frontend {
 				'customSizeLabel' => __( 'Custom size (inches)', 'prrint' ),
 				'customTag'       => __( '(custom)', 'prrint' ),
 				'customTile'      => __( 'Custom', 'prrint' ),
+				'removePrint'     => __( 'Remove this print from your order', 'prrint' ),
 				'printOptions'    => __( 'Print options', 'prrint' ),
 				'addingPhoto'     => __( 'Adding photo…', 'prrint' ),
 				'preparingPhoto'  => __( 'Preparing your photo…', 'prrint' ),

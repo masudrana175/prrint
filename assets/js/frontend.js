@@ -1057,7 +1057,7 @@
 					'<span class="prrint-item-price"></span>' +
 					'<span class="prrint-item-footer-actions">' +
 						'<button type="button" class="prrint-addsize-btn" title="' + esc(cfg.i18n.addAnotherSize) + '">' + cfg.icons.copy + ' ' + esc(cfg.i18n.addSize) + '</button>' +
-						'<button type="button" class="prrint-remove-btn" aria-label="' + esc(cfg.i18n.remove) + '">' + cfg.icons.trash + '</button>' +
+						'<button type="button" class="prrint-remove-btn" title="' + esc(cfg.i18n.removePrint || cfg.i18n.remove) + '">' + cfg.icons.trash + ' ' + esc(cfg.i18n.remove) + '</button>' +
 					'</span>' +
 				'</div>' +
 			'</div>';

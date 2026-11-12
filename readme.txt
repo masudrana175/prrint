@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.39.0
+Stable tag: 1.39.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,12 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.39.1 =
+* Fix: the remove (trash) button under each photo was invisible on themes
+  that make button text white. It's now a labelled "Remove" pill next to
+  "Add size", with its own colors (red on hover), so a wrongly added size
+  can always be removed.
 
 = 1.39.0 =
 * Redesigned the options panel next to each photo: a "Print options"

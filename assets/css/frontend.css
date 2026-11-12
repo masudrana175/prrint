@@ -733,28 +733,35 @@ body.prrint-modal-open {
 	font-weight: 500;
 }
 
+/* Same pill as "Add size", with its own color so a theme's button text
+   color (often white) can't make it invisible; red on hover. */
 #prrint-studio .prrint-remove-btn {
 	display: inline-flex;
 	align-items: center;
-	justify-content: center;
-	border: 0;
-	background: transparent;
-	font-size: 1.05em;
+	gap: 4px;
+	padding: 4px 10px;
+	border: 1px solid var(--prrint-line);
+	border-radius: 999px;
+	background: #fff;
+	color: var(--prrint-muted);
+	font-size: 0.78em;
+	line-height: 1.4;
+	white-space: nowrap;
 	cursor: pointer;
-	opacity: 0.55;
-	transition: opacity 0.15s ease;
-	padding: 4px;
-	line-height: 1;
+	transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-#prrint-studio .prrint-remove-btn:hover {
-	opacity: 1;
+#prrint-studio .prrint-remove-btn:hover,
+#prrint-studio .prrint-remove-btn:focus-visible {
+	border-color: var(--prrint-bad);
+	background: #fef3f2;
+	color: var(--prrint-bad);
 }
 
 #prrint-studio .prrint-item-footer-actions {
 	display: flex;
 	align-items: center;
-	gap: 4px;
+	gap: 6px;
 }
 
 #prrint-studio .prrint-addsize-btn {
@@ -766,6 +773,7 @@ body.prrint-modal-open {
 	background: #fff;
 	color: var(--prrint-muted);
 	font-size: 0.78em;
+	line-height: 1.4;
 	cursor: pointer;
 	padding: 4px 10px;
 	white-space: nowrap;
