@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.41.0
+Stable tag: 1.41.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,13 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.41.1 =
+* Oversized carts: "Proceed to checkout" (which led to WooCommerce's
+  generic "issues with your cart" page) is replaced by "Request a freight
+  quote" — an email to Printing@colorplak.com pre-filled with the cart's
+  items and sizes — and a "Call 951-302-4600" button. Opening the checkout
+  page with such a cart goes back to the cart.
 
 = 1.41.0 =
 * New Settings → Shipping tab with a one-click "Set up Colorplak shipping"

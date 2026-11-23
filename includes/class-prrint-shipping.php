@@ -36,6 +36,8 @@ class Prrint_Shipping {
 		add_action( 'woocommerce_shipping_init', array( __CLASS__, 'load_method' ) );
 		add_filter( 'woocommerce_shipping_methods', array( __CLASS__, 'register_method' ) );
 		add_action( 'woocommerce_check_cart_items', array( __CLASS__, 'check_cart_items' ) );
+		add_action( 'woocommerce_proceed_to_checkout', array( __CLASS__, 'quote_buttons' ), 1 );
+		add_action( 'template_redirect', array( __CLASS__, 'redirect_blocked_checkout' ) );
 		add_action( 'woocommerce_cart_totals_before_order_total', array( __CLASS__, 'cart_estimate_row' ) );
 		add_action( 'admin_post_' . self::SETUP_ACTION, array( __CLASS__, 'handle_setup' ) );
 
@@ -339,18 +341,80 @@ class Prrint_Shipping {
 		return null;
 	}
 
-	/** Oversized prints in the cart block checkout (cart + checkout notice). */
-	public static function check_cart_items() {
+	/**
+	 * Whether the cart holds oversized prints that need a freight quote, and
+	 * the store blocks checkout for them.
+	 */
+	public static function cart_is_blocked() {
 		if ( ! WC()->cart || WC()->cart->is_empty() ) {
-			return;
+			return false;
 		}
 		$settings = self::active_settings();
 		if ( ! $settings || 'block' !== $settings['oversized'] ) {
-			return;
+			return false;
 		}
 		$quote = self::quote( self::lines( WC()->cart->get_cart() ), $settings['mode'] );
-		if ( $quote['oversized'] ) {
+		return $quote['oversized'];
+	}
+
+	/** Oversized prints in the cart block checkout (cart + checkout notice). */
+	public static function check_cart_items() {
+		if ( self::cart_is_blocked() ) {
 			wc_add_notice( esc_html( self::oversized_notice() ), 'error' );
+		}
+	}
+
+	/**
+	 * On a blocked cart, "Proceed to checkout" (which would only lead to
+	 * WooCommerce's generic "issues with your cart" page) is replaced by
+	 * ways to ask for the freight quote: an email with the cart filled in,
+	 * and a call button.
+	 */
+	public static function quote_buttons() {
+		if ( ! self::cart_is_blocked() ) {
+			return;
+		}
+		remove_action( 'woocommerce_proceed_to_checkout', 'woocommerce_button_proceed_to_checkout', 20 );
+
+		$contact = apply_filters( 'prrint_shipping_quote_contact', array(
+			'email' => 'Printing@colorplak.com',
+			'phone' => '951-302-4600',
+		) );
+		$lines = array();
+		foreach ( WC()->cart->get_cart() as $item ) {
+			$size = self::item_size( $item );
+			if ( 'skip' === $size || ! isset( $item['data'] ) || ! $item['data'] instanceof WC_Product ) {
+				continue;
+			}
+			$detail  = is_array( $size ) ? sprintf( ' — %s" x %s"', wc_format_localized_decimal( $size[0] ), wc_format_localized_decimal( $size[1] ) ) : '';
+			$style   = ! empty( $item['prrint']['style_label'] ) ? ', ' . $item['prrint']['style_label'] : '';
+			$lines[] = sprintf( '%d x %s%s%s', absint( $item['quantity'] ), wp_strip_all_tags( $item['data']->get_name() ), $style, $detail );
+		}
+		$body = __( 'Hello, I would like a freight quote for this order:', 'prrint' ) . "\n\n" . implode( "\n", $lines ) . "\n\n" . __( 'Ship to (city, state/province, ZIP/postal code):', 'prrint' ) . "\n";
+		$mail = 'mailto:' . sanitize_email( $contact['email'] ) . '?subject=' . rawurlencode( __( 'Freight quote request', 'prrint' ) ) . '&body=' . rawurlencode( $body );
+		$tel  = 'tel:' . preg_replace( '/[^0-9+]/', '', (string) $contact['phone'] );
+		?>
+		<div class="prrint-freight-quote">
+			<p style="margin:0 0 12px"><?php esc_html_e( 'This order includes an oversized piece, so shipping is quoted by our team before you pay.', 'prrint' ); ?></p>
+			<a class="checkout-button button alt wc-forward" href="<?php echo esc_url( $mail, array( 'mailto' ) ); ?>"><?php esc_html_e( 'Request a freight quote', 'prrint' ); ?></a>
+			<a class="button" style="display:block;margin-top:8px;text-align:center" href="<?php echo esc_url( $tel, array( 'tel' ) ); ?>">
+				<?php
+				/* translators: %s: phone number */
+				echo esc_html( sprintf( __( 'Call %s', 'prrint' ), $contact['phone'] ) );
+				?>
+			</a>
+		</div>
+		<?php
+	}
+
+	/** A blocked cart opened at checkout goes back to the cart, where the notice and quote buttons are. */
+	public static function redirect_blocked_checkout() {
+		if ( ! function_exists( 'is_checkout' ) || ! is_checkout() || is_wc_endpoint_url( 'order-received' ) || is_wc_endpoint_url( 'order-pay' ) ) {
+			return;
+		}
+		if ( self::cart_is_blocked() ) {
+			wp_safe_redirect( wc_get_cart_url() );
+			exit;
 		}
 	}
 
