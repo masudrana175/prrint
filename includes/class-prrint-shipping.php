@@ -257,7 +257,7 @@ class Prrint_Shipping {
 		return array(
 			'title'     => __( 'Standard Shipping', 'prrint' ),
 			'mode'      => 'upgrade',
-			'oversized' => 'block',
+			'oversized' => 'quote',
 			'free_min'  => '',
 		);
 	}
@@ -267,7 +267,7 @@ class Prrint_Shipping {
 		$s = array_merge( self::default_settings(), array_filter( (array) $settings, 'is_scalar' ) );
 		$s['title']     = '' !== trim( (string) $s['title'] ) ? sanitize_text_field( $s['title'] ) : self::default_settings()['title'];
 		$s['mode']      = 'separate' === $s['mode'] ? 'separate' : 'upgrade';
-		$s['oversized'] = 'charge_box' === $s['oversized'] ? 'charge_box' : 'block';
+		$s['oversized'] = in_array( $s['oversized'], array( 'quote', 'block', 'charge_box' ), true ) ? $s['oversized'] : 'quote';
 		$s['free_min']  = is_numeric( $s['free_min'] ) && (float) $s['free_min'] > 0 ? (float) $s['free_min'] : '';
 		return $s;
 	}
@@ -279,7 +279,8 @@ class Prrint_Shipping {
 	 * @param array $settings Method settings (see default_settings()).
 	 * @param float $subtotal Contents cost, for the free shipping threshold.
 	 * @return array|null null = nothing to ship; else { blocked (bool),
-	 *                    cost, boxes, label, quote }.
+	 *                    quote_request (bool: order now, freight quoted
+	 *                    later), cost, boxes, label, quote }.
 	 */
 	public static function rate_for( $contents, $settings, $subtotal = 0.0 ) {
 		$s     = self::clean_settings( $settings );
@@ -288,17 +289,54 @@ class Prrint_Shipping {
 			return null;
 		}
 		if ( $quote['oversized'] && 'block' === $s['oversized'] ) {
-			return array( 'blocked' => true, 'cost' => 0.0, 'boxes' => $quote['boxes'], 'label' => $s['title'], 'quote' => $quote );
+			return array( 'blocked' => true, 'quote_request' => false, 'cost' => 0.0, 'boxes' => $quote['boxes'], 'label' => $s['title'], 'quote' => $quote );
+		}
+		if ( $quote['oversized'] && 'quote' === $s['oversized'] ) {
+			return array( 'blocked' => false, 'quote_request' => true, 'cost' => 0.0, 'boxes' => $quote['boxes'], 'label' => self::quote_rate_label(), 'quote' => $quote );
 		}
 		$free = '' !== $s['free_min'] && (float) $subtotal >= $s['free_min'];
 		return array(
-			'blocked' => false,
+			'blocked'       => false,
+			'quote_request' => false,
 			'cost'    => $free ? 0.0 : $quote['cost'],
 			'boxes'   => $quote['boxes'],
 			/* translators: 1: method title, 2: number of boxes */
 			'label'   => sprintf( _n( '%1$s (%2$d box)', '%1$s (%2$d boxes)', $quote['boxes'], 'prrint' ), $s['title'], $quote['boxes'] ),
 			'quote'   => $quote,
 		);
+	}
+
+	public static function quote_rate_label() {
+		return __( 'Freight — quoted after you order', 'prrint' );
+	}
+
+	/**
+	 * Whether the cart has oversized prints and the store takes such orders
+	 * as quote requests (order now, pay once the freight is quoted).
+	 */
+	public static function cart_needs_quote() {
+		if ( ! WC()->cart || WC()->cart->is_empty() ) {
+			return false;
+		}
+		$settings = self::active_settings();
+		if ( ! $settings || 'quote' !== $settings['oversized'] ) {
+			return false;
+		}
+		$quote = self::quote( self::lines( WC()->cart->get_cart() ), $settings['mode'] );
+		return $quote['oversized'];
+	}
+
+	/** Whether the customer picked the "Freight — quoted after you order" rate. */
+	public static function quote_rate_chosen() {
+		if ( ! WC()->session || ! self::cart_needs_quote() ) {
+			return false;
+		}
+		foreach ( (array) WC()->session->get( 'chosen_shipping_methods', array() ) as $rate_id ) {
+			if ( 0 === strpos( (string) $rate_id, self::METHOD_ID ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public static function oversized_notice() {
@@ -444,6 +482,8 @@ class Prrint_Shipping {
 		}
 		if ( $rate['blocked'] ) {
 			$value = '<span class="prrint-shipping-oversized">' . esc_html( self::oversized_notice() ) . '</span>';
+		} elseif ( $rate['quote_request'] ) {
+			$value = esc_html__( 'Quoted after you order — we\'ll email you the freight cost and a link to pay.', 'prrint' );
 		} else {
 			/* translators: %d: number of boxes */
 			$boxes = sprintf( _n( '%d box', '%d boxes', $rate['boxes'], 'prrint' ), $rate['boxes'] );
@@ -629,7 +669,10 @@ class Prrint_Shipping {
 			if ( ! $rate ) {
 				return 'no rate';
 			}
-			return $rate['blocked'] ? 'blocked' : sprintf( '$%.2f, %d box(es)', $rate['cost'], $rate['boxes'] );
+			if ( $rate['blocked'] ) {
+				return 'blocked';
+			}
+			return $rate['quote_request'] ? 'quote request' : sprintf( '$%.2f, %d box(es)', $rate['cost'], $rate['boxes'] );
 		};
 		$cases = array(
 			array( '1. 5 × 8x12', array( $item( '8x12', 5 ) ), $up, '$22.00, 1 box(es)' ),
@@ -638,7 +681,8 @@ class Prrint_Shipping {
 			array( '3b. 5 × 8x12 + 1 × 16x24 (separate)', array( $item( '8x12', 5 ), $item( '16x24', 1 ) ), $sep, '$58.50, 2 box(es)' ),
 			array( '4. 3 × 24x30', array( $item( '24x30', 3 ) ), $up, '$52.00, 1 box(es)' ),
 			array( '5. 3 × 36x36', array( $item( '36x36', 3 ) ), $up, '$178.00, 2 box(es)' ),
-			array( '6. 1 × 40x48 (oversized)', array( $item( '40x48', 1 ) ), $up, 'blocked' ),
+			array( '6a. 1 × 40x48 (oversized, block)', array( $item( '40x48', 1 ) ), array( 'oversized' => 'block' ), 'blocked' ),
+			array( '6b. 1 × 40x48 (oversized, quote request)', array( $item( '40x48', 1 ) ), $up, 'quote request' ),
 		);
 		$out = array();
 		foreach ( $cases as $case ) {

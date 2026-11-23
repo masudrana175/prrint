@@ -51,6 +51,7 @@ class Prrint_Shipping_Method extends WC_Shipping_Method {
 				'class'       => 'wc-enhanced-select',
 				'default'     => $defaults['oversized'],
 				'options'     => array(
+					'quote'      => __( 'Take the order as a quote request — customer pays after we add the freight', 'prrint' ),
 					'block'      => __( 'Block checkout — customer contacts us for a freight quote', 'prrint' ),
 					'charge_box' => __( 'Charge the oversized box price only (freight quoted later)', 'prrint' ),
 				),
@@ -87,12 +88,18 @@ class Prrint_Shipping_Method extends WC_Shipping_Method {
 			return;
 		}
 
+		// A quote request ships at $0 for now; the freight is added to the
+		// order later (see Prrint_Freight_Quote).
+		$meta = $rate['quote_request']
+			? array( __( 'Freight', 'prrint' ) => __( 'To be quoted', 'prrint' ) )
+			: array( __( 'Boxes', 'prrint' ) => $rate['boxes'] );
+
 		$this->add_rate( array(
 			'id'        => $this->get_rate_id(),
 			'label'     => $rate['label'],
 			'cost'      => $rate['cost'],
 			'package'   => $package,
-			'meta_data' => array( __( 'Boxes', 'prrint' ) => $rate['boxes'] ),
+			'meta_data' => $meta,
 		) );
 	}
 }

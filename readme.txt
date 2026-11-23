@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.42.0
+Stable tag: 1.43.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,22 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.43.0 =
+* Oversized orders can now be placed online as freight quote requests
+  ("order now, pay later"). Shipping shows "Freight — quoted after you
+  order" ($0) and the only payment option is "Request a freight quote —
+  pay after we confirm shipping". The order is saved as "Quote requested"
+  with no payment; the store gets the New order email and the customer a
+  note explaining the next step.
+* Staff add the freight to the order (edit the shipping line, Recalculate)
+  and choose Order actions → "Send freight quote to customer (payment
+  link)", which emails the invoice with a "Pay for this order" link (card,
+  Apple Pay, payment plans…). Paying moves the order to Processing.
+* New Colorplak Box Shipping option "Take the order as a quote request"
+  (now the default). Methods still on the old default "Block checkout" are
+  switched once; "Block checkout" and "Charge the box" remain available.
+* Local Pickup – Temecula stays a normal paid checkout for oversized orders.
 
 = 1.42.0 =
 * Automatic updates from GitHub: new Prrint versions now appear in
