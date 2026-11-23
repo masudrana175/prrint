@@ -37,6 +37,7 @@ class Prrint_Shipping {
 		add_filter( 'woocommerce_shipping_methods', array( __CLASS__, 'register_method' ) );
 		add_action( 'woocommerce_check_cart_items', array( __CLASS__, 'check_cart_items' ) );
 		add_action( 'woocommerce_proceed_to_checkout', array( __CLASS__, 'quote_buttons' ), 1 );
+		add_action( 'woocommerce_proceed_to_checkout', array( __CLASS__, 'call_button_for_quote' ), 30 );
 		add_action( 'template_redirect', array( __CLASS__, 'redirect_blocked_checkout' ) );
 		add_action( 'woocommerce_cart_totals_before_order_total', array( __CLASS__, 'cart_estimate_row' ) );
 		add_action( 'admin_post_' . self::SETUP_ACTION, array( __CLASS__, 'handle_setup' ) );
@@ -414,11 +415,8 @@ class Prrint_Shipping {
 		}
 		remove_action( 'woocommerce_proceed_to_checkout', 'woocommerce_button_proceed_to_checkout', 20 );
 
-		$contact = apply_filters( 'prrint_shipping_quote_contact', array(
-			'email' => 'Printing@colorplak.com',
-			'phone' => '951-302-4600',
-		) );
-		$lines = array();
+		$contact = self::quote_contact();
+		$lines   = array();
 		foreach ( WC()->cart->get_cart() as $item ) {
 			$size = self::item_size( $item );
 			if ( 'skip' === $size || ! isset( $item['data'] ) || ! $item['data'] instanceof WC_Product ) {
@@ -430,19 +428,42 @@ class Prrint_Shipping {
 		}
 		$body = __( 'Hello, I would like a freight quote for this order:', 'prrint' ) . "\n\n" . implode( "\n", $lines ) . "\n\n" . __( 'Ship to (city, state/province, ZIP/postal code):', 'prrint' ) . "\n";
 		$mail = 'mailto:' . sanitize_email( $contact['email'] ) . '?subject=' . rawurlencode( __( 'Freight quote request', 'prrint' ) ) . '&body=' . rawurlencode( $body );
-		$tel  = 'tel:' . preg_replace( '/[^0-9+]/', '', (string) $contact['phone'] );
 		?>
 		<div class="prrint-freight-quote">
 			<p style="margin:0 0 12px"><?php esc_html_e( 'This order includes an oversized piece, so shipping is quoted by our team before you pay.', 'prrint' ); ?></p>
 			<a class="checkout-button button alt wc-forward" href="<?php echo esc_url( $mail, array( 'mailto' ) ); ?>"><?php esc_html_e( 'Request a freight quote', 'prrint' ); ?></a>
-			<a class="button" style="display:block;margin-top:8px;text-align:center" href="<?php echo esc_url( $tel, array( 'tel' ) ); ?>">
-				<?php
-				/* translators: %s: phone number */
-				echo esc_html( sprintf( __( 'Call %s', 'prrint' ), $contact['phone'] ) );
-				?>
-			</a>
+			<?php self::call_button( $contact ); ?>
 		</div>
 		<?php
+	}
+
+	/** Who customers contact about freight. */
+	public static function quote_contact() {
+		return apply_filters( 'prrint_shipping_quote_contact', array(
+			'email' => 'Printing@colorplak.com',
+			'phone' => '951-302-4600',
+		) );
+	}
+
+	/** "Call 951-302-4600" (a tel: link, so it dials on phones). */
+	protected static function call_button( $contact ) {
+		$tel = 'tel:' . preg_replace( '/[^0-9+]/', '', (string) $contact['phone'] );
+		printf(
+			'<a class="button prrint-call-button" style="display:block;margin-top:8px;text-align:center" href="%1$s">%2$s</a>',
+			esc_url( $tel, array( 'tel' ) ),
+			/* translators: %s: phone number */
+			esc_html( sprintf( __( 'Call %s', 'prrint' ), $contact['phone'] ) )
+		);
+	}
+
+	/**
+	 * Oversized carts taken as quote requests keep "Proceed to checkout",
+	 * with the call button under it for questions about the freight.
+	 */
+	public static function call_button_for_quote() {
+		if ( self::cart_needs_quote() ) {
+			self::call_button( self::quote_contact() );
+		}
 	}
 
 	/** A blocked cart opened at checkout goes back to the cart, where the notice and quote buttons are. */

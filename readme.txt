@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.43.0
+Stable tag: 1.43.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,10 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.43.1 =
+* Oversized carts taken as quote requests keep the "Call 951-302-4600"
+  button under "Proceed to checkout", for questions about the freight.
 
 = 1.43.0 =
 * Oversized orders can now be placed online as freight quote requests
