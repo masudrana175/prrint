@@ -3,7 +3,7 @@
  * Plugin Name: Prrint — Photo Print Studio for WooCommerce
  * Plugin URI:  https://github.com/masudrana175/prrint
  * Description: Turn WooCommerce products into a full photo print shop: multi-photo upload, crop/zoom/rotate editor, print sizes, paper finishes, white borders, live pricing, print-quality checks, and 300 DPI print-ready files on every order.
- * Version:     1.41.1
+ * Version:     1.42.0
  * Author:      Masud Rana
  * Author URI:  https://github.com/masudrana175
  * Text Domain: prrint
@@ -12,11 +12,12 @@
  * Requires at least: 5.8
  * Requires PHP: 7.2
  * WC requires at least: 5.0
+ * Update URI:  https://github.com/masudrana175/prrint
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PRRINT_VERSION', '1.41.1' );
+define( 'PRRINT_VERSION', '1.42.0' );
 define( 'PRRINT_FILE', __FILE__ );
 define( 'PRRINT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PRRINT_URL', plugin_dir_url( __FILE__ ) );
@@ -37,6 +38,10 @@ add_action( 'plugins_loaded', 'prrint_bootstrap' );
 
 function prrint_bootstrap() {
 	load_plugin_textdomain( 'prrint', false, dirname( plugin_basename( PRRINT_FILE ) ) . '/languages' );
+
+	// Updates from GitHub work even while WooCommerce is inactive.
+	require_once PRRINT_DIR . 'includes/class-prrint-updater.php';
+	Prrint_Updater::init();
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		add_action( 'admin_notices', function () {

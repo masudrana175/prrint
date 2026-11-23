@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.41.1
+Stable tag: 1.42.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,15 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.42.0 =
+* Automatic updates from GitHub: new Prrint versions now appear in
+  Dashboard → Updates and on the Plugins screen with "Update now",
+  "View details" (changelog) and the "Enable auto-updates" toggle, like any
+  other plugin. WordPress checks twice a day; "Check for updates" under
+  Prrint on the Plugins screen checks right away.
+* For a private repository, add define( 'PRRINT_GITHUB_TOKEN', '…' ); to
+  wp-config.php (a read-only token; it is only sent to GitHub).
 
 = 1.41.1 =
 * Oversized carts: "Proceed to checkout" (which led to WooCommerce's
