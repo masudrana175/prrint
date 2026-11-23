@@ -41,6 +41,7 @@ class Prrint_Shipping {
 		add_action( 'template_redirect', array( __CLASS__, 'redirect_blocked_checkout' ) );
 		add_action( 'woocommerce_cart_totals_before_order_total', array( __CLASS__, 'cart_estimate_row' ) );
 		add_action( 'admin_post_' . self::SETUP_ACTION, array( __CLASS__, 'handle_setup' ) );
+		add_action( 'init', array( __CLASS__, 'flush_rates_after_update' ) );
 
 		if ( defined( 'WP_CLI' ) && WP_CLI && class_exists( 'WP_CLI' ) ) {
 			WP_CLI::add_command( 'prrint shipping-test', array( __CLASS__, 'cli_test' ) );
@@ -582,7 +583,31 @@ class Prrint_Shipping {
 				$added[] = 'pickup';
 			}
 		}
+		if ( $added ) {
+			self::flush_rates();
+		}
 		return array( 'zone_id' => $zone->get_id(), 'added' => $added );
+	}
+
+	/**
+	 * Makes WooCommerce recalculate every cart's shipping rates. Carts keep
+	 * their rates in the session until the cart, the address or this cache
+	 * version changes, so after a plugin update or a settings change made
+	 * in code (not through the WooCommerce screens) existing carts would
+	 * otherwise keep showing the old options.
+	 */
+	public static function flush_rates() {
+		if ( class_exists( 'WC_Cache_Helper' ) ) {
+			WC_Cache_Helper::get_transient_version( 'shipping', true );
+		}
+	}
+
+	/** Once per plugin version: new code may price shipping differently. */
+	public static function flush_rates_after_update() {
+		if ( get_option( 'prrint_shipping_rates_version' ) !== PRRINT_VERSION ) {
+			self::flush_rates();
+			update_option( 'prrint_shipping_rates_version', PRRINT_VERSION, true );
+		}
 	}
 
 	/** The shipping zone that covers the whole United States, if any. */

@@ -170,6 +170,7 @@ class Prrint_Freight_Quote {
 			return;
 		}
 		update_option( 'prrint_freight_quote_migrated', 1, false );
+		$changed = false;
 		foreach ( WC_Shipping_Zones::get_zones() as $row ) {
 			$zone = WC_Shipping_Zones::get_zone( $row['id'] );
 			if ( ! $zone ) {
@@ -184,8 +185,12 @@ class Prrint_Freight_Quote {
 				if ( is_array( $settings ) && isset( $settings['oversized'] ) && 'block' === $settings['oversized'] ) {
 					$settings['oversized'] = 'quote';
 					update_option( $key, $settings );
+					$changed = true;
 				}
 			}
+		}
+		if ( $changed ) {
+			Prrint_Shipping::flush_rates();
 		}
 	}
 }

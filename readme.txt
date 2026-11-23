@@ -4,7 +4,7 @@ Tags: woocommerce, photo prints, print shop, image upload, product designer, pho
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.2
-Stable tag: 1.43.1
+Stable tag: 1.43.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,13 @@ in gets a permanent library instead, viewable in My Account.
 This version targets simple products; sizes/papers replace variations.
 
 == Changelog ==
+
+= 1.43.2 =
+* Fix: after updating, carts that already existed could keep showing the
+  old shipping options (e.g. only Local Pickup instead of "Freight —
+  quoted after you order"), because WooCommerce reuses each cart's saved
+  rates. Shipping rates are now refreshed after each plugin update, when
+  the quote-request setting is switched, and after the one-click setup.
 
 = 1.43.1 =
 * Oversized carts taken as quote requests keep the "Call 951-302-4600"
